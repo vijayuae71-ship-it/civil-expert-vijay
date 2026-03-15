@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Technical Consultant | Expert Vijay</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .chat-container { height: calc(100vh - 200px); }
+        .user-msg { background: #e2e8f0; align-self: flex-end; border-radius: 15px 15px 0 15px; margin-left: 20%; }
+        .ai-msg { background: #1e40af; color: white; align-self: flex-start; border-radius: 15px 15px 15px 0; margin-right: 20%; }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans">
+    <nav class="bg-white shadow-sm p-4 flex justify-between items-center sticky top-0 z-10">
+        <div class="flex items-center gap-2">
+            <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+            <h1 class="text-lg font-bold text-slate-800">Vijay's AI Expert</h1>
+        </div>
+        <a href="index.html" class="text-blue-600 font-medium text-sm">Back Home</a>
+    </nav>
+
+    <main class="max-w-2xl mx-auto mt-4 p-4">
+        <div id="chat-box" class="chat-container bg-white rounded-2xl shadow-sm border p-4 overflow-y-auto flex flex-col gap-4">
+            <div class="ai-msg p-4 text-sm md:text-base shadow-sm">
+                Hello, I am Vijay's AI advisor. With 25 years in RMC and Construction, I'm ready for your technical questions. How can I help?
+            </div>
+        </div>
+
+        <div class="mt-4 flex gap-2">
+            <input type="text" id="user-input" placeholder="Ask about concrete, logistics..." 
+                   class="flex-1 p-4 border rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+            <button onclick="sendMessage()" id="send-btn" class="bg-blue-700 text-white px-6 py-4 rounded-xl font-bold">
+                Send
+            </button>
+        </div>
+    </main>
+
+    <script>
+        async function sendMessage() {
+            const input = document.getElementById('user-input');
+            const chatBox = document.getElementById('chat-box');
+            const btn = document.getElementById('send-btn');
+            const userMessage = input.value.trim();
+            
+            if (userMessage === "") return;
+
+            input.value = "";
+            input.disabled = true;
+            btn.disabled = true;
+
+            appendMessage(userMessage, 'user-msg');
+
+            try {
+                const response = await fetch('/.netlify/functions/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: userMessage })
+                });
+                
+                const data = await response.json();
+                appendMessage(data.reply || "I'm processing your request...", 'ai-msg');
+            } catch (error) {
+                appendMessage("Check your Netlify Environment Variables for the API Key.", 'ai-msg');
+            } finally {
+                input.disabled = false;
+                btn.disabled = false;
+                input.focus();
+            }
+        }
+
+        function appendMessage(text, className) {
+            const chatBox = document.getElementById('chat-box');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `${className} p-4 text-sm md:text-base shadow-sm`;
+            msgDiv.innerText = text;
+            chatBox.appendChild(msgDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        document.getElementById('user-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+    </script>
+</body>
+</html>
