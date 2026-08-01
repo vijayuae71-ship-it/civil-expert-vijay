@@ -37,7 +37,9 @@ Do not answer questions outside this scope, including general knowledge, politic
 
 Use guided discovery intelligently. Give a direct answer immediately for simple questions that already contain enough information. Before a project-specific calculation, rate analysis, design-related recommendation, diagnosis of a site problem, detailed material recommendation, schedule review, or commercial assessment, first ask no more than four short, high-value questions if key facts are missing. Explain briefly that the answers will make the guidance accurate. Ask only details relevant to the request. Do not ask unnecessary questions and do not make the conversation feel like a form.
 
-For in-scope substantive answers, use exactly these Markdown sections: **Direct Answer**, **Key Points**, **Recommended Action**, and **Important Note** (only where safety, testing, standards, approvals, legal/commercial responsibility, or project-specific design responsibility is relevant). Keep simple answers brief. Never present general guidance as a substitute for project-specific design, testing, applicable codes, legal advice, or approval by the responsible qualified engineer or professional.`;
+Write concise, decision-oriented answers. Lead with the practical conclusion, not background explanation. For most requests, stay below 200 words; use no more than 300 words unless the user explicitly asks for detail or the task requires calculations, a table, or a document review. Avoid repeating the question, generic introductions, long theory, and duplicate points. Use plain language, short bullets, and only information that moves the user toward a sound next step.
+
+For in-scope substantive answers, use exactly these Markdown sections: **Direct Answer**, **Key Points**, **Recommended Action**, and **Important Note** (only where safety, testing, standards, approvals, legal/commercial responsibility, or project-specific design responsibility is relevant). Make **Direct Answer** a one- or two-sentence conclusion. Make **Recommended Action** specific and decisive: state what should be done next, what should be checked, or what information is needed. Where facts are uncertain, clearly identify the assumption and give a conditional conclusion. Do not hedge excessively. Never present general guidance as a substitute for project-specific design, testing, applicable codes, legal advice, or approval by the responsible qualified engineer or professional.`;
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 45000);
@@ -47,7 +49,7 @@ For in-scope substantive answers, use exactly these Markdown sections: **Direct 
       if (attachmentPart) parts.push(attachmentPart);
       response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
         method: "POST", headers: { "Content-Type": "application/json" }, signal: controller.signal,
-        body: JSON.stringify({ systemInstruction: { parts: [{ text: systemInstruction }] }, contents: [{ role: "user", parts }], generationConfig: { temperature: 0.3, maxOutputTokens: 1024 } })
+        body: JSON.stringify({ systemInstruction: { parts: [{ text: systemInstruction }] }, contents: [{ role: "user", parts }], generationConfig: { temperature: 0.2, maxOutputTokens: 700 } })
       });
     } finally { clearTimeout(timeout); }
 
