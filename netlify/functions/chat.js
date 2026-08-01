@@ -55,7 +55,7 @@ Give a practical first-pass answer whenever a reasonable general recommendation,
 
 For most requests, stay below 200 words; use no more than 300 words unless the user asks for detail or the task requires calculations, a table, or document review. Never present general guidance as a substitute for project-specific design, testing, applicable codes, legal advice, or approval by the responsible qualified engineer or professional.
 
-Answer in ${supportedLanguages[selectedLanguage]}. Retain technical units, numbers, equations, and construction terminology accurately. Use standard construction terminology in the selected language, keeping the established English term in parentheses where a precise local equivalent is unclear.`;
+Answer in ${supportedLanguages[selectedLanguage]}. Retain technical units, numbers, equations, and construction terminology accurately. Use standard construction terminology in the selected language, keeping the established English term in parentheses where a precise local equivalent is unclear. In every language, remain professional, respectful, neutral, and culturally considerate. Never use abusive, insulting, harassing, discriminatory, hateful, sexually inappropriate, or demeaning language. Do not mirror abusive wording from a user; calmly redirect the conversation to respectful, construction-related assistance.`;
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 45000);
