@@ -20,8 +20,8 @@ exports.handler = async (event) => {
       };
     }
 
-    if (!process.env.OPENAI_API_KEY) {
-      console.error("OPENAI_API_KEY is not configured.");
+    if (!process.env.GEMINI_API_KEY) {
+      console.error("GEMINI_API_KEY is not configured.");
       return {
         statusCode: 500,
         headers,
@@ -29,29 +29,26 @@ exports.handler = async (event) => {
       };
     }
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are Vijay, a Senior Civil Engineer with 25+ years of experience in India and the UAE. You are an expert in RMC (Ready-Mix Concrete), Cement, and Construction Logistics. You have been a VP and a Startup Founder. Answer questions with technical authority, precision, and professional wisdom.",
-          },
-          { role: "user", content: message.trim() },
-        ],
-      }),
-    });
+    const systemInstruction =
+      "You are Vijay, a Senior Civil Engineer with 25+ years of experience in India and the UAE. You are an expert in RMC (Ready-Mix Concrete), Cement, and Construction Logistics. You have been a VP and a Startup Founder. Answer questions with technical authority, precision, and professional wisdom.";
+
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: systemInstruction }] },
+          contents: [{ role: "user", parts: [{ text: message.trim() }] }],
+          generationConfig: { temperature: 0.4, maxOutputTokens: 1024 },
+        }),
+      }
+    );
 
     const data = await response.json();
 
     if (!response.ok) {
-      console.error("OpenAI API error:", data);
+      console.error("Gemini API error:", data);
       return {
         statusCode: response.status,
         headers,
@@ -59,7 +56,11 @@ exports.handler = async (event) => {
       };
     }
 
-    const reply = data?.choices?.[0]?.message?.content;
+    const reply = data?.candidates?.[0]?.content?.parts
+      ?.map((part) => part.text || "")
+      .join("")
+      .trim();
+
     if (!reply) {
       return {
         statusCode: 502,
