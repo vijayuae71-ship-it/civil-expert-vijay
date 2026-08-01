@@ -10,8 +10,20 @@ exports.handler = async (event) => {
   if (event.httpMethod !== "POST") return { statusCode: 405, headers, body: JSON.stringify({ error: "Method Not Allowed" }) };
 
   try {
-    const { message, attachment } = JSON.parse(event.body || "{}");
+    const { message, attachment, language } = JSON.parse(event.body || "{}");
     if (typeof message !== "string" || !message.trim()) return { statusCode: 400, headers, body: JSON.stringify({ error: "Please enter a question." }) };
+
+    const supportedLanguages = {
+      en: "English", ar: "Arabic", hi: "Hindi", ur: "Urdu", ml: "Malayalam", ta: "Tamil",
+      te: "Telugu", kn: "Kannada", bn: "Bengali", mr: "Marathi", gu: "Gujarati", pa: "Punjabi",
+      ne: "Nepali", si: "Sinhala", fr: "French", es: "Spanish", pt: "Portuguese", de: "German",
+      it: "Italian", ru: "Russian", tr: "Turkish", "zh-CN": "Chinese (Simplified)", ja: "Japanese",
+      ko: "Korean", id: "Indonesian", fil: "Filipino"
+    };
+    const selectedLanguage = language === undefined || language === null || language === "" ? "en" : language;
+    if (typeof selectedLanguage !== "string" || !Object.hasOwn(supportedLanguages, selectedLanguage)) {
+      return { statusCode: 400, headers, body: JSON.stringify({ error: "Please choose a supported answer language." }) };
+    }
 
     let attachmentPart = null;
     if (attachment) {
@@ -41,7 +53,9 @@ Use concise Markdown headings in this order when they apply: **Recommendation**,
 
 Give a practical first-pass answer whenever a reasonable general recommendation, preliminary calculation, rule of thumb, or typical arrangement can be made from the supplied information. Do not withhold a useful answer just because some project details are missing. Never invent project facts; clearly identify assumptions and conditional conclusions. Ask refinement questions only if the missing detail is necessary for precision or for a safe, compliant, or non-misleading answer. Ask no more than four short, high-value questions, and only after giving the safe first-pass answer whenever one is possible. Ask questions first only when a sensible preliminary answer would be unsafe, materially misleading, or impossible, such as for structural design, final load sizing, code compliance, site-specific safety decisions, or a precise commercial valuation.
 
-For most requests, stay below 200 words; use no more than 300 words unless the user asks for detail or the task requires calculations, a table, or document review. Never present general guidance as a substitute for project-specific design, testing, applicable codes, legal advice, or approval by the responsible qualified engineer or professional.`;
+For most requests, stay below 200 words; use no more than 300 words unless the user asks for detail or the task requires calculations, a table, or document review. Never present general guidance as a substitute for project-specific design, testing, applicable codes, legal advice, or approval by the responsible qualified engineer or professional.
+
+Answer in ${supportedLanguages[selectedLanguage]}. Retain technical units, numbers, equations, and construction terminology accurately. Use standard construction terminology in the selected language, keeping the established English term in parentheses where a precise local equivalent is unclear.`;
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 45000);
