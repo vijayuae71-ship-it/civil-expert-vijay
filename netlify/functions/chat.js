@@ -91,38 +91,49 @@ Answer in ${supportedLanguages[selectedLanguage]}. Retain technical units, numbe
     let reply = data?.candidates?.[0]?.content?.parts?.map((part) => part.text || "").join("").trim();
     if (!reply) return { statusCode: 502, headers, body: JSON.stringify({ error: "The AI service returned an unexpected response. Please try again." }) };
 
-    // A model occasionally stops after a quotation table header. Retry only those incomplete
-    // quote-ready responses with a deliberately small, table-first instruction.
+    // A model occasionally stops after a quotation table header. A reply is accepted only
+    // when it has real priced rows; headers, separators, or empty rows do not count.
+    const hasCompletedQuoteTable = (text) => {
+      const rows = text.split("\n").filter((line) => line.includes("|")).map((line) =>
+        line.split("|").map((cell) => cell.trim()).filter(Boolean)
+      );
+      const pricedRows = rows.filter((cells) => {
+        const rowText = cells.join(" ").toLowerCase();
+        const isHeaderOrRule = /^(sl\.?\s*no\.?|description|item|unit|quantity|amount|applicable cpwd|[-:| ]+)$/.test(rowText) || cells.every((cell) => /^:?-{3,}:?$/.test(cell));
+        return !isHeaderOrRule && cells.length >= 6 && cells.every(Boolean) && /\d/.test(rowText);
+      });
+      return pricedRows.length >= 2;
+    };
     const isIncompleteQuote = (text) => {
+      if (!hasCompletedQuoteTable(text)) return true;
+      if (selectedLanguage !== "en") return false;
       const lower = text.toLowerCase();
-      const requiredSections = ["scope", "assumption", "grand total", "rate basis", "exclusion", "validity"];
-      const tableLines = text.split("\n").filter((line) => line.includes("|")).length;
-      return requiredSections.some((section) => !lower.includes(section)) || tableLines < 4;
+      return ["scope", "assumption", "grand total", "rate basis", "exclusion", "validity"].some((section) => !lower.includes(section));
     };
 
     if (quoteReady === true && isIncompleteQuote(reply)) {
-      const repairInstruction = `You prepare compact construction quotations. Return a COMPLETE quote-ready answer in ${supportedLanguages[selectedLanguage]} and nothing else. Use this exact order: **Scope**, **Assumptions**, then a valid Markdown BOQ table with a header, separator row, 2 to 5 fully completed priced item rows, and a subtotal row; then **Grand Total**, **Rate basis**, **Exclusions**, and **Validity / Next Step**. Use a maximum of 250 words. Never stop after a table header. For an unverified CPWD reference, write “To be verified against applicable CPWD DSR” in the reference column only and use **Preliminary Market Rate (₹)** as the rate-column header. Any usable price must be clearly called a “Preliminary market estimate”, never CPWD. Use **CPWD DSR Base Rate (₹)** only for a page-verified CPWD rate. If precise pricing cannot be supported, state a clear preliminary range in Grand Total and still complete every table cell.`;
-      const repairController = new AbortController();
-      const repairTimeout = setTimeout(() => repairController.abort(), 20000);
-      try {
-        const repairResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
-          method: "POST", headers: { "Content-Type": "application/json" }, signal: repairController.signal,
-          body: JSON.stringify({
-            systemInstruction: { parts: [{ text: repairInstruction }] },
-            contents: [{ role: "user", parts: [{ text: `Original construction request: ${message.trim()}\n\nIncomplete draft to replace:\n${reply}` }] }],
-            generationConfig: { temperature: 0, maxOutputTokens: 1200, thinkingConfig: { thinkingBudget: 0 } }
-          })
-        });
-        const repairData = await repairResponse.json();
-        const repairedReply = repairData?.candidates?.[0]?.content?.parts?.map((part) => part.text || "").join("").trim();
-        // Repair replies may use translated or equivalent headings; accept a substantive
-        // multi-row table even if wording differs from the primary English-heading check.
-        const repairedTableLines = repairedReply ? repairedReply.split("\n").filter((line) => line.includes("|")).length : 0;
-        if (repairResponse.ok && repairedReply && (repairedTableLines >= 4 || !isIncompleteQuote(repairedReply))) reply = repairedReply;
-      } catch (repairError) {
-        console.error("Quote-ready repair retry failed:", repairError?.name || repairError);
-      } finally {
-        clearTimeout(repairTimeout);
+      const repairInstruction = `You prepare compact construction quotations. Return a COMPLETE quote-ready answer in ${supportedLanguages[selectedLanguage]} and nothing else. Start with **Scope** and **Assumptions**. Then write one valid Markdown BOQ table with: one header row, one separator row, at least 2 fully populated priced item rows, and a Sub-total row. Every data cell must contain a value; do not emit blank pipe rows. After the table write **Grand Total**, **Rate basis**, **Exclusions**, and **Validity / Next Step**. Use a maximum of 250 words. If no exact CPWD entry/rate is page-verified, write “To be verified against applicable CPWD DSR” only in the reference column, use **Preliminary Market Rate (₹)** for the rate-column header, and call every price a **Preliminary market estimate**. Never use CPWD DSR Base Rate (₹) unless its exact source rate is page-verified. Never stop after a table heading.`;
+      for (let attempt = 0; attempt < 2 && isIncompleteQuote(reply); attempt += 1) {
+        const repairController = new AbortController();
+        const repairTimeout = setTimeout(() => repairController.abort(), 10000);
+        try {
+          const repairResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+            method: "POST", headers: { "Content-Type": "application/json" }, signal: repairController.signal,
+            body: JSON.stringify({
+              systemInstruction: { parts: [{ text: repairInstruction }] },
+              // Do not give the model the broken table draft: it can cause a repeated header-only reply.
+              contents: [{ role: "user", parts: [{ text: `Construction request to quote: ${message.trim()}` }] }],
+              generationConfig: { temperature: 0, maxOutputTokens: 1200, thinkingConfig: { thinkingBudget: 0 } }
+            })
+          });
+          const repairData = await repairResponse.json();
+          const repairedReply = repairData?.candidates?.[0]?.content?.parts?.map((part) => part.text || "").join("").trim();
+          if (repairResponse.ok && repairedReply && !isIncompleteQuote(repairedReply)) reply = repairedReply;
+        } catch (repairError) {
+          console.error("Quote-ready repair retry failed:", repairError?.name || repairError);
+        } finally {
+          clearTimeout(repairTimeout);
+        }
       }
     }
 
