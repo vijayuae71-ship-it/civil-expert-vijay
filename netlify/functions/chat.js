@@ -115,7 +115,10 @@ Answer in ${supportedLanguages[selectedLanguage]}. Retain technical units, numbe
         });
         const repairData = await repairResponse.json();
         const repairedReply = repairData?.candidates?.[0]?.content?.parts?.map((part) => part.text || "").join("").trim();
-        if (repairResponse.ok && repairedReply && !isIncompleteQuote(repairedReply)) reply = repairedReply;
+        // Repair replies may use translated or equivalent headings; accept a substantive
+        // multi-row table even if wording differs from the primary English-heading check.
+        const repairedTableLines = repairedReply ? repairedReply.split("\n").filter((line) => line.includes("|")).length : 0;
+        if (repairResponse.ok && repairedReply && (repairedTableLines >= 4 || !isIncompleteQuote(repairedReply))) reply = repairedReply;
       } catch (repairError) {
         console.error("Quote-ready repair retry failed:", repairError?.name || repairError);
       } finally {
