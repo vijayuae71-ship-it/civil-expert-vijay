@@ -88,8 +88,41 @@ Answer in ${supportedLanguages[selectedLanguage]}. Retain technical units, numbe
       console.error("Gemini API error:", response.status, data);
       return { statusCode: response.status >= 400 && response.status < 600 ? response.status : 502, headers, body: JSON.stringify({ error: data?.error?.message || "The AI service could not answer right now. Please try again." }) };
     }
-    const reply = data?.candidates?.[0]?.content?.parts?.map((part) => part.text || "").join("").trim();
+    let reply = data?.candidates?.[0]?.content?.parts?.map((part) => part.text || "").join("").trim();
     if (!reply) return { statusCode: 502, headers, body: JSON.stringify({ error: "The AI service returned an unexpected response. Please try again." }) };
+
+    // A model occasionally stops after a quotation table header. Retry only those incomplete
+    // quote-ready responses with a deliberately small, table-first instruction.
+    const isIncompleteQuote = (text) => {
+      const lower = text.toLowerCase();
+      const requiredSections = ["scope", "assumption", "grand total", "rate basis", "exclusion", "validity"];
+      const tableLines = text.split("\n").filter((line) => line.includes("|")).length;
+      return requiredSections.some((section) => !lower.includes(section)) || tableLines < 4;
+    };
+
+    if (quoteReady === true && isIncompleteQuote(reply)) {
+      const repairInstruction = `You prepare compact construction quotations. Return a COMPLETE quote-ready answer in ${supportedLanguages[selectedLanguage]} and nothing else. Use this exact order: **Scope**, **Assumptions**, then a valid Markdown BOQ table with a header, separator row, 2 to 5 fully completed priced item rows, and a subtotal row; then **Grand Total**, **Rate basis**, **Exclusions**, and **Validity / Next Step**. Use a maximum of 250 words. Never stop after a table header. Use “To be verified against applicable CPWD DSR” for any unverified CPWD reference and DSR-rate cell. Any usable price must be clearly called a “Preliminary market estimate”, never CPWD. If precise pricing cannot be supported, state a clear preliminary range in Grand Total and still complete every table cell.`;
+      const repairController = new AbortController();
+      const repairTimeout = setTimeout(() => repairController.abort(), 20000);
+      try {
+        const repairResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+          method: "POST", headers: { "Content-Type": "application/json" }, signal: repairController.signal,
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: repairInstruction }] },
+            contents: [{ role: "user", parts: [{ text: `Original construction request: ${message.trim()}\n\nIncomplete draft to replace:\n${reply}` }] }],
+            generationConfig: { temperature: 0, maxOutputTokens: 1200, thinkingConfig: { thinkingBudget: 0 } }
+          })
+        });
+        const repairData = await repairResponse.json();
+        const repairedReply = repairData?.candidates?.[0]?.content?.parts?.map((part) => part.text || "").join("").trim();
+        if (repairResponse.ok && repairedReply && !isIncompleteQuote(repairedReply)) reply = repairedReply;
+      } catch (repairError) {
+        console.error("Quote-ready repair retry failed:", repairError?.name || repairError);
+      } finally {
+        clearTimeout(repairTimeout);
+      }
+    }
+
     return { statusCode: 200, headers, body: JSON.stringify({ reply }) };
   } catch (error) {
     console.error("Chat function error:", error);
