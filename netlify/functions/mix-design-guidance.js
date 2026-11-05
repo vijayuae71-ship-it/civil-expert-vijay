@@ -18,7 +18,7 @@ const BANDS = [
   },
   {
     id: "high", min: 56, max: 84,
-    label: "High-strength concrete (M60–M80)",
+    label: "High-strength concrete (M56–M84)",
     lines: [
       "Binder 450–560 kg/m³: OPC 53 grade + silica fume / micro silica (IS 15388) 5–10% of binder is normally required; fly ash or GGBS 10–25% optional for workability and heat.",
       "Water–binder ratio 0.25–0.33; water 140–160 kg/m³.",
