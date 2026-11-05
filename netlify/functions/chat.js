@@ -1,7 +1,41 @@
 const { buildCivilCatalogueContext } = require("./cpwd-civil-catalogue");
 const { relevantFaqContext } = require("./construction-faq-knowledge");
 const { relevantDubaiRmcCostingContext } = require("./dubai-rmc-costing");
-const { relevantMixDesignContext } = require("./mix-design-guidance");
+const { relevantMixDesignContext, requestedGrade } = require("./mix-design-guidance");
+const { relevantEngineeringReference } = require("./site-engineering-reference");
+const { checkRateLimit, isAllowedOrigin } = require("./rate-limit");
+
+// Earlier turns of this conversation, so follow-up questions ("now make it M30") keep context.
+// Only the last few turns are kept, each trimmed, and the sequence must start with a user turn.
+function sanitizeHistory(history) {
+  const turns = (Array.isArray(history) ? history : [])
+    .filter((turn) => turn && (turn.role === "user" || turn.role === "model") && typeof turn.text === "string" && turn.text.trim())
+    .slice(-8)
+    .map((turn) => ({ role: turn.role, parts: [{ text: turn.text.trim().slice(0, 3000) }] }));
+  while (turns.length && turns[0].role !== "user") turns.shift();
+  return turns;
+}
+
+// A model occasionally stops after a quotation table header. A reply is accepted only
+// when it has real priced rows; headers, separators, or empty rows do not count.
+function hasCompletedQuoteTable(text) {
+  const rows = String(text).split("\n").filter((line) => line.includes("|")).map((line) =>
+    line.split("|").map((cell) => cell.trim()).filter(Boolean)
+  );
+  const pricedRows = rows.filter((cells) => {
+    const rowText = cells.join(" ").toLowerCase();
+    const isHeaderOrRule = /^(sl\.?\s*no\.?|description|item|unit|quantity|amount|applicable cpwd|[-:| ]+)$/.test(rowText) || cells.every((cell) => /^:?-{3,}:?$/.test(cell));
+    return !isHeaderOrRule && cells.length >= 6 && cells.every(Boolean) && /\d/.test(rowText);
+  });
+  return pricedRows.length >= 2;
+}
+
+function isIncompleteQuote(text, language = "en") {
+  if (!hasCompletedQuoteTable(text)) return true;
+  if (language !== "en") return false;
+  const lower = String(text).toLowerCase();
+  return ["scope", "assumption", "grand total", "rate basis", "exclusion", "validity"].some((section) => !lower.includes(section));
+}
 
 exports.handler = async (event) => {
   const headers = { "Content-Type": "application/json" };
@@ -13,19 +47,14 @@ exports.handler = async (event) => {
   ]);
 
   if (event.httpMethod !== "POST") return { statusCode: 405, headers, body: JSON.stringify({ error: "Method Not Allowed" }) };
+  if (!isAllowedOrigin(event)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Requests are accepted only from this website." }) };
 
   try {
     const { message, attachment, language, quoteReady, history } = JSON.parse(event.body || "{}");
     if (typeof message !== "string" || !message.trim()) return { statusCode: 400, headers, body: JSON.stringify({ error: "Please enter a question." }) };
     if (message.length > 4000) return { statusCode: 400, headers, body: JSON.stringify({ error: "Please shorten your question to under 4,000 characters." }) };
 
-    // Earlier turns of this conversation, so follow-up questions ("now make it M30") keep context.
-    // Only the last few turns are kept, each trimmed, and the sequence must start with a user turn.
-    const priorTurns = (Array.isArray(history) ? history : [])
-      .filter((turn) => turn && (turn.role === "user" || turn.role === "model") && typeof turn.text === "string" && turn.text.trim())
-      .slice(-8)
-      .map((turn) => ({ role: turn.role, parts: [{ text: turn.text.trim().slice(0, 3000) }] }));
-    while (priorTurns.length && priorTurns[0].role !== "user") priorTurns.shift();
+    const priorTurns = sanitizeHistory(history);
 
     const supportedLanguages = {
       en: "English", ar: "Arabic", hi: "Hindi", ur: "Urdu", ml: "Malayalam", ta: "Tamil",
@@ -55,6 +84,12 @@ exports.handler = async (event) => {
       return { statusCode: 500, headers, body: JSON.stringify({ error: "The AI service has not been configured yet. Add GEMINI_API_KEY in Netlify environment variables." }) };
     }
 
+    const limited = await checkRateLimit(event);
+    if (limited) return { statusCode: limited.statusCode, headers, body: JSON.stringify({ error: limited.error }) };
+
+    // Anonymous usage log (Netlify → Functions → chat → Logs) to see what people ask.
+    console.log(JSON.stringify({ type: "question", language: selectedLanguage, quoteReady: quoteReady === true, followUp: priorTurns.length > 0, attachment: Boolean(attachmentPart), grade: requestedGrade(message), text: message.trim().slice(0, 300) }));
+
     // Key goes in a header, not the URL, so it never appears in request logs.
     const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
     const geminiHeaders = { "Content-Type": "application/json", "x-goog-api-key": apiKey };
@@ -72,6 +107,8 @@ If a document is attached, use it only to answer the accompanying construction-r
 When relevant FAQ guidance is supplied with the user request, use it as a concise general-practice reference. Do not cite it as a code, project specification, approved design, or rate source. Preserve its stated verification status; defer to approved drawings, project specifications, supplier data, applicable codes, and the responsible qualified engineer whenever they govern.
 
 When a Dubai RMC costing context is supplied with the user request, apply it only to that Dubai RMC cost calculation. Its stated cement/OPC and GGBS figures are client/project inputs, not CPWD or market rates. Use AED consistently in its table and totals, and label those figures “Client/project input rate (AED)”. This location-specific currency and rate-basis instruction overrides the generic ₹ header examples elsewhere in this instruction. Do not apply it to Abu Dhabi, any other UAE emirate, other locations, or non-RMC work.
+
+When an engineering reference is supplied with the user request, prefer its code-sourced figures over memory, name the source (for example "IS 456:2000 Table 5") when you use one, and note that the project specification governs if it is stricter.
 
 When concrete mix-design guidance is supplied with the user request, follow its answer requirements: list every constituent (including silica fume / micro silica, fly ash or GGBS, and each admixture where the grade needs them) in a per-m³ table with the step-by-step working. Present its figures as indicative trial-mix starting points, never as an approved or guaranteed mix design.
 
@@ -102,7 +139,8 @@ Answer in ${supportedLanguages[selectedLanguage]}. Retain technical units, numbe
       const faqContext = relevantFaqContext(message);
       const dubaiRmcContext = relevantDubaiRmcCostingContext(message);
       const mixDesignContext = relevantMixDesignContext(message);
-      const contextualGuidance = [faqContext, dubaiRmcContext, mixDesignContext].filter(Boolean).map((context) => `\n\n${context}`).join("");
+      const engineeringContext = relevantEngineeringReference(message);
+      const contextualGuidance = [faqContext, dubaiRmcContext, mixDesignContext, engineeringContext].filter(Boolean).map((context) => `\n\n${context}`).join("");
       const parts = [{ text: attachmentPart ? `${message.trim()}${dsrContext}${contextualGuidance}\n\nA project document named \"${attachment.name}\" is attached. Analyze it only as needed for this request.` : `${message.trim()}${dsrContext}${contextualGuidance}` }];
       if (attachmentPart) parts.push(attachmentPart);
       response = await fetch(GEMINI_URL, {
@@ -119,29 +157,9 @@ Answer in ${supportedLanguages[selectedLanguage]}. Retain technical units, numbe
     let reply = data?.candidates?.[0]?.content?.parts?.map((part) => part.text || "").join("").trim();
     if (!reply) return { statusCode: 502, headers, body: JSON.stringify({ error: "The AI service returned an unexpected response. Please try again." }) };
 
-    // A model occasionally stops after a quotation table header. A reply is accepted only
-    // when it has real priced rows; headers, separators, or empty rows do not count.
-    const hasCompletedQuoteTable = (text) => {
-      const rows = text.split("\n").filter((line) => line.includes("|")).map((line) =>
-        line.split("|").map((cell) => cell.trim()).filter(Boolean)
-      );
-      const pricedRows = rows.filter((cells) => {
-        const rowText = cells.join(" ").toLowerCase();
-        const isHeaderOrRule = /^(sl\.?\s*no\.?|description|item|unit|quantity|amount|applicable cpwd|[-:| ]+)$/.test(rowText) || cells.every((cell) => /^:?-{3,}:?$/.test(cell));
-        return !isHeaderOrRule && cells.length >= 6 && cells.every(Boolean) && /\d/.test(rowText);
-      });
-      return pricedRows.length >= 2;
-    };
-    const isIncompleteQuote = (text) => {
-      if (!hasCompletedQuoteTable(text)) return true;
-      if (selectedLanguage !== "en") return false;
-      const lower = text.toLowerCase();
-      return ["scope", "assumption", "grand total", "rate basis", "exclusion", "validity"].some((section) => !lower.includes(section));
-    };
-
-    if (quoteReady === true && isIncompleteQuote(reply)) {
+    if (quoteReady === true && isIncompleteQuote(reply, selectedLanguage)) {
       const repairInstruction = `You prepare compact construction quotations. Return a COMPLETE quote-ready answer in ${supportedLanguages[selectedLanguage]} and nothing else. Start with **Scope** and **Assumptions**. Then write one valid Markdown BOQ table with: one header row, one separator row, at least 2 fully populated priced item rows, and a Sub-total row. Every data cell must contain a value; do not emit blank pipe rows. After the table write **Grand Total**, **Rate basis**, **Exclusions**, and **Validity / Next Step**. Use a maximum of 250 words. If no exact CPWD entry/rate is page-verified, write “To be verified against applicable CPWD DSR” only in the reference column, use **Preliminary Market Rate (₹)** for the rate-column header, and call every price a **Preliminary market estimate**. Never use CPWD DSR Base Rate (₹) unless its exact source rate is page-verified. Never stop after a table heading.`;
-      for (let attempt = 0; attempt < 2 && isIncompleteQuote(reply); attempt += 1) {
+      for (let attempt = 0; attempt < 2 && isIncompleteQuote(reply, selectedLanguage); attempt += 1) {
         const repairController = new AbortController();
         const repairTimeout = setTimeout(() => repairController.abort(), 10000);
         try {
@@ -156,7 +174,7 @@ Answer in ${supportedLanguages[selectedLanguage]}. Retain technical units, numbe
           });
           const repairData = await repairResponse.json();
           const repairedReply = repairData?.candidates?.[0]?.content?.parts?.map((part) => part.text || "").join("").trim();
-          if (repairResponse.ok && repairedReply && !isIncompleteQuote(repairedReply)) reply = repairedReply;
+          if (repairResponse.ok && repairedReply && !isIncompleteQuote(repairedReply, selectedLanguage)) reply = repairedReply;
         } catch (repairError) {
           console.error("Quote-ready repair retry failed:", repairError?.name || repairError);
         } finally {
@@ -171,3 +189,5 @@ Answer in ${supportedLanguages[selectedLanguage]}. Retain technical units, numbe
     return { statusCode: error?.name === "AbortError" ? 504 : 500, headers, body: JSON.stringify({ error: error?.name === "AbortError" ? "The AI request took too long. Please try again." : "Failed to connect to the AI expert. Please try again." }) };
   }
 };
+
+module.exports = Object.assign(module.exports, { sanitizeHistory, hasCompletedQuoteTable, isIncompleteQuote });

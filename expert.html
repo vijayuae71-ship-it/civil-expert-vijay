@@ -6,8 +6,17 @@
     <title>AI Technical Consultant | Expert Vijay</title>
     <meta name="description" content="Ask Engineer Vijay's AI consultant about RMC, concrete, BOQs, rate analysis, MEP, fit-out, QA/QC and site operations. Export answers to PDF, Excel or PowerPoint.">
     <meta name="theme-color" content="#1e3a8a">
+    <link rel="canonical" href="https://civil-expert-vijay.netlify.app/expert">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Engineer Vijay">
+    <meta property="og:title" content="Ask Vijay's AI Construction Expert">
+    <meta property="og:description" content="RMC, concrete mix design, BOQs, rate analysis, MEP, fit-out and QA/QC answers in 26 languages — export to PDF, Excel or PowerPoint.">
+    <meta property="og:url" content="https://civil-expert-vijay.netlify.app/expert">
+    <meta property="og:image" content="https://civil-expert-vijay.netlify.app/assets/og-image.png">
+    <meta name="twitter:card" content="summary_large_image">
     <link rel="icon" href="engineer-vijay-logo.png">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="assets/site.css">
+    <script src="assets/site-config.js"></script>
     <style>
         html, body { height: 100%; }
         body { display: flex; flex-direction: column; height: 100dvh; }
@@ -22,7 +31,7 @@
         ol.reply-list { list-style: decimal; }
         [dir="rtl"] .reply-list { margin: .3rem 1.2rem .6rem 0; }
         .boq-table-wrap { overflow-x: auto; margin: .6rem 0; border: 1px solid #cbd5e1; border-radius: .6rem; }
-        .boq-table { width: 100%; min-width: 640px; border-collapse: collapse; font-size: .78rem; line-height: 1.35; }
+        .boq-table { width: 100%; border-collapse: collapse; font-size: .78rem; line-height: 1.35; }
         .boq-table th { background: #1e40af; color: #fff; font-weight: 600; text-align: left; position: sticky; top: 0; }
         .boq-table th, .boq-table td { padding: .5rem .55rem; border: 1px solid #e2e8f0; vertical-align: top; }
         .boq-table tbody tr:nth-child(even) td { background: #f8fafc; }
@@ -44,8 +53,9 @@
                 <span class="flex items-center gap-1.5 text-xs text-slate-500"><span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>RMC · Civil · MEP · BOQ</span>
             </span>
         </a>
-        <div class="flex items-center gap-3 text-sm font-medium">
-            <button id="new-chat" type="button" class="rounded-lg border border-slate-300 px-3 py-1.5 text-slate-700 hover:bg-slate-50" title="Start a new conversation">New chat</button>
+        <div class="flex shrink-0 items-center gap-2 sm:gap-3 text-sm font-medium">
+            <button type="button" data-open-consult class="whitespace-nowrap rounded-lg bg-amber-500 px-3 py-1.5 font-semibold text-slate-900 hover:bg-amber-400" title="Request a consultation with Engineer Vijay">Consult<span class="hidden sm:inline"> Vijay</span></button>
+            <button id="new-chat" type="button" class="whitespace-nowrap rounded-lg border border-slate-300 px-3 py-1.5 text-slate-700 hover:bg-slate-50" title="Start a new conversation">New<span class="hidden sm:inline"> chat</span></button>
             <a href="calculators.html" class="hidden sm:inline text-blue-700 hover:text-blue-900">Calculators</a>
             <a href="construction-faq.html" class="hidden sm:inline text-blue-700 hover:text-blue-900">FAQ</a>
         </div>
@@ -94,9 +104,35 @@
                 </label>
                 <span class="hidden sm:inline text-slate-400">Enter to send · Shift+Enter for a new line</span>
             </div>
-            <p class="mt-1.5 text-[11px] leading-snug text-slate-400">General professional guidance only; documents are not stored. Verify design, testing, standards and approvals with the responsible qualified engineer.</p>
+            <p class="mt-1.5 text-[11px] leading-snug text-slate-400">General professional guidance only. Documents are not stored; questions and feedback are logged anonymously to improve answers. Verify design, testing, standards and approvals with the responsible qualified engineer.</p>
         </div>
     </footer>
+
+    <dialog id="consult-dialog" class="w-[min(92vw,28rem)] rounded-2xl p-0 shadow-2xl backdrop:bg-slate-900/50">
+        <form name="consultation" method="POST" data-netlify="true" netlify-honeypot="bot-field" id="consult-form" class="p-5">
+            <input type="hidden" name="form-name" value="consultation">
+            <p class="hidden"><label>Leave empty <input name="bot-field"></label></p>
+            <div class="flex items-start justify-between gap-4">
+                <div><h2 class="text-lg font-bold text-slate-900">Talk to Engineer Vijay</h2><p class="mt-1 text-sm text-slate-600">For project-specific review, mix design, plant setup, estimates or site problems. Vijay replies personally.</p></div>
+                <button type="button" data-close-consult class="text-xl leading-none text-slate-400 hover:text-slate-700" aria-label="Close">✕</button>
+            </div>
+            <div class="mt-4 grid gap-3 text-sm">
+                <label class="grid min-w-0 gap-1 font-medium text-slate-700">Name<input name="name" required autocomplete="name" class="min-w-0 w-full rounded-lg border border-slate-300 px-3 py-2 font-normal focus:outline-none focus:ring-2 focus:ring-blue-500"></label>
+                <label class="grid min-w-0 gap-1 font-medium text-slate-700">Phone / WhatsApp or email<input name="contact" required autocomplete="email" class="min-w-0 w-full rounded-lg border border-slate-300 px-3 py-2 font-normal focus:outline-none focus:ring-2 focus:ring-blue-500"></label>
+                <div class="grid grid-cols-2 gap-3">
+                    <label class="grid min-w-0 gap-1 font-medium text-slate-700">Location<input name="location" placeholder="e.g. Dubai" class="min-w-0 w-full rounded-lg border border-slate-300 px-3 py-2 font-normal focus:outline-none focus:ring-2 focus:ring-blue-500"></label>
+                    <label class="grid min-w-0 gap-1 font-medium text-slate-700">Topic<select name="topic" class="min-w-0 w-full rounded-lg border border-slate-300 px-2 py-2 font-normal focus:outline-none focus:ring-2 focus:ring-blue-500"><option>RMC / concrete</option><option>Mix design</option><option>BOQ / estimate</option><option>Batching plant / logistics</option><option>QA/QC / site problem</option><option>MEP / fit-out</option><option>Other</option></select></label>
+                </div>
+                <label class="grid min-w-0 gap-1 font-medium text-slate-700">What do you need help with?<textarea name="message" rows="4" required class="min-w-0 w-full rounded-lg border border-slate-300 px-3 py-2 font-normal focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea></label>
+                <input type="hidden" name="chat-context">
+            </div>
+            <p id="consult-status" class="mt-3 hidden text-sm"></p>
+            <div class="mt-4 flex flex-wrap items-center gap-2">
+                <button type="submit" class="rounded-lg bg-blue-700 px-4 py-2 font-semibold text-white hover:bg-blue-800 disabled:opacity-60">Send request</button>
+                <a data-whatsapp class="hidden rounded-lg border border-green-600 px-4 py-2 font-semibold text-green-700 hover:bg-green-50" target="_blank" rel="noopener">WhatsApp instead</a>
+            </div>
+        </form>
+    </dialog>
 
     <script>
     (() => {
@@ -173,6 +209,40 @@
             t.className = 'fixed left-1/2 -translate-x-1/2 bottom-28 z-50 rounded-lg bg-slate-900 text-white text-sm px-4 py-2 shadow-lg';
             t.textContent = text; document.body.appendChild(t); setTimeout(() => t.remove(), 2600);
         }
+        // ---------- consultation / WhatsApp ----------
+        const CONFIG = window.SITE_CONFIG || {};
+        const waNumber = String(CONFIG.whatsappNumber || '').replace(/\D/g, '');
+        const waLink = text => `https://wa.me/${waNumber}?text=${encodeURIComponent(text)}`;
+        const dialog = $('consult-dialog'), consultForm = $('consult-form');
+        function openConsult(prefill = '') {
+            const last = conversation.slice(-2).map(m => `${m.role === 'user' ? 'Q' : 'A'}: ${m.text}`).join('\n\n').slice(0, 3000);
+            consultForm.elements['chat-context'].value = last;
+            if (prefill && !consultForm.elements.message.value) consultForm.elements.message.value = prefill;
+            const wa = consultForm.querySelector('[data-whatsapp]');
+            if (waNumber) { wa.href = waLink(`Hello Engineer Vijay, I need help with: ${prefill || 'my project'}`); wa.classList.remove('hidden'); }
+            $('consult-status').classList.add('hidden');
+            if (dialog.showModal) dialog.showModal(); else dialog.setAttribute('open', '');
+        }
+        document.querySelectorAll('[data-open-consult]').forEach(b => b.addEventListener('click', () => openConsult()));
+        dialog.querySelector('[data-close-consult]').addEventListener('click', () => dialog.close());
+        dialog.addEventListener('click', e => { if (e.target === dialog) dialog.close(); });
+        if (location.hash === '#consult') { history.replaceState(null, '', location.pathname); setTimeout(() => openConsult(), 0); }
+        consultForm.addEventListener('submit', async e => {
+            e.preventDefault();
+            const status = $('consult-status'), btn = consultForm.querySelector('[type=submit]');
+            btn.disabled = true;
+            try {
+                const res = await fetch('/', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(new FormData(consultForm)).toString() });
+                if (!res.ok) throw new Error();
+                status.className = 'mt-3 text-sm text-green-700'; status.textContent = 'Thank you — your request has been sent. Vijay will contact you soon.';
+                consultForm.reset();
+                setTimeout(() => dialog.close(), 2500);
+            } catch {
+                status.className = 'mt-3 text-sm text-red-700';
+                status.textContent = waNumber ? 'Could not send the form. Please use the WhatsApp button instead.' : 'Could not send the form. Please try again in a moment.';
+            } finally { btn.disabled = false; }
+        });
+
         const scrollToEnd = () => scroller.scrollTo({ top: scroller.scrollHeight, behavior: 'smooth' });
 
         // ---------- sending ----------
@@ -201,7 +271,8 @@
                 typing.remove();
                 conversation.push({ role: 'user', text: file ? `${text}\n\n[Attached: ${file.name}]` : text }, { role: 'model', text: data.reply, lang: $('answer-language').value });
                 store.set(STORAGE_KEY, conversation.slice(-40));
-                addAI(data.reply, $('answer-language').value);
+                addAI(data.reply, $('answer-language').value, { question: text });
+                maybeShowCta(text);
                 removeFile();
             } catch (err) {
                 typing.remove();
@@ -230,7 +301,40 @@
             retry.onclick = () => { w.remove(); send(retryText); };
             b.appendChild(retry); w.appendChild(b); scrollToEnd();
         }
-        function addAI(text, lang, { scroll = true } = {}) {
+        function sendFeedback(payload) {
+            fetch('/.netlify/functions/feedback', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), keepalive: true }).catch(() => {});
+        }
+        function feedbackControls(actions, text, question, lang) {
+            const wrap = document.createElement('span'); wrap.className = 'inline-flex items-center gap-1 ml-1';
+            const vote = (v, btn) => {
+                wrap.querySelectorAll('button').forEach(b => b.disabled = true);
+                btn.classList.add('!border-blue-500', '!text-blue-700');
+                const base = { vote: v, question, answer: text, language: lang, quoteReady: $('quote-ready').checked };
+                if (v === 'up') { sendFeedback(base); toast('Thanks for the feedback!'); return; }
+                const box = document.createElement('form'); box.className = 'mt-1.5 flex w-full gap-1.5';
+                box.innerHTML = '<input maxlength="300" placeholder="What was wrong or missing? (optional)" class="flex-1 rounded-md border border-slate-300 px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"><button class="rounded-md bg-blue-700 px-2.5 py-1 text-xs font-semibold text-white">Send</button>';
+                box.addEventListener('submit', ev => { ev.preventDefault(); sendFeedback({ ...base, reason: box.querySelector('input').value }); box.replaceWith(Object.assign(document.createElement('p'), { className: 'mt-1 w-full text-xs text-slate-500', textContent: 'Thanks — this helps improve the answers.' })); });
+                actions.appendChild(box); box.querySelector('input').focus();
+            };
+            [['👍', 'up', 'Helpful answer'], ['👎', 'down', 'Not helpful']].forEach(([icon, v, title]) => {
+                const b = document.createElement('button'); b.type = 'button'; b.title = title; b.setAttribute('aria-label', title);
+                b.className = 'rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:border-blue-400 disabled:opacity-60';
+                b.textContent = icon; b.onclick = () => vote(v, b); wrap.appendChild(b);
+            });
+            actions.appendChild(wrap);
+        }
+        let ctaShown = false;
+        function maybeShowCta(question) {
+            const answers = conversation.filter(m => m.role === 'model').length;
+            if (ctaShown || answers < 2) return; ctaShown = true;
+            const w = row('ai'); const card = document.createElement('div');
+            card.className = 'rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950 shadow-sm';
+            card.innerHTML = '<p class="font-semibold">Need this checked for your actual project?</p><p class="mt-0.5">Engineer Vijay can review drawings, mix designs, BOQs and site issues personally.</p><div class="mt-2 flex flex-wrap gap-2"><button type="button" class="rounded-lg bg-amber-500 px-3 py-1.5 font-semibold text-slate-900 hover:bg-amber-400">Request a consultation</button></div>';
+            card.querySelector('button').onclick = () => openConsult(question);
+            if (waNumber) { const a = document.createElement('a'); a.className = 'rounded-lg border border-green-600 bg-white px-3 py-1.5 font-semibold text-green-700'; a.target = '_blank'; a.rel = 'noopener'; a.href = waLink(`Hello Engineer Vijay, I need help with: ${question}`); a.textContent = 'WhatsApp Vijay'; card.lastElementChild.appendChild(a); }
+            w.appendChild(card);
+        }
+        function addAI(text, lang, { scroll = true, question = '' } = {}) {
             const w = row('ai'); const col = document.createElement('div'); col.className = 'max-w-full w-full sm:w-auto sm:max-w-[95%]';
             const b = document.createElement('div'); b.className = 'bubble px-4 py-3 text-[15px] leading-relaxed shadow-sm break-words';
             if (RTL_LANGS.has(lang)) b.dir = 'rtl';
@@ -241,6 +345,7 @@
             mk('PDF', btn => runExport(btn, downloadPdf, text), 'Download as PDF');
             mk('Excel', btn => runExport(btn, downloadExcel, text), 'Download as Excel');
             mk('PowerPoint', btn => runExport(btn, downloadPowerPoint, text), 'Download as PowerPoint');
+            feedbackControls(actions, text, question, lang);
             col.appendChild(actions); w.appendChild(col);
             if (scroll) w.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
@@ -268,6 +373,8 @@
             const rows = lines.filter(l => !isDivider(l)).map(splitRow); if (!rows.length) return;
             const wrap = document.createElement('div'); wrap.className = 'boq-table-wrap';
             const table = document.createElement('table'); table.className = 'boq-table';
+            // Wide BOQs scroll sideways; small tables just fit the bubble.
+            const cols = Math.max(...rows.map(r => r.length)); if (cols > 4) table.style.minWidth = `${cols * 92}px`;
             const thead = table.createTHead(), hr = thead.insertRow();
             rows[0].forEach(v => { const th = document.createElement('th'); th.textContent = cellText(v); hr.appendChild(th); });
             const tbody = table.createTBody();
@@ -417,7 +524,7 @@
         // ---------- restore previous conversation ----------
         if (conversation.length) {
             $('welcome').classList.add('hidden');
-            conversation.forEach(m => m.role === 'user' ? addUser(m.text) : addAI(m.text, m.lang, { scroll: false }));
+            conversation.forEach((m, i) => m.role === 'user' ? addUser(m.text) : addAI(m.text, m.lang, { scroll: false, question: conversation[i - 1]?.text || '' }));
             scroller.scrollTop = scroller.scrollHeight;
         }
         autosize();

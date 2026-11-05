@@ -9,6 +9,15 @@ const catalogue = Object.freeze({
     "Schedule of Rates — Volume 1 Civil",
     "Schedule of Rates — Volume 2 Civil"
   ]),
+  // Template — copy, fill from the printed DSR page, and check every field by eye:
+  // {
+  //   itemNumber: "5.1.2",               // exactly as printed
+  //   description: "Short description",   // concise, not the full schedule text
+  //   unit: "cum",
+  //   rate: 1234.56,                       // ₹, base rate without cost index / GST
+  //   volume: "Volume 1", page: 123,
+  //   keywords: ["pcc", "1:2:4"]           // words users type; ALL must appear to match
+  // },
   verifiedItems: Object.freeze([])
 });
 
@@ -20,10 +29,12 @@ function requestedReferences(text) {
   return [...new Set((normalise(text).match(/\b\d{1,2}(?:\.\d{1,3}){1,3}\b/g) || []))];
 }
 
-function findVerifiedCivilMatches(text) {
+// An item matches when the user quotes its number, or uses all of its keywords.
+function findVerifiedCivilMatches(text, items = catalogue.verifiedItems) {
   const refs = new Set(requestedReferences(text));
-  if (!refs.size) return [];
-  return catalogue.verifiedItems.filter((item) => refs.has(normalise(item.itemNumber)));
+  const normalised = normalise(text);
+  return items.filter((item) => refs.has(normalise(item.itemNumber))
+    || (Array.isArray(item.keywords) && item.keywords.length > 0 && item.keywords.every((word) => normalised.includes(normalise(word))))).slice(0, 8);
 }
 
 function buildCivilCatalogueContext(text) {
