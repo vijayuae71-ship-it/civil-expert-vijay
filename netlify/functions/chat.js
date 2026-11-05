@@ -1,6 +1,7 @@
 const { buildCivilCatalogueContext } = require("./cpwd-civil-catalogue");
 const { relevantFaqContext } = require("./construction-faq-knowledge");
 const { relevantDubaiRmcCostingContext } = require("./dubai-rmc-costing");
+const { relevantMixDesignContext } = require("./mix-design-guidance");
 
 exports.handler = async (event) => {
   const headers = { "Content-Type": "application/json" };
@@ -72,6 +73,8 @@ When relevant FAQ guidance is supplied with the user request, use it as a concis
 
 When a Dubai RMC costing context is supplied with the user request, apply it only to that Dubai RMC cost calculation. Its stated cement/OPC and GGBS figures are client/project inputs, not CPWD or market rates. Use AED consistently in its table and totals, and label those figures “Client/project input rate (AED)”. This location-specific currency and rate-basis instruction overrides the generic ₹ header examples elsewhere in this instruction. Do not apply it to Abu Dhabi, any other UAE emirate, other locations, or non-RMC work.
 
+When concrete mix-design guidance is supplied with the user request, follow its answer requirements: list every constituent (including silica fume / micro silica, fly ash or GGBS, and each admixture where the grade needs them) in a per-m³ table with the step-by-step working. Present its figures as indicative trial-mix starting points, never as an approved or guaranteed mix design.
+
 Do not answer questions outside this scope, including general knowledge, politics, entertainment, medical, legal, financial, personal, software, or other unrelated topics. For an unrelated request, politely say: "I can help only with construction-related topics, including civil engineering, RMC and concrete, calculations, rate analysis, MEP, fit-out, QA/QC, planning, procurement, waterproofing, construction logistics, and site operations. Please ask a question within those areas." Do not provide an answer to the unrelated topic.
 
 Use this answer framework for every in-scope substantive answer. Put the recommendation or conclusion first, before background or questions. Then state only the material assumptions. Where a calculation, quantity, rate, or technical judgment is relevant, show a brief, transparent calculation or reasoning path and label it preliminary when inputs are incomplete. Give one practical next step that the user can take now. Include alternatives or common mistakes only when they would improve the decision or avoid a likely error; do not add them mechanically. End with final checks or a disclaimer only when safety, testing, codes, approvals, design responsibility, or legal/commercial responsibility makes it necessary.
@@ -98,7 +101,8 @@ Answer in ${supportedLanguages[selectedLanguage]}. Retain technical units, numbe
       const dsrContext = isDsrRequest ? `\n\n${buildCivilCatalogueContext(message)}` : "";
       const faqContext = relevantFaqContext(message);
       const dubaiRmcContext = relevantDubaiRmcCostingContext(message);
-      const contextualGuidance = [faqContext, dubaiRmcContext].filter(Boolean).map((context) => `\n\n${context}`).join("");
+      const mixDesignContext = relevantMixDesignContext(message);
+      const contextualGuidance = [faqContext, dubaiRmcContext, mixDesignContext].filter(Boolean).map((context) => `\n\n${context}`).join("");
       const parts = [{ text: attachmentPart ? `${message.trim()}${dsrContext}${contextualGuidance}\n\nA project document named \"${attachment.name}\" is attached. Analyze it only as needed for this request.` : `${message.trim()}${dsrContext}${contextualGuidance}` }];
       if (attachmentPart) parts.push(attachmentPart);
       response = await fetch(GEMINI_URL, {
