@@ -2,86 +2,426 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>AI Technical Consultant | Expert Vijay</title>
+    <meta name="description" content="Ask Engineer Vijay's AI consultant about RMC, concrete, BOQs, rate analysis, MEP, fit-out, QA/QC and site operations. Export answers to PDF, Excel or PowerPoint.">
+    <meta name="theme-color" content="#1e3a8a">
+    <link rel="icon" href="engineer-vijay-logo.png">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
     <style>
-        .chat-container { height: calc(100vh - 370px); min-height: 340px; }
-        .user-msg { background: #e2e8f0; align-self: flex-end; border-radius: 15px 15px 0 15px; margin-left: 20%; }
-        .ai-msg { background: #1e40af; color: white; align-self: flex-start; border-radius: 15px 15px 15px 0; margin-right: 4%; max-width: 100%; }
-        .ai-msg .boq-table-wrap { overflow-x: auto; margin: .75rem -.25rem; border: 1px solid rgba(255,255,255,.28); border-radius: .6rem; background: rgba(255,255,255,.08); }
-        .ai-msg .boq-table { width: 100%; min-width: 680px; border-collapse: collapse; font-size: .78rem; line-height: 1.35; }
-        .ai-msg .boq-table th { background: rgba(255,255,255,.16); font-weight: 700; text-align: left; }
-        .ai-msg .boq-table th, .ai-msg .boq-table td { padding: .55rem; border: 1px solid rgba(255,255,255,.23); vertical-align: top; }
-        .ai-msg .reply-heading { font-weight: 700; margin: .75rem 0 .25rem; }
-        .ai-msg .reply-heading:first-child { margin-top: 0; }
-        .ai-msg .reply-list { margin: .35rem 0 .65rem 1.15rem; list-style: disc; }
-        @media (max-width: 640px) { .ai-msg, .user-msg { margin-left: 0; margin-right: 0; max-width: 100%; } .chat-container { height: calc(100vh - 405px); } }
+        html, body { height: 100%; }
+        body { display: flex; flex-direction: column; height: 100dvh; }
+        .msg-ai .bubble { background: #ffffff; border: 1px solid #e2e8f0; color: #0f172a; border-radius: 4px 18px 18px 18px; }
+        .msg-user .bubble { background: #1e40af; color: #fff; border-radius: 18px 4px 18px 18px; }
+        .bubble p { margin: 0 0 .5rem; } .bubble p:last-child { margin-bottom: 0; }
+        .bubble strong { font-weight: 700; }
+        .bubble code { background: #f1f5f9; padding: .05rem .3rem; border-radius: .25rem; font-size: .85em; }
+        .reply-heading { font-weight: 700; color: #1e3a8a; margin: .9rem 0 .3rem; font-size: .95rem; }
+        .reply-heading:first-child { margin-top: 0; }
+        .reply-list { margin: .3rem 0 .6rem 1.2rem; list-style: disc; } .reply-list li { margin: .15rem 0; }
+        ol.reply-list { list-style: decimal; }
+        [dir="rtl"] .reply-list { margin: .3rem 1.2rem .6rem 0; }
+        .boq-table-wrap { overflow-x: auto; margin: .6rem 0; border: 1px solid #cbd5e1; border-radius: .6rem; }
+        .boq-table { width: 100%; min-width: 640px; border-collapse: collapse; font-size: .78rem; line-height: 1.35; }
+        .boq-table th { background: #1e40af; color: #fff; font-weight: 600; text-align: left; position: sticky; top: 0; }
+        .boq-table th, .boq-table td { padding: .5rem .55rem; border: 1px solid #e2e8f0; vertical-align: top; }
+        .boq-table tbody tr:nth-child(even) td { background: #f8fafc; }
+        .boq-table tr.total-row td { background: #dbeafe !important; font-weight: 700; }
+        .dot { width: 7px; height: 7px; border-radius: 9999px; background: #64748b; display: inline-block; animation: bounce 1.2s infinite ease-in-out; }
+        .dot:nth-child(2) { animation-delay: .15s; } .dot:nth-child(3) { animation-delay: .3s; }
+        @keyframes bounce { 0%, 80%, 100% { transform: translateY(0); opacity: .5; } 40% { transform: translateY(-5px); opacity: 1; } }
+        #user-input { max-height: 180px; }
+        .drop-active { outline: 3px dashed #3b82f6; outline-offset: -8px; }
+        @media (prefers-reduced-motion: reduce) { .dot, .animate-pulse { animation: none; } }
     </style>
 </head>
-<body class="bg-gray-50 font-sans">
-    <nav class="bg-white shadow-sm p-4 flex justify-between items-center sticky top-0 z-10">
-        <div class="flex items-center gap-2"><div class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div><h1 class="text-lg font-bold text-slate-800">Vijay's AI Expert</h1></div>
-        <div class="flex gap-4"><a href="calculators.html" class="text-blue-600 font-medium text-sm">Calculators</a><a href="index.html" class="text-blue-600 font-medium text-sm">Back Home</a></div>
+<body class="bg-slate-100 font-sans text-slate-900">
+    <nav class="bg-white border-b border-slate-200 px-4 py-3 flex justify-between items-center shrink-0">
+        <a href="index.html" class="flex items-center gap-2 min-w-0">
+            <img src="engineer-vijay-logo.png" alt="" class="w-8 h-8 object-contain" width="32" height="32">
+            <span class="min-w-0">
+                <span class="block text-base font-bold text-slate-800 leading-tight truncate">Vijay's AI Expert</span>
+                <span class="flex items-center gap-1.5 text-xs text-slate-500"><span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>RMC · Civil · MEP · BOQ</span>
+            </span>
+        </a>
+        <div class="flex items-center gap-3 text-sm font-medium">
+            <button id="new-chat" type="button" class="rounded-lg border border-slate-300 px-3 py-1.5 text-slate-700 hover:bg-slate-50" title="Start a new conversation">New chat</button>
+            <a href="calculators.html" class="hidden sm:inline text-blue-700 hover:text-blue-900">Calculators</a>
+            <a href="construction-faq.html" class="hidden sm:inline text-blue-700 hover:text-blue-900">FAQ</a>
+        </div>
     </nav>
-    <main class="max-w-2xl mx-auto mt-4 p-4">
-        <div class="mb-3 rounded-xl border border-blue-100 bg-blue-50 p-4">
-            <p class="font-semibold text-blue-900">Start with a common task</p>
-            <div class="mt-3 flex flex-wrap gap-2">
-                <button onclick="usePrompt('Prepare a concrete rate analysis')" class="rounded-full bg-white px-3 py-2 text-xs font-semibold text-blue-700 shadow-sm hover:bg-blue-100">Concrete rate analysis</button>
-                <button onclick="usePrompt('Diagnose honeycombing in concrete')" class="rounded-full bg-white px-3 py-2 text-xs font-semibold text-blue-700 shadow-sm hover:bg-blue-100">Diagnose honeycombing</button>
-                <button onclick="usePrompt('Create a concrete inspection checklist')" class="rounded-full bg-white px-3 py-2 text-xs font-semibold text-blue-700 shadow-sm hover:bg-blue-100">Inspection checklist</button>
-                <button onclick="usePrompt('Review this BOQ and identify important checks')" class="rounded-full bg-white px-3 py-2 text-xs font-semibold text-blue-700 shadow-sm hover:bg-blue-100">Review a BOQ</button>
-                <a href="calculators.html" class="rounded-full bg-blue-700 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-800">Open calculators & templates →</a>
-            </div>
+
+    <main id="chat-scroll" class="flex-1 overflow-y-auto" aria-label="Conversation">
+        <div class="max-w-3xl mx-auto px-4 py-5">
+            <section id="welcome" class="mb-5">
+                <div class="rounded-2xl bg-gradient-to-br from-blue-900 to-blue-700 text-white p-5 shadow">
+                    <h1 class="text-xl font-bold">Ask a construction question</h1>
+                    <p class="mt-1 text-sm text-blue-100">25+ years of RMC, concrete and site-operations experience across India and the UAE. Ask follow-ups, attach a BOQ or drawing (PDF, Excel, PPT, CSV, TXT), and export any answer.</p>
+                </div>
+                <p class="mt-4 mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Try one of these</p>
+                <div id="starters" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
+            </section>
+            <div id="chat-box" class="flex flex-col gap-4" aria-live="polite"></div>
         </div>
-        <div id="chat-box" class="chat-container bg-white rounded-2xl shadow-sm border p-4 overflow-y-auto flex flex-col gap-4">
-            <div class="ai-msg p-4 text-sm md:text-base shadow-sm">Hello, I am Vijay's AI advisor. With 25 years in RMC and Construction, I am ready for your technical questions. You may attach one relevant project document when useful.</div>
-        </div>
-        <div class="mt-4">
-            <div class="flex gap-2"><input type="text" id="user-input" placeholder="Ask about concrete, logistics, BOQs..." class="flex-1 p-4 border rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"><button onclick="sendMessage()" id="send-btn" class="bg-blue-700 text-white px-6 py-4 rounded-xl font-bold disabled:opacity-60">Send</button></div>
-            <label class="mt-2 inline-flex cursor-pointer items-center gap-2 text-xs font-semibold text-slate-700"><input id="quote-ready" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-blue-700 focus:ring-blue-500"><span>Quote-ready format</span></label>
-            <p class="mt-1 text-xs text-slate-500">For material, BOQ, or estimate requests: compact scope, itemised table, totals, exclusions, and rate basis.</p>
-            <div class="mt-2 flex flex-wrap items-center gap-2"><label for="answer-language" class="text-xs font-semibold text-slate-700">Answer language</label><select id="answer-language" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs text-slate-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"><option value="en">English</option><option value="ar">Arabic</option><option value="hi">Hindi</option><option value="ur">Urdu</option><option value="ml">Malayalam</option><option value="ta">Tamil</option><option value="te">Telugu</option><option value="kn">Kannada</option><option value="bn">Bengali</option><option value="mr">Marathi</option><option value="gu">Gujarati</option><option value="pa">Punjabi</option><option value="ne">Nepali</option><option value="si">Sinhala</option><option value="fr">French</option><option value="es">Spanish</option><option value="pt">Portuguese</option><option value="de">German</option><option value="it">Italian</option><option value="ru">Russian</option><option value="tr">Turkish</option><option value="zh-CN">Chinese (Simplified)</option><option value="ja">Japanese</option><option value="ko">Korean</option><option value="id">Indonesian</option><option value="fil">Filipino</option></select></div>
-            <div class="mt-2 flex flex-wrap items-center gap-2"><label for="project-file" class="cursor-pointer rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-100">Attach project document</label><input id="project-file" type="file" class="hidden" accept=".pdf,.xlsx,.xls,.pptx,.ppt,.csv,.txt,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.ms-powerpoint,text/csv,text/plain"><span id="file-name" class="text-xs text-slate-500">Optional: PDF, Excel, PowerPoint, CSV, or TXT — maximum 4 MB</span><button id="remove-file" onclick="removeFile()" class="hidden text-xs font-semibold text-red-600">Remove</button></div>
-        </div>
-        <p class="mt-3 text-xs leading-relaxed text-slate-500">Documents are used only to answer your current question and are not stored by this site. AI responses provide general professional guidance only. Verify project-specific design, testing, standards, and approvals with the responsible qualified engineer.</p>
     </main>
+
+    <footer id="composer" class="bg-white border-t border-slate-200 shrink-0" style="padding-bottom: env(safe-area-inset-bottom);">
+        <div class="max-w-3xl mx-auto px-4 pt-3 pb-2">
+            <div id="file-chip" class="hidden mb-2 inline-flex items-center gap-2 rounded-full bg-blue-50 border border-blue-200 px-3 py-1 text-xs text-blue-800">
+                <span aria-hidden="true">📎</span><span id="file-name"></span>
+                <button id="remove-file" type="button" class="font-bold text-blue-900 hover:text-red-600" aria-label="Remove attached document">✕</button>
+            </div>
+            <form id="chat-form" class="flex items-end gap-2 rounded-2xl border border-slate-300 bg-white p-2 focus-within:ring-2 focus-within:ring-blue-500">
+                <label for="project-file" class="shrink-0 cursor-pointer rounded-xl p-2 text-slate-500 hover:bg-slate-100 hover:text-blue-700" title="Attach a project document (max 4 MB)">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+                    <span class="sr-only">Attach project document</span>
+                </label>
+                <input id="project-file" type="file" class="hidden" accept=".pdf,.xlsx,.xls,.pptx,.ppt,.csv,.txt">
+                <label for="user-input" class="sr-only">Your question</label>
+                <textarea id="user-input" rows="1" maxlength="4000" placeholder="Ask about concrete, logistics, BOQs, MEP…" class="flex-1 resize-none bg-transparent px-1 py-2 text-[15px] focus:outline-none"></textarea>
+                <button type="submit" id="send-btn" class="shrink-0 rounded-xl bg-blue-700 px-4 py-2 font-semibold text-white hover:bg-blue-800 disabled:opacity-50" aria-label="Send">
+                    <span id="send-label">Send</span>
+                </button>
+            </form>
+            <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-600">
+                <label class="inline-flex cursor-pointer items-center gap-1.5 font-medium" title="Compact scope, itemised BOQ table, totals, exclusions and rate basis">
+                    <input id="quote-ready" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-blue-700 focus:ring-blue-500">Quote-ready format
+                </label>
+                <label class="inline-flex items-center gap-1.5 font-medium">Language
+                    <select id="answer-language" class="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="en">English</option><option value="ar">العربية (Arabic)</option><option value="hi">हिन्दी (Hindi)</option><option value="ur">اردو (Urdu)</option><option value="ml">മലയാളം (Malayalam)</option><option value="ta">தமிழ் (Tamil)</option><option value="te">తెలుగు (Telugu)</option><option value="kn">ಕನ್ನಡ (Kannada)</option><option value="bn">বাংলা (Bengali)</option><option value="mr">मराठी (Marathi)</option><option value="gu">ગુજરાતી (Gujarati)</option><option value="pa">ਪੰਜਾਬੀ (Punjabi)</option><option value="ne">नेपाली (Nepali)</option><option value="si">සිංහල (Sinhala)</option><option value="fr">Français</option><option value="es">Español</option><option value="pt">Português</option><option value="de">Deutsch</option><option value="it">Italiano</option><option value="ru">Русский</option><option value="tr">Türkçe</option><option value="zh-CN">中文 (简体)</option><option value="ja">日本語</option><option value="ko">한국어</option><option value="id">Bahasa Indonesia</option><option value="fil">Filipino</option>
+                    </select>
+                </label>
+                <span class="hidden sm:inline text-slate-400">Enter to send · Shift+Enter for a new line</span>
+            </div>
+            <p class="mt-1.5 text-[11px] leading-snug text-slate-400">General professional guidance only; documents are not stored. Verify design, testing, standards and approvals with the responsible qualified engineer.</p>
+        </div>
+    </footer>
+
     <script>
-        const MAX_FILE_BYTES = 4 * 1024 * 1024; const acceptedExtensions = ['pdf','xlsx','xls','pptx','ppt','csv','txt']; let selectedFile = null;
-        function usePrompt(prompt) { const input = document.getElementById('user-input'); input.value = prompt; input.focus(); }
-        document.getElementById('project-file').addEventListener('change', event => { const file = event.target.files[0]; if (!file) return; const extension = file.name.split('.').pop().toLowerCase(); if (!acceptedExtensions.includes(extension)) { alert('Please attach a PDF, Excel, PowerPoint, CSV, or TXT file.'); removeFile(); return; } if (file.size > MAX_FILE_BYTES) { alert('Please choose a file smaller than 4 MB.'); removeFile(); return; } selectedFile = file; document.getElementById('file-name').textContent = `${file.name} (${Math.ceil(file.size / 1024)} KB)`; document.getElementById('remove-file').classList.remove('hidden'); });
-        function removeFile() { selectedFile=null; document.getElementById('project-file').value=''; document.getElementById('file-name').textContent='Optional: PDF, Excel, PowerPoint, CSV, or TXT — maximum 4 MB'; document.getElementById('remove-file').classList.add('hidden'); }
-        function fileToAttachment(file) { return new Promise((resolve,reject) => { const reader=new FileReader(); reader.onload=()=>resolve({name:file.name,mimeType:file.type||mimeTypeFromName(file.name),data:reader.result.split(',')[1]}); reader.onerror=()=>reject(new Error('The selected document could not be read.')); reader.readAsDataURL(file); }); }
-        function mimeTypeFromName(name) { const types={pdf:'application/pdf',xlsx:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',xls:'application/vnd.ms-excel',pptx:'application/vnd.openxmlformats-officedocument.presentationml.presentation',ppt:'application/vnd.ms-powerpoint',csv:'text/csv',txt:'text/plain'}; return types[name.split('.').pop().toLowerCase()] || 'application/octet-stream'; }
-        async function sendMessage() { const input=document.getElementById('user-input'), btn=document.getElementById('send-btn'), userMessage=input.value.trim(); if (!userMessage) return; input.value=''; input.disabled=true; btn.disabled=true; appendMessage(selectedFile ? `${userMessage}\n\nAttached: ${selectedFile.name}` : userMessage,'user-msg'); try { const attachment=selectedFile ? await fileToAttachment(selectedFile) : null; const response=await fetch('/.netlify/functions/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:userMessage,attachment,language:document.getElementById('answer-language').value,quoteReady:document.getElementById('quote-ready').checked})}); const data=await response.json(); if (!response.ok || !data.reply) throw new Error(data.error || 'The AI service could not answer right now. Please try again.'); appendMessage(data.reply,'ai-msg',true); removeFile(); } catch(error) { appendMessage(error.message || 'Unable to reach the AI expert. Please try again.','ai-msg'); } finally { input.disabled=false; btn.disabled=false; input.focus(); } }
-        function appendMessage(text,className,withDownloads=false) { const chatBox=document.getElementById('chat-box'), wrapper=document.createElement('div'), message=document.createElement('div'); wrapper.className=className; message.className='p-4 text-sm md:text-base shadow-sm'; if (className === 'ai-msg') renderReply(text, message); else { message.classList.add('whitespace-pre-wrap'); message.textContent=text; } wrapper.appendChild(message); if(withDownloads) { const actions=document.createElement('div'); actions.className='mt-2 flex flex-wrap gap-2'; [['PDF','downloadPdf'],['Excel','downloadExcel'],['PowerPoint','downloadPowerPoint']].forEach(([label,action])=>{const button=document.createElement('button'); button.className='rounded-md bg-white/20 px-3 py-1.5 text-xs font-semibold hover:bg-white/30'; button.textContent=`Download ${label}`; button.onclick=()=>window[action](text); actions.appendChild(button);}); wrapper.appendChild(actions); } chatBox.appendChild(wrapper); chatBox.scrollTop=chatBox.scrollHeight; }
-        function cellText(value) { return value.trim().replace(/\*\*/g, ''); }
-        function addTextBlock(parent, value, className='mb-2') { const block=document.createElement('p'); block.className=className; block.textContent=cellText(value); parent.appendChild(block); }
-        function isTableRow(line) { return /^\s*\|.*\|\s*$/.test(line); }
-        function isDivider(line) { return /^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$/.test(line); }
-        function renderTable(lines, parent) { const rows=lines.filter(line=>!isDivider(line)).map(line=>line.trim().replace(/^\||\|$/g,'').split('|').map(cellText)); if (!rows.length) return; const wrap=document.createElement('div'); wrap.className='boq-table-wrap'; const table=document.createElement('table'); table.className='boq-table'; const header=document.createElement('thead'); const headerRow=document.createElement('tr'); rows[0].forEach(value=>{const th=document.createElement('th'); th.textContent=value; headerRow.appendChild(th);}); header.appendChild(headerRow); table.appendChild(header); if(rows.length>1) { const body=document.createElement('tbody'); rows.slice(1).forEach(row=>{const tr=document.createElement('tr'); row.forEach(value=>{const td=document.createElement('td'); td.textContent=value; tr.appendChild(td);}); body.appendChild(tr);}); table.appendChild(body); } wrap.appendChild(table); parent.appendChild(wrap); }
-        function renderReply(text, parent) { const lines=String(text || '').replace(/\r/g,'').split('\n'); for(let i=0;i<lines.length;) { const line=lines[i]; if(isTableRow(line)) { const rows=[]; while(i<lines.length && (isTableRow(lines[i]) || isDivider(lines[i]))) rows.push(lines[i++]); renderTable(rows,parent); continue; } if(!line.trim()) { i++; continue; } if(/^\s*(?:#{1,4}\s+|\*\*[^*]+:\*\*\s*$)/.test(line)) { const heading=document.createElement('div'); heading.className='reply-heading'; heading.textContent=cellText(line.replace(/^\s*#{1,4}\s+/,'')); parent.appendChild(heading); i++; continue; } if(/^\s*[-*]\s+/.test(line)) { const list=document.createElement('ul'); list.className='reply-list'; while(i<lines.length && /^\s*[-*]\s+/.test(lines[i])) { const li=document.createElement('li'); li.textContent=cellText(lines[i].replace(/^\s*[-*]\s+/,'')); list.appendChild(li); i++; } parent.appendChild(list); continue; } addTextBlock(parent,line); i++; } }
-        function filename(extension) { return `vijay-expert-response-${new Date().toISOString().slice(0,10)}.${extension}`; }
-        function downloadPdf(text) { const {jsPDF}=window.jspdf, pdf=new jsPDF({unit:'pt',format:'a4'}), blocks=parseExcelBlocks(text), pageWidth=pdf.internal.pageSize.getWidth(), pageHeight=pdf.internal.pageSize.getHeight(), margin=36, contentWidth=pageWidth-margin*2; let y=40;
-          const addPage=()=>{pdf.addPage();y=40;}; const need=(height)=>{if(y+height>pageHeight-38)addPage();}; const line=(value,size=10,style='normal',color=[30,41,59])=>{pdf.setFont('helvetica',style);pdf.setFontSize(size);pdf.setTextColor(...color);const lines=pdf.splitTextToSize(String(value||''),contentWidth);const height=Math.max(14,lines.length*(size+3));need(height);pdf.text(lines,margin,y);y+=height;};
-          pdf.setFillColor(30,64,175);pdf.rect(0,0,pageWidth,64,'F');pdf.setTextColor(255,255,255);pdf.setFont('helvetica','bold');pdf.setFontSize(17);pdf.text("Vijay's AI Expert — Construction Estimate / BOQ",margin,34);pdf.setFont('helvetica','normal');pdf.setFontSize(8);pdf.text(`Generated: ${new Date().toLocaleString()}`,margin,51);y=84;
-          const table=(rows)=>{const columnCount=Math.min(Math.max(...rows.map(row=>row.length)),6), weights=Array.from({length:columnCount},(_,c)=>c===0?.75:c===1?2.7:c===columnCount-1?1.45:1), unit=contentWidth/weights.reduce((a,b)=>a+b,0), widths=weights.map(weight=>weight*unit); rows.forEach((source,rowIndex)=>{const cells=Array.from({length:columnCount},(_,c)=>String(source[c]||'')), fontSize=rowIndex===0?8:7.5, cellLines=cells.map((cell,c)=>{pdf.setFontSize(fontSize);return pdf.splitTextToSize(cell,Math.max(28,widths[c]-8));}), rowHeight=Math.max(20,...cellLines.map(lines=>lines.length*(fontSize+2)+8)), total=/^(subtotal|grand total|total|gst|vat)/i.test(cells[0]);need(rowHeight);let x=margin; cells.forEach((cell,c)=>{pdf.setDrawColor(203,213,225);pdf.setFillColor(...(rowIndex===0?[29,78,216]:total?[219,234,254]:[255,255,255]));pdf.rect(x,y,widths[c],rowHeight,'FD');pdf.setTextColor(...(rowIndex===0?[255,255,255]:[30,41,59]));pdf.setFont('helvetica',rowIndex===0||total?'bold':'normal');pdf.setFontSize(fontSize);pdf.text(cellLines[c],x+4,y+fontSize+3);x+=widths[c];});y+=rowHeight;});y+=10;};
-          blocks.forEach(block=>{if(block.type==='heading'){need(26);pdf.setFillColor(37,99,235);pdf.rect(margin,y,contentWidth,22,'F');pdf.setTextColor(255,255,255);pdf.setFont('helvetica','bold');pdf.setFontSize(11);pdf.text(block.value,margin+7,y+15);y+=29;} else if(block.type==='table')table(block.rows); else line(block.type==='bullet'?`• ${block.value}`:block.value,10,'normal');});pdf.save(filename('pdf')); }
-        function exportHeading(line) { const match=String(line).match(/^\s*(?:#{1,4}\s+|\*\*)?(.+?)(?:\*\*)?\s*:?\s*$/); return match ? cellText(match[1]) : cellText(line); }
-        function isExportHeading(line) { return /^\s*#{1,4}\s+/.test(line) || /^\s*\*\*[^*]+\*\*\s*:?\s*$/.test(line); }
-        function parseExcelBlocks(text) { const lines=String(text || '').replace(/\r/g,'').split('\n'), blocks=[]; for(let i=0;i<lines.length;) { const line=lines[i]; if(isTableRow(line)) { const raw=[]; while(i<lines.length && (isTableRow(lines[i]) || isDivider(lines[i]))) raw.push(lines[i++]); const rows=raw.filter(row=>!isDivider(row)).map(row=>row.trim().replace(/^\||\|$/g,'').split('|').map(cellText)); if(rows.length) blocks.push({type:'table',rows}); continue; } if(!line.trim()) { i++; continue; } if(isExportHeading(line)) { blocks.push({type:'heading',value:exportHeading(line)}); i++; continue; } if(/^\s*[-*]\s+/.test(line)) { blocks.push({type:'bullet',value:cellText(line.replace(/^\s*[-*]\s+/,''))}); i++; continue; } const label=line.match(/^\s*([^:]{2,80}):\s+(.+)$/); if(label && /^(scope|assumptions|rate basis|exclusions|validity|next step|recommendation|notes?|cost summary|project|quotation|estimate|important)/i.test(label[1])) { blocks.push({type:'heading',value:cellText(label[1])}); blocks.push({type:'paragraph',value:cellText(label[2])}); } else blocks.push({type:'paragraph',value:cellText(line)}); i++; } return blocks; }
-        function downloadExcel(text) { const workbook=XLSX.utils.book_new(), sheet=XLSX.utils.aoa_to_sheet([]), blocks=parseExcelBlocks(text), maxTableColumns=Math.max(4,...blocks.filter(block=>block.type==='table').map(block=>Math.max(...block.rows.map(row=>row.length)))); const lastColumn=Math.min(Math.max(maxTableColumns,4),8), merges=[], rows=[], styleMap=[]; const titleStyle={font:{bold:true,color:{rgb:'FFFFFF'},sz:16},fill:{fgColor:{rgb:'1E40AF'}},alignment:{horizontal:'center',vertical:'center'}}, sectionStyle={font:{bold:true,color:{rgb:'FFFFFF'},sz:12},fill:{fgColor:{rgb:'2563EB'}},alignment:{vertical:'center'}}, headerStyle={font:{bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'1D4ED8'}},alignment:{horizontal:'center',vertical:'center',wrapText:true}}, bodyStyle={alignment:{vertical:'top',wrapText:true}}, totalStyle={font:{bold:true},fill:{fgColor:{rgb:'DBEAFE'}},alignment:{vertical:'center',wrapText:true}}; const addMerged=(value,style,height=22)=>{const index=rows.length; const row=Array(lastColumn).fill(''); row[0]=value; rows.push(row); merges.push({s:{r:index,c:0},e:{r:index,c:lastColumn-1}}); for(let c=0;c<lastColumn;c++) styleMap.push({r:index,c,style}); sheet['!rows']=(sheet['!rows']||[]); sheet['!rows'][index]={hpt:height};};
-          addMerged("Vijay's AI Expert — Construction Estimate / BOQ",titleStyle,28); addMerged(`Generated: ${new Date().toLocaleString()}`,{font:{italic:true,color:{rgb:'475569'}},alignment:{horizontal:'center'}},18); rows.push(Array(lastColumn).fill(''));
-          blocks.forEach(block=>{ if(block.type==='heading') { addMerged(block.value,sectionStyle,22); return; } if(block.type==='table') { const width=Math.min(Math.max(...block.rows.map(row=>row.length)),lastColumn); block.rows.forEach((sourceRow,rowNumber)=>{const index=rows.length, row=Array(lastColumn).fill(''); for(let c=0;c<width;c++) row[c]=sourceRow[c]||''; rows.push(row); for(let c=0;c<width;c++) { const isTotal=/^(subtotal|grand total|total|gst|vat)/i.test(String(sourceRow[0]||'')); styleMap.push({r:index,c,style:rowNumber===0?headerStyle:(isTotal?totalStyle:bodyStyle)}); } sheet['!rows']=(sheet['!rows']||[]); sheet['!rows'][index]={hpt:rowNumber===0?28:22}; }); rows.push(Array(lastColumn).fill('')); return; } addMerged(block.type==='bullet' ? `• ${block.value}` : block.value,bodyStyle,block.type==='bullet'?20:30); });
-          XLSX.utils.sheet_add_aoa(sheet,rows,{origin:'A1'}); styleMap.forEach(({r,c,style})=>{const ref=XLSX.utils.encode_cell({r,c}); if(sheet[ref]) sheet[ref].s=style;}); sheet['!merges']=merges; sheet['!cols']=Array.from({length:lastColumn},(_,index)=>({wch:index===0?14:index===1?42:18})); sheet['!freeze']={xSplit:0,ySplit:2,topLeftCell:'A3',activePane:'bottomLeft',state:'frozen'}; workbook.Props={Title:"Vijay's AI Expert Construction Estimate",Subject:'Construction BOQ / estimate export',Author:"Vijay's AI Expert"}; XLSX.utils.book_append_sheet(workbook,sheet,'Quote or Response'); XLSX.writeFile(workbook,filename('xlsx')); }
-        function downloadPowerPoint(text) { const pptx=new PptxGenJS(), blocks=parseExcelBlocks(text); pptx.layout='LAYOUT_WIDE'; pptx.author="Vijay's AI Expert"; pptx.subject='Construction BOQ / estimate export'; let slide,y;
-          const newSlide=()=>{slide=pptx.addSlide();slide.background={color:'F8FAFC'};slide.addShape(pptx.ShapeType.rect,{x:0,y:0,w:13.333,h:.68,fill:{color:'1E40AF'},line:{color:'1E40AF'}});slide.addText("Vijay's AI Expert — Construction Estimate / BOQ",{x:.42,y:.19,w:9.5,h:.25,fontSize:18,bold:true,color:'FFFFFF',margin:0});slide.addText(`Generated: ${new Date().toLocaleString()}`,{x:10.0,y:.23,w:2.9,h:.16,fontSize:6.5,color:'DBEAFE',align:'right',margin:0});y=.92;}; const ensure=(height)=>{if(y+height>7.15)newSlide();}; newSlide();
-          blocks.forEach(block=>{if(block.type==='heading'){ensure(.45);slide.addShape(pptx.ShapeType.rect,{x:.42,y,w:12.45,h:.32,fill:{color:'2563EB'},line:{color:'2563EB'}});slide.addText(block.value,{x:.55,y:y+.07,w:12,h:.15,fontSize:11,bold:true,color:'FFFFFF',margin:0});y+=.43;return;} if(block.type==='table'){const cols=Math.min(Math.max(...block.rows.map(row=>row.length)),6), body=block.rows.slice(1), chunkSize=9; for(let offset=0;offset<body.length||offset===0;offset+=chunkSize){const rows=[block.rows[0],...body.slice(offset,offset+chunkSize)].map(row=>Array.from({length:cols},(_,c)=>row[c]||''));const height=Math.max(.7,rows.length*.36);ensure(height+.15);slide.addTable(rows,{x:.42,y,w:12.45,h:height,border:{type:'solid',color:'CBD5E1',pt:.5},fontFace:'Aptos',fontSize:8,margin:.04,autoFit:false,colW:Array.from({length:cols},(_,c)=>c===0?1.0:c===1?4.4:c===cols-1?2.0:1.5)});y+=height+.15;}return;} const value=block.type==='bullet'?`• ${block.value}`:block.value, height=Math.max(.27,Math.ceil(value.length/120)*.23);ensure(height);slide.addText(value,{x:.55,y,w:12.0,h:height,fontSize:10,color:'1E293B',breakLine:false,margin:.02,bullet:block.type==='bullet'?{indent:14}:undefined,fit:'shrink'});y+=height+.1;});pptx.writeFile({fileName:filename('pptx')}); }
-                document.getElementById('user-input').addEventListener('keypress',e=>{if(e.key==='Enter')sendMessage();});
+    (() => {
+        const MAX_FILE_BYTES = 4 * 1024 * 1024;
+        const HISTORY_TURNS = 8;            // previous messages sent for context
+        const STORAGE_KEY = 'vijay-expert-chat-v2';
+        const RTL_LANGS = new Set(['ar', 'ur']);
+        const MIME = { pdf: 'application/pdf', xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', xls: 'application/vnd.ms-excel', pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', ppt: 'application/vnd.ms-powerpoint', csv: 'text/csv', txt: 'text/plain' };
+        const STARTERS = [
+            ['🧱', 'M25 concrete rate analysis', 'Prepare a rate analysis for 1 m³ of M25 RMC including pumping'],
+            ['🔍', 'Diagnose honeycombing', 'Diagnose honeycombing in a column and suggest repair method'],
+            ['✅', 'Pour inspection checklist', 'Create a pre-pour concrete inspection checklist for a slab'],
+            ['📋', 'Review a BOQ', 'Review this BOQ and identify important checks'],
+            ['🎨', 'Painting estimate', '1200 sft 2BHK interior luxury paint cost estimate'],
+            ['🚚', 'Transit mixer planning', 'How many transit mixers for a 300 m³ raft pour in 8 hours with a 40 min round trip?']
+        ];
+
+        const $ = id => document.getElementById(id);
+        const chatBox = $('chat-box'), scroller = $('chat-scroll'), input = $('user-input'), sendBtn = $('send-btn');
+        const store = { get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
+
+        let selectedFile = null, busy = false;
+        let conversation = Array.isArray(store.get(STORAGE_KEY)) ? store.get(STORAGE_KEY) : [];
+        const prefs = store.get('vijay-expert-prefs') || {};
+        if (prefs.language && [...$('answer-language').options].some(o => o.value === prefs.language)) $('answer-language').value = prefs.language;
+        $('quote-ready').checked = !!prefs.quoteReady;
+        const savePrefs = () => store.set('vijay-expert-prefs', { language: $('answer-language').value, quoteReady: $('quote-ready').checked });
+        $('answer-language').addEventListener('change', savePrefs);
+        $('quote-ready').addEventListener('change', savePrefs);
+
+        // ---------- starters ----------
+        STARTERS.forEach(([icon, label, prompt]) => {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'min-w-0 w-full text-left rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm hover:border-blue-400 hover:bg-blue-50 transition';
+            b.innerHTML = `<span class="mr-1" aria-hidden="true">${icon}</span><span class="font-semibold text-slate-800"></span><span class="block text-xs text-slate-500 mt-0.5 truncate"></span>`;
+            b.children[1].textContent = label; b.children[2].textContent = prompt;
+            b.addEventListener('click', () => { input.value = prompt; autosize(); input.focus(); });
+            $('starters').appendChild(b);
+        });
+
+        // ---------- composer ----------
+        function autosize() { input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, 180) + 'px'; }
+        input.addEventListener('input', autosize);
+        input.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); send(); } });
+        $('chat-form').addEventListener('submit', e => { e.preventDefault(); send(); });
+        $('new-chat').addEventListener('click', () => { if (busy) return; conversation = []; store.set(STORAGE_KEY, conversation); chatBox.innerHTML = ''; $('welcome').classList.remove('hidden'); removeFile(); input.focus(); });
+
+        // ---------- attachments ----------
+        function setFile(file) {
+            if (!file) return;
+            const ext = file.name.split('.').pop().toLowerCase();
+            if (!MIME[ext]) { toast('Please attach a PDF, Excel, PowerPoint, CSV or TXT file.'); return removeFile(); }
+            if (file.size > MAX_FILE_BYTES) { toast('Please choose a file smaller than 4 MB.'); return removeFile(); }
+            selectedFile = file;
+            $('file-name').textContent = `${file.name} (${Math.ceil(file.size / 1024)} KB)`;
+            $('file-chip').classList.remove('hidden');
+        }
+        function removeFile() { selectedFile = null; $('project-file').value = ''; $('file-chip').classList.add('hidden'); }
+        $('project-file').addEventListener('change', e => setFile(e.target.files[0]));
+        $('remove-file').addEventListener('click', removeFile);
+        ['dragenter', 'dragover'].forEach(t => document.body.addEventListener(t, e => { if (e.dataTransfer?.types?.includes('Files')) { e.preventDefault(); document.body.classList.add('drop-active'); } }));
+        ['dragleave', 'drop'].forEach(t => document.body.addEventListener(t, e => { if (t === 'drop' || e.target === document.body) document.body.classList.remove('drop-active'); }));
+        document.body.addEventListener('drop', e => { e.preventDefault(); setFile(e.dataTransfer.files[0]); });
+        const fileToAttachment = file => new Promise((resolve, reject) => {
+            const r = new FileReader();
+            r.onload = () => resolve({ name: file.name, mimeType: MIME[file.name.split('.').pop().toLowerCase()] || file.type, data: String(r.result).split(',')[1] });
+            r.onerror = () => reject(new Error('The selected document could not be read.'));
+            r.readAsDataURL(file);
+        });
+
+        function toast(text) {
+            const t = document.createElement('div');
+            t.className = 'fixed left-1/2 -translate-x-1/2 bottom-28 z-50 rounded-lg bg-slate-900 text-white text-sm px-4 py-2 shadow-lg';
+            t.textContent = text; document.body.appendChild(t); setTimeout(() => t.remove(), 2600);
+        }
+        const scrollToEnd = () => scroller.scrollTo({ top: scroller.scrollHeight, behavior: 'smooth' });
+
+        // ---------- sending ----------
+        async function send(retryText) {
+            if (busy) return;
+            const text = (retryText ?? input.value).trim();
+            if (!text) return;
+            busy = true; sendBtn.disabled = true; $('send-label').textContent = '…';
+            $('welcome').classList.add('hidden');
+            const file = selectedFile;
+            if (retryText === undefined) {
+                input.value = ''; autosize();
+                addUser(file ? `${text}\n\n📎 ${file.name}` : text);
+            }
+            const history = conversation.slice(-HISTORY_TURNS).map(({ role, text }) => ({ role, text }));
+            const typing = addTyping();
+            try {
+                const attachment = file ? await fileToAttachment(file) : null;
+                const res = await fetch('/.netlify/functions/chat', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: text, history, attachment, language: $('answer-language').value, quoteReady: $('quote-ready').checked })
+                });
+                let data = {};
+                try { data = await res.json(); } catch {}
+                if (!res.ok || !data.reply) throw new Error(data.error || 'The AI service could not answer right now. Please try again.');
+                typing.remove();
+                conversation.push({ role: 'user', text: file ? `${text}\n\n[Attached: ${file.name}]` : text }, { role: 'model', text: data.reply, lang: $('answer-language').value });
+                store.set(STORAGE_KEY, conversation.slice(-40));
+                addAI(data.reply, $('answer-language').value);
+                removeFile();
+            } catch (err) {
+                typing.remove();
+                addError(err.message || 'Unable to reach the AI expert.', text);
+            } finally {
+                busy = false; sendBtn.disabled = false; $('send-label').textContent = 'Send';
+                if (window.matchMedia('(pointer: fine)').matches) input.focus();
+            }
+        }
+
+        // ---------- message rendering ----------
+        function row(kind) { const w = document.createElement('div'); w.className = `msg-${kind} flex ${kind === 'user' ? 'justify-end' : 'justify-start'}`; chatBox.appendChild(w); return w; }
+        function addUser(text) {
+            const b = document.createElement('div'); b.className = 'bubble max-w-[85%] px-4 py-2.5 text-[15px] whitespace-pre-wrap break-words shadow-sm'; b.textContent = text;
+            row('user').appendChild(b); scrollToEnd();
+        }
+        function addTyping() {
+            const w = row('ai'); w.innerHTML = '<div class="bubble px-4 py-3 shadow-sm flex items-center gap-1.5" role="status" aria-label="Thinking"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="ml-2 text-xs text-slate-500">Preparing answer…</span></div>';
+            scrollToEnd(); return w;
+        }
+        function addError(message, retryText) {
+            const w = row('ai'); const b = document.createElement('div');
+            b.className = 'bubble px-4 py-3 text-sm shadow-sm !border-red-200 !bg-red-50 text-red-800';
+            b.textContent = message;
+            const retry = document.createElement('button'); retry.type = 'button'; retry.className = 'ml-3 font-semibold underline'; retry.textContent = 'Retry';
+            retry.onclick = () => { w.remove(); send(retryText); };
+            b.appendChild(retry); w.appendChild(b); scrollToEnd();
+        }
+        function addAI(text, lang, { scroll = true } = {}) {
+            const w = row('ai'); const col = document.createElement('div'); col.className = 'max-w-full w-full sm:w-auto sm:max-w-[95%]';
+            const b = document.createElement('div'); b.className = 'bubble px-4 py-3 text-[15px] leading-relaxed shadow-sm break-words';
+            if (RTL_LANGS.has(lang)) b.dir = 'rtl';
+            renderReply(text, b); col.appendChild(b);
+            const actions = document.createElement('div'); actions.className = 'mt-1.5 flex flex-wrap gap-1.5';
+            const mk = (label, fn, title) => { const btn = document.createElement('button'); btn.type = 'button'; btn.title = title || label; btn.className = 'rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600 hover:border-blue-400 hover:text-blue-700'; btn.textContent = label; btn.onclick = () => fn(btn); actions.appendChild(btn); };
+            mk('Copy', async btn => { try { await navigator.clipboard.writeText(text); btn.textContent = 'Copied ✓'; setTimeout(() => btn.textContent = 'Copy', 1500); } catch { toast('Copy is not available in this browser.'); } });
+            mk('PDF', btn => runExport(btn, downloadPdf, text), 'Download as PDF');
+            mk('Excel', btn => runExport(btn, downloadExcel, text), 'Download as Excel');
+            mk('PowerPoint', btn => runExport(btn, downloadPowerPoint, text), 'Download as PowerPoint');
+            col.appendChild(actions); w.appendChild(col);
+            if (scroll) w.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        // Safe inline Markdown: **bold**, *italic*, `code`. Builds DOM nodes, never innerHTML.
+        function appendInline(parent, value) {
+            const re = /(\*\*[^*]+\*\*|`[^`]+`|(?<![*\w])\*[^*\s][^*]*\*(?!\w))/g; let last = 0, m;
+            value = String(value);
+            while ((m = re.exec(value))) {
+                if (m.index > last) parent.appendChild(document.createTextNode(value.slice(last, m.index)));
+                const tok = m[0]; let el;
+                if (tok.startsWith('**')) { el = document.createElement('strong'); el.textContent = tok.slice(2, -2); }
+                else if (tok.startsWith('`')) { el = document.createElement('code'); el.textContent = tok.slice(1, -1); }
+                else { el = document.createElement('em'); el.textContent = tok.slice(1, -1); }
+                parent.appendChild(el); last = m.index + tok.length;
+            }
+            if (last < value.length) parent.appendChild(document.createTextNode(value.slice(last)));
+        }
+        const cellText = v => String(v).trim().replace(/\*\*/g, '');
+        const isTableRow = line => /^\s*\|.*\|\s*$/.test(line);
+        const isDivider = line => /^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$/.test(line);
+        const splitRow = line => line.trim().replace(/^\||\|$/g, '').split('|').map(c => c.trim());
+        const isTotalRow = cells => cells.some(c => /^\**\s*(sub-?\s*total|grand total|total|gst|vat)\b/i.test(c));
+        function renderTable(lines, parent) {
+            const rows = lines.filter(l => !isDivider(l)).map(splitRow); if (!rows.length) return;
+            const wrap = document.createElement('div'); wrap.className = 'boq-table-wrap';
+            const table = document.createElement('table'); table.className = 'boq-table';
+            const thead = table.createTHead(), hr = thead.insertRow();
+            rows[0].forEach(v => { const th = document.createElement('th'); th.textContent = cellText(v); hr.appendChild(th); });
+            const tbody = table.createTBody();
+            rows.slice(1).forEach(r => { const tr = tbody.insertRow(); if (isTotalRow(r)) tr.className = 'total-row'; r.forEach(v => appendInline(tr.insertCell(), v)); });
+            wrap.appendChild(table); parent.appendChild(wrap);
+        }
+        function renderReply(text, parent) {
+            const lines = String(text || '').replace(/\r/g, '').split('\n');
+            for (let i = 0; i < lines.length;) {
+                const line = lines[i];
+                if (isTableRow(line)) { const rows = []; while (i < lines.length && (isTableRow(lines[i]) || isDivider(lines[i]))) rows.push(lines[i++]); renderTable(rows, parent); continue; }
+                if (!line.trim()) { i++; continue; }
+                if (/^\s*(?:#{1,4}\s+|\*\*[^*]+\*\*\s*:?\s*$)/.test(line)) { const h = document.createElement('div'); h.className = 'reply-heading'; h.textContent = cellText(line.replace(/^\s*#{1,4}\s+/, '')).replace(/:\s*$/, ''); parent.appendChild(h); i++; continue; }
+                const listRe = /^\s*(?:[-*•]|\d+[.)])\s+/;
+                if (listRe.test(line)) {
+                    const ordered = /^\s*\d+[.)]\s+/.test(line); const list = document.createElement(ordered ? 'ol' : 'ul'); list.className = 'reply-list';
+                    while (i < lines.length && listRe.test(lines[i])) { const li = document.createElement('li'); appendInline(li, lines[i].replace(listRe, '')); list.appendChild(li); i++; }
+                    parent.appendChild(list); continue;
+                }
+                const p = document.createElement('p'); appendInline(p, line); parent.appendChild(p); i++;
+            }
+        }
+
+        // ---------- exports (libraries load on first use) ----------
+        const LIBS = {
+            pdf: ['https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js', () => window.jspdf],
+            xlsx: ['https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js', () => window.XLSX],
+            pptx: ['https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js', () => window.PptxGenJS]
+        };
+        const loading = {};
+        function loadLib(key) {
+            const [src, ready] = LIBS[key];
+            if (ready()) return Promise.resolve();
+            return loading[key] ||= new Promise((resolve, reject) => { const s = document.createElement('script'); s.src = src; s.onload = resolve; s.onerror = () => { delete loading[key]; reject(new Error('Could not load the export library. Check your connection and try again.')); }; document.head.appendChild(s); });
+        }
+        async function runExport(btn, fn, text) {
+            const label = btn.textContent; btn.disabled = true; btn.textContent = '…';
+            try { await fn(text); } catch (e) { toast(e.message || 'Export failed.'); } finally { btn.disabled = false; btn.textContent = label; }
+        }
+        const TITLE = "Vijay's AI Expert — Construction Estimate / BOQ";
+        const filename = ext => `vijay-expert-response-${new Date().toISOString().slice(0, 10)}.${ext}`;
+        const exportHeading = line => { const m = String(line).match(/^\s*(?:#{1,4}\s+|\*\*)?(.+?)(?:\*\*)?\s*:?\s*$/); return m ? cellText(m[1]) : cellText(line); };
+        const isExportHeading = line => /^\s*#{1,4}\s+/.test(line) || /^\s*\*\*[^*]+\*\*\s*:?\s*$/.test(line);
+        function parseBlocks(text) {
+            const lines = String(text || '').replace(/\r/g, '').split('\n'), blocks = [];
+            for (let i = 0; i < lines.length;) {
+                const line = lines[i];
+                if (isTableRow(line)) { const raw = []; while (i < lines.length && (isTableRow(lines[i]) || isDivider(lines[i]))) raw.push(lines[i++]); const rows = raw.filter(r => !isDivider(r)).map(r => splitRow(r).map(cellText)); if (rows.length) blocks.push({ type: 'table', rows }); continue; }
+                if (!line.trim()) { i++; continue; }
+                if (isExportHeading(line)) { blocks.push({ type: 'heading', value: exportHeading(line) }); i++; continue; }
+                if (/^\s*(?:[-*•]|\d+[.)])\s+/.test(line)) { blocks.push({ type: 'bullet', value: cellText(line.replace(/^\s*(?:[-*•]|\d+[.)])\s+/, '')) }); i++; continue; }
+                const label = line.match(/^\s*([^:]{2,80}):\s+(.+)$/);
+                if (label && /^\**\s*(scope|assumptions|rate basis|exclusions|validity|next step|recommendation|notes?|cost summary|project|quotation|estimate|important)/i.test(label[1])) { blocks.push({ type: 'heading', value: cellText(label[1]) }); blocks.push({ type: 'paragraph', value: cellText(label[2]) }); }
+                else blocks.push({ type: 'paragraph', value: cellText(line) });
+                i++;
+            }
+            return blocks;
+        }
+        // Column weights for a BOQ: narrow Sl/Unit/Qty, wide description & remarks. Handles any column count.
+        function columnWeights(header) {
+            return header.map((h, c) => { const t = String(h).toLowerCase();
+                if (/^sl|^s\.?\s*no|^#/.test(t) || c === 0) return .6;
+                if (/description|item|reference|cpwd/.test(t)) return 2.2;
+                if (/remark|assumption|note/.test(t)) return 1.8;
+                if (/unit|qty|quantity/.test(t)) return .8;
+                return 1.1; });
+        }
+
+        async function downloadPdf(text) {
+            await loadLib('pdf');
+            // jsPDF's built-in Helvetica has no ₹ glyph (it prints as "¹"), so write "Rs." in the PDF.
+            const { jsPDF } = window.jspdf, blocks = parseBlocks(String(text).replace(/₹\s?/g, 'Rs. '));
+            const wide = blocks.some(b => b.type === 'table' && Math.max(...b.rows.map(r => r.length)) > 6);
+            const pdf = new jsPDF({ unit: 'pt', format: 'a4', orientation: wide ? 'landscape' : 'portrait' });
+            const W = pdf.internal.pageSize.getWidth(), H = pdf.internal.pageSize.getHeight(), M = 36, CW = W - M * 2; let y = 40;
+            const footer = () => { pdf.setFont('helvetica', 'normal'); pdf.setFontSize(7); pdf.setTextColor(100, 116, 139); pdf.text('General professional guidance only — verify with the responsible qualified engineer before use.', M, H - 18); };
+            const addPage = () => { footer(); pdf.addPage(); y = 40; };
+            const need = h => { if (y + h > H - 38) addPage(); };
+            const line = (value, size = 10) => { pdf.setFont('helvetica', 'normal'); pdf.setFontSize(size); pdf.setTextColor(30, 41, 59); const ls = pdf.splitTextToSize(String(value || ''), CW); const h = Math.max(14, ls.length * (size + 3)); need(h); pdf.text(ls, M, y + size); y += h; };
+            pdf.setFillColor(30, 64, 175); pdf.rect(0, 0, W, 64, 'F'); pdf.setTextColor(255, 255, 255); pdf.setFont('helvetica', 'bold'); pdf.setFontSize(17); pdf.text(TITLE, M, 34);
+            pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8); pdf.text(`Generated: ${new Date().toLocaleString()}`, M, 51); y = 84;
+            const table = rows => {
+                const cols = Math.max(...rows.map(r => r.length)), header = Array.from({ length: cols }, (_, c) => rows[0][c] || '');
+                const weights = columnWeights(header), unit = CW / weights.reduce((a, b) => a + b, 0), widths = weights.map(w => w * unit);
+                const drawRow = (source, isHeader) => {
+                    const cells = Array.from({ length: cols }, (_, c) => String(source[c] || '')), fs = isHeader ? 7.5 : 7, total = !isHeader && isTotalRow(cells);
+                    pdf.setFontSize(fs); const cl = cells.map((cell, c) => pdf.splitTextToSize(cell, Math.max(20, widths[c] - 8)));
+                    const rh = Math.max(18, ...cl.map(l => l.length * (fs + 2) + 8)); return { cells, cl, rh, fs, total, isHeader };
+                };
+                const paint = r => { let x = M; r.cells.forEach((_, c) => { pdf.setDrawColor(203, 213, 225); pdf.setFillColor(...(r.isHeader ? [29, 78, 216] : r.total ? [219, 234, 254] : [255, 255, 255])); pdf.rect(x, y, widths[c], r.rh, 'FD'); pdf.setTextColor(...(r.isHeader ? [255, 255, 255] : [30, 41, 59])); pdf.setFont('helvetica', r.isHeader || r.total ? 'bold' : 'normal'); pdf.setFontSize(r.fs); pdf.text(r.cl[c], x + 4, y + r.fs + 3); x += widths[c]; }); y += r.rh; };
+                const head = drawRow(rows[0], true); need(head.rh + 20); paint(head);
+                rows.slice(1).forEach(src => { const r = drawRow(src, false); if (y + r.rh > H - 38) { addPage(); paint(head); } paint(r); });
+                y += 10;
+            };
+            blocks.forEach(b => {
+                if (b.type === 'heading') { need(30); pdf.setFillColor(37, 99, 235); pdf.rect(M, y, CW, 22, 'F'); pdf.setTextColor(255, 255, 255); pdf.setFont('helvetica', 'bold'); pdf.setFontSize(11); pdf.text(b.value, M + 7, y + 15); y += 29; }
+                else if (b.type === 'table') table(b.rows);
+                else line(b.type === 'bullet' ? `• ${b.value}` : b.value);
+            });
+            footer(); pdf.save(filename('pdf'));
+        }
+
+        async function downloadExcel(text) {
+            await loadLib('xlsx');
+            const blocks = parseBlocks(text), rows = [], merges = [];
+            const tableCols = blocks.filter(b => b.type === 'table').map(b => Math.max(...b.rows.map(r => r.length)));
+            const lastColumn = Math.max(4, ...tableCols);
+            const addMerged = value => { const r = Array(lastColumn).fill(''); r[0] = value; merges.push({ s: { r: rows.length, c: 0 }, e: { r: rows.length, c: lastColumn - 1 } }); rows.push(r); };
+            addMerged(TITLE); addMerged(`Generated: ${new Date().toLocaleString()}`); rows.push([]);
+            const toNumber = v => { const s = String(v).replace(/[₹,\s]|AED|Rs\.?/gi, ''); return /^-?\d+(\.\d+)?$/.test(s) ? Number(s) : v; };
+            blocks.forEach(b => {
+                if (b.type === 'heading') { rows.push([]); addMerged(b.value.toUpperCase()); return; }
+                if (b.type === 'table') { b.rows.forEach((r, i) => rows.push(i === 0 ? r : r.map(toNumber))); rows.push([]); return; }
+                addMerged(b.type === 'bullet' ? `• ${b.value}` : b.value);
+            });
+            const sheet = XLSX.utils.aoa_to_sheet(rows);
+            sheet['!merges'] = merges;
+            sheet['!cols'] = Array.from({ length: lastColumn }, (_, i) => ({ wch: i === 0 ? 8 : i <= 2 ? 40 : 16 }));
+            const wb = XLSX.utils.book_new(); wb.Props = { Title: "Vijay's AI Expert Construction Estimate", Author: "Vijay's AI Expert" };
+            XLSX.utils.book_append_sheet(wb, sheet, 'Quote or Response'); XLSX.writeFile(wb, filename('xlsx'));
+        }
+
+        async function downloadPowerPoint(text) {
+            await loadLib('pptx');
+            const pptx = new PptxGenJS(), blocks = parseBlocks(text); pptx.layout = 'LAYOUT_WIDE'; pptx.author = "Vijay's AI Expert"; let slide, y;
+            const newSlide = () => { slide = pptx.addSlide(); slide.background = { color: 'F8FAFC' }; slide.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: 13.333, h: .68, fill: { color: '1E40AF' }, line: { color: '1E40AF' } }); slide.addText(TITLE, { x: .42, y: .19, w: 9.5, h: .3, fontSize: 18, bold: true, color: 'FFFFFF', margin: 0 }); slide.addText(`Generated: ${new Date().toLocaleString()}`, { x: 10.0, y: .23, w: 2.9, h: .2, fontSize: 7, color: 'DBEAFE', align: 'right', margin: 0 }); y = .92; };
+            const ensure = h => { if (y + h > 7.15) newSlide(); }; newSlide();
+            blocks.forEach(b => {
+                if (b.type === 'heading') { ensure(.45); slide.addShape(pptx.ShapeType.rect, { x: .42, y, w: 12.45, h: .32, fill: { color: '2563EB' }, line: { color: '2563EB' } }); slide.addText(b.value, { x: .55, y: y + .04, w: 12, h: .24, fontSize: 11, bold: true, color: 'FFFFFF', margin: 0 }); y += .43; return; }
+                if (b.type === 'table') {
+                    const cols = Math.max(...b.rows.map(r => r.length)), header = Array.from({ length: cols }, (_, c) => b.rows[0][c] || ''), weights = columnWeights(header), sum = weights.reduce((a, c) => a + c, 0), colW = weights.map(w => w / sum * 12.45);
+                    const body = b.rows.slice(1), chunk = 9, headRow = header.map(t => ({ text: t, options: { bold: true, color: 'FFFFFF', fill: { color: '1D4ED8' } } }));
+                    for (let off = 0; off < body.length || off === 0; off += chunk) {
+                        const data = body.slice(off, off + chunk).map(r => { const total = isTotalRow(r); return Array.from({ length: cols }, (_, c) => ({ text: r[c] || '', options: total ? { bold: true, fill: { color: 'DBEAFE' } } : {} })); });
+                        const h = Math.max(.7, (data.length + 1) * .36); ensure(h + .15);
+                        slide.addTable([headRow, ...data], { x: .42, y, w: 12.45, colW, border: { type: 'solid', color: 'CBD5E1', pt: .5 }, fontFace: 'Arial', fontSize: cols > 6 ? 7 : 8, margin: .04, autoFit: false });
+                        y += h + .15;
+                    }
+                    return;
+                }
+                const value = b.type === 'bullet' ? `• ${b.value}` : b.value, h = Math.max(.27, Math.ceil(value.length / 120) * .23); ensure(h);
+                slide.addText(value, { x: .55, y, w: 12.0, h, fontSize: 10, color: '1E293B', margin: .02, fit: 'shrink' }); y += h + .1;
+            });
+            await pptx.writeFile({ fileName: filename('pptx') });
+        }
+
+        // ---------- restore previous conversation ----------
+        if (conversation.length) {
+            $('welcome').classList.add('hidden');
+            conversation.forEach(m => m.role === 'user' ? addUser(m.text) : addAI(m.text, m.lang, { scroll: false }));
+            scroller.scrollTop = scroller.scrollHeight;
+        }
+        autosize();
+    })();
     </script>
 </body>
 </html>
