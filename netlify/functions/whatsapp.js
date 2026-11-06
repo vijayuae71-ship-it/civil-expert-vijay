@@ -136,7 +136,7 @@ const WELCOME = [
   "*Commands*: *new* – start fresh · *detailed* – engineer answers · *simple* – short steps · *consult* – request a review by a senior engineer",
   "",
   "⚠️ General guidance only. Check design, testing and approvals with your engineer.",
-  `🔒 Privacy: ${SITE_URL}/privacy`
+  `📄 Disclaimer: ${SITE_URL}/disclaimer · 🔒 Privacy: ${SITE_URL}/privacy`
 ].join("\n");
 
 function command(text) {

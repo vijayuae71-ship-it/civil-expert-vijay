@@ -118,7 +118,7 @@
                 </label>
                 <span class="hidden sm:inline text-slate-400">Enter to send · Shift+Enter for a new line</span>
             </div>
-            <p class="mt-1.5 text-[11px] leading-snug text-slate-400">General professional guidance only. Documents are not stored; questions are logged without your name to improve answers. <a href="privacy.html" class="underline hover:text-slate-600">Privacy</a>. Verify design, testing, standards and approvals with the responsible qualified engineer.</p>
+            <p class="mt-1.5 text-[11px] leading-snug text-slate-400">General professional guidance only. Documents are not stored; questions are logged without your name to improve answers. <a href="disclaimer.html" class="underline hover:text-slate-600">Disclaimer</a> · <a href="privacy.html" class="underline hover:text-slate-600">Privacy</a>. Verify design, testing, standards and approvals with the responsible qualified engineer.</p>
         </div>
     </footer>
 
@@ -606,7 +606,7 @@
             const wide = blocks.some(b => b.type === 'table' && Math.max(...b.rows.map(r => r.length)) > 6);
             const pdf = new jsPDF({ unit: 'pt', format: 'a4', orientation: wide ? 'landscape' : 'portrait' });
             const W = pdf.internal.pageSize.getWidth(), H = pdf.internal.pageSize.getHeight(), M = 36, CW = W - M * 2; let y = 40;
-            const footer = () => { pdf.setFont('helvetica', 'normal'); pdf.setFontSize(7); pdf.setTextColor(100, 116, 139); pdf.text('General professional guidance only — verify with the responsible qualified engineer before use.', M, H - 18); };
+            const footer = () => { pdf.setFont('helvetica', 'normal'); pdf.setFontSize(7); pdf.setTextColor(100, 116, 139); pdf.text(`AI-generated general guidance only — verify with the responsible qualified engineer before use. Disclaimer: ${((window.SITE_CONFIG || {}).siteUrl || location.origin).replace(/^https?:\/\//, '')}/disclaimer`, M, H - 18); };
             const addPage = () => { footer(); pdf.addPage(); y = 40; };
             const need = h => { if (y + h > H - 38) addPage(); };
             const line = (value, size = 10) => { pdf.setFont('helvetica', 'normal'); pdf.setFontSize(size); pdf.setTextColor(30, 41, 59); const ls = pdf.splitTextToSize(String(value || ''), CW); const h = Math.max(14, ls.length * (size + 3)); need(h); pdf.text(ls, M, y + size); y += h; };
