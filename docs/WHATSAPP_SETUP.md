@@ -7,17 +7,17 @@ The code is ready: `netlify/functions/whatsapp.js` answers WhatsApp messages wit
 - A Facebook account, and about 30–45 minutes.
 
 ## 1. Meta Business account
-Go to **business.facebook.com** and create a business portfolio, for example "Engineer Vijay", if you don't have one.
+Go to **business.facebook.com** and create a business portfolio in your company's legal name if you don't have one.
 
 ## 2. Create the app
 1. Go to **developers.facebook.com → My Apps → Create app**.
-2. Choose the **Business** type (or the "Connect with customers through WhatsApp" use case), name it, for example "Vijay AI Expert", and link it to your business portfolio.
+2. Choose the **Business** type (or the "Connect with customers through WhatsApp" use case), name it, for example "Construction AI Expert", and link it to your business portfolio.
 3. In the app, add the **WhatsApp** product.
 
 ## 3. Add the phone number
 1. Open **WhatsApp → API Setup**.
 2. Meta gives you a free **test number** first. You can test with it straight away by adding your own phone under "To" as a recipient.
-3. For the real bot, choose **Add phone number**. Enter the display name ("Vijay's AI Expert"), the category (Professional services) and the number, then verify it by SMS or call.
+3. For the real bot, choose **Add phone number**. Enter the display name ("Construction AI Expert"), the category (Professional services) and the number, then verify it by SMS or call.
 4. Copy the **Phone number ID**. It's a long number shown on the API Setup page.
 
 ## 4. Permanent access token
@@ -41,7 +41,7 @@ Go to **Project configuration → Environment variables**. Tick **Contains secre
 | `WHATSAPP_TOKEN` | the permanent token from step 4 |
 | `WHATSAPP_PHONE_NUMBER_ID` | the Phone number ID from step 3 |
 | `WHATSAPP_APP_SECRET` | the App secret from step 5 |
-| `WHATSAPP_VERIFY_TOKEN` | any long password you make up, e.g. `vijay-bot-7f3k9q2m` |
+| `WHATSAPP_VERIFY_TOKEN` | any long password you make up, e.g. `site-bot-7f3k9q2m` |
 
 Then **redeploy**: Deploys → Trigger deploy → Deploy site. Functions only pick up new settings after a deploy.
 
@@ -77,7 +77,7 @@ If nothing comes back, open **Netlify → Logs → Functions → whatsapp**:
   - `hi` – the welcome guide
   - `new` – start fresh
   - `detailed` / `simple` – change the answer style
-  - `consult` – a link to the consultation form
+  - `consult` – a link to the expert-review form
 - **Memory:** the last 8 messages per user, for 24 hours. Numbers are stored only as a keyed hash.
 - **Limits:** the same as the website (30 questions per hour per user and the site-wide daily cap). Saved answers apply too.
 
