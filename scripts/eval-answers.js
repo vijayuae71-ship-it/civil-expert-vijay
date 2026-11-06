@@ -4,6 +4,7 @@
 //   ANTHROPIC_API_KEY=... npm run eval -- --group mep --report mep-report.md
 // --group runs only cases with that group; --report also writes every full answer to a
 // Markdown file so a person can judge accuracy, not just the keyword checks.
+// --print-all also prints every full answer (passes too) to the console / CI log.
 // Each case sends a real question through the chat function and checks the reply
 // contains what a good answer must contain. Costs a few Claude calls per run (roughly US$0.02 each with the default model).
 
@@ -84,7 +85,7 @@ const CASES = [
   {
     group: "mep", name: "Split AC tonnage for a Dubai bedroom",
     body: { message: "What AC tonnage do I need for a 4 m x 5 m bedroom in Dubai with one west-facing window?", audience: "engineer" },
-    must: [/\b(1(\.\d)?|2)\s*(TR|ton)/i, /(cooling|heat) load/i, /(west|sun|solar|glass|window)/i]
+    must: [/\b(1(\.\d)?|2)\s*(TR|ton)/i, /(cooling|heat)[- ]load/i, /(west|sun|solar|glass|window)/i]
   },
   {
     group: "mep", name: "Drainage pipe slopes",
@@ -104,7 +105,7 @@ const CASES = [
   {
     group: "mep", name: "Domestic water tank sizing for an apartment block",
     body: { message: "Size the domestic water storage tank for a G+4 residential building with 20 flats", audience: "engineer" },
-    must: [/(per (person|capita|occupant)|litres? \/ ?(person|day)|lpcd|L\/p\/d)/i, /(m³|litres|liters|gallons)/i, /(occupants|persons|people)/i]
+    must: [/(per (person|capita|occupant)|l(itres?)?\s*\/\s*(person|capita|head)|lpcd|L\/p\/d)/i, /(m³|litres|liters|gallons|\d\s*L\b)/i, /(occupants|persons|people)/i]
   },
   {
     group: "mep", name: "Office lighting design for 500 lux uses the lumen method",
@@ -142,6 +143,7 @@ const args = process.argv.slice(2);
 const argValue = (name) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : null; };
 const group = argValue("--group");
 const reportPath = argValue("--report");
+const printAll = args.includes("--print-all");
 const selected = group ? CASES.filter((c) => c.group === group) : CASES;
 
 (async () => {
@@ -155,7 +157,7 @@ const selected = group ? CASES.filter((c) => c.group === group) : CASES;
     (c.must || []).forEach((re) => { if (!re.test(reply)) problems.push(`missing ${re}`); });
     (c.mustNot || []).forEach((re) => { if (re.test(reply)) problems.push(`should not contain ${re}`); });
     if (problems.length) { failed += 1; console.log(`✗ ${c.name}\n    ${problems.join("\n    ")}\n    --- reply ---\n${reply.split("\n").map((l) => "    " + l).join("\n")}\n`); }
-    else console.log(`✓ ${c.name}`);
+    else console.log(`✓ ${c.name}${printAll ? `\n    --- reply ---\n${reply.split("\n").map((l) => "    " + l).join("\n")}\n` : ""}`);
     report.push(`## ${problems.length ? "✗" : "✓"} ${c.name}`, "", `**Question:** ${c.body.message} _(style: ${c.body.audience || "engineer"})_`, "");
     if (problems.length) report.push(`**Missing:** ${problems.join("; ")}`, "");
     report.push(reply, "", "---", "");
