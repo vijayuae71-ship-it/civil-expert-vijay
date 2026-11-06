@@ -22,9 +22,9 @@ const CASES = [
     must: [/silica fume|micro ?silica/i, /superplasticiser|superplasticizer|PCE/i, /w\/b|water[- ]binder/i, /\|.*kg/i, /trial/i]
   },
   {
-    name: "Dubai RMC quote uses AED client rates",
+    group: "rates", name: "Dubai RMC quote uses AED market rates labelled with their month",
     body: { message: "Quote for 100 m3 C40 RMC in Dubai, 380 kg cement and 120 kg GGBS per m3", quoteReady: true },
-    must: [/AED/, /0\.265|265/, /0\.39|390/, /Grand Total/i, /Exclusions/i],
+    must: [/AED/, /0\.265|265/, /0\.39|390/, /Grand Total/i, /Exclusions/i, /November 2026/],
     mustNot: [/CPWD DSR Base Rate/]
   },
   {

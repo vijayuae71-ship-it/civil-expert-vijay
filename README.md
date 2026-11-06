@@ -7,6 +7,7 @@ Static pages (`index`, `expert`, `calculators`, `construction-faq`) + Netlify Fu
 |---|---|
 | `chat` | Claude answers (Anthropic API, `@anthropic-ai/sdk`). Adds code-sourced context (`site-engineering-reference.js`, `mix-design-guidance.js`, `cpwd-civil-catalogue.js`, `dubai-rmc-costing.js`, FAQ) when a question matches. Rate limited (`rate-limit.js`). |
 | `feedback` | 👍/👎 on answers, stored in Netlify Blobs store `answer-feedback`. |
+| `whatsapp` | The same expert on WhatsApp (Meta WhatsApp Business Cloud API). Setup: [docs/WHATSAPP_SETUP.md](docs/WHATSAPP_SETUP.md). Inactive until the `WHATSAPP_*` settings are added. |
 
 ### Saved answers (repeat questions cost nothing)
 `answer-cache.js` stores each complete answer in the Netlify Blobs store `answer-cache`. The same question asked again is answered from there without calling Claude.
