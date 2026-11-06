@@ -126,7 +126,7 @@ async function firstTimeSeen(store, messageId) {
 const WELCOME = [
   `👷 *${BRAND_NAME}* — construction help on WhatsApp`,
   "",
-  "Ask any site question in your own language (हिंदी, اردو, മലയാളം, தமிழ், বাংলা, नेपाली, English…). You can also send a 📷 photo of the problem.",
+  "Ask any site question in your own language (English, हिंदी, اردو, العربية, മലയാളം, தமிழ், తెలుగు, ಕನ್ನಡ, मराठी, বাংলা, ਪੰਜਾਬੀ…). You can also send a 📷 photo of the problem.",
   "",
   "*Examples*",
   "• Cement and sand for 100 sq ft of 12 mm plaster?",

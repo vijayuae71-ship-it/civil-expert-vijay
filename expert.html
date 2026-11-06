@@ -17,6 +17,7 @@
     <link rel="icon" href="assets/logo.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
     <link rel="stylesheet" href="assets/site.css"><link rel="manifest" href="manifest.webmanifest"><script src="assets/app.js" defer></script>
     <script src="assets/site-config.js"></script>
+    <script src="assets/i18n.js"></script>
     <style>
         html, body { height: 100%; }
         body { display: flex; flex-direction: column; height: 100dvh; }
@@ -54,8 +55,8 @@
             </span>
         </a>
         <div class="flex shrink-0 items-center gap-2 sm:gap-3 text-sm font-medium">
-            <button type="button" data-open-consult class="whitespace-nowrap rounded-lg bg-amber-500 px-3 py-1.5 font-semibold text-slate-900 hover:bg-amber-400" title="Request a personal review of your project"><span class="sm:hidden">Review</span><span class="hidden sm:inline">Expert review</span></button>
-            <button id="new-chat" type="button" class="whitespace-nowrap rounded-lg border border-slate-300 px-3 py-1.5 text-slate-700 hover:bg-slate-50" title="Start a new conversation">New<span class="hidden sm:inline"> chat</span></button>
+            <button type="button" data-open-consult class="whitespace-nowrap rounded-lg bg-amber-500 px-3 py-1.5 font-semibold text-slate-900 hover:bg-amber-400" title="Request a personal review of your project"><span class="sm:hidden" data-i18n="review">Review</span><span class="hidden sm:inline" data-i18n="reviewLong">Expert review</span></button>
+            <button id="new-chat" type="button" class="whitespace-nowrap rounded-lg border border-slate-300 px-3 py-1.5 text-slate-700 hover:bg-slate-50" title="Start a new conversation"><span class="sm:hidden" data-i18n="new">New</span><span class="hidden sm:inline" data-i18n="newLong">New chat</span></button>
             <a href="calculators.html" class="hidden sm:inline text-blue-700 hover:text-blue-900">Calculators</a>
             <a href="construction-faq.html" class="hidden sm:inline text-blue-700 hover:text-blue-900">FAQ</a>
         </div>
@@ -65,12 +66,12 @@
         <div class="max-w-3xl mx-auto px-4 py-5">
             <section id="welcome" class="mb-5">
                 <div class="rounded-2xl bg-gradient-to-br from-blue-900 to-blue-700 text-white p-5 shadow">
-                    <h1 class="text-xl font-bold">Ask any construction question</h1>
-                    <p class="mt-1 text-sm text-blue-100">For every worker on site — mason, steel fixer, carpenter, electrician, plumber, painter, foreman or engineer. Type or 🎤 speak in your own language, or 📷 send a photo of the problem, a drawing or a product label and ask about it.</p>
-                    <p class="mt-2 text-sm font-medium text-white" lang="mul">हिंदी · اردو · മലയാളം · தமிழ் · বাংলা · नेपाली · తెలుగు · ਪੰਜਾਬੀ · العربية · English</p>
-                    <button type="button" data-install-app class="hidden mt-3 mr-2 inline-flex items-center gap-2 rounded-full bg-amber-400 px-4 py-2 text-sm font-bold text-slate-900 hover:bg-amber-300">📲 Install app</button><a data-wa-bot class="hidden mt-3 inline-flex items-center gap-2 rounded-full bg-green-500 px-4 py-2 text-sm font-bold text-white hover:bg-green-600">💬 Prefer WhatsApp? Ask the expert there</a>
+                    <h1 class="text-xl font-bold" data-i18n="welcomeTitle">Ask any construction question</h1>
+                    <p class="mt-1 text-sm text-blue-100" data-i18n="welcomeText">For every worker on site — mason, steel fixer, carpenter, electrician, plumber, painter, foreman or engineer. Type or 🎤 speak in your own language, or 📷 send a photo of the problem, a drawing or a product label and ask about it.</p>
+                    <p class="mt-2 text-sm font-medium text-white" lang="mul">English · हिंदी · اردو · العربية · മലയാളം · தமிழ் · తెలుగు · ಕನ್ನಡ · मराठी · বাংলা · ਪੰਜਾਬੀ</p>
+                    <button type="button" data-install-app class="hidden mt-3 mr-2 inline-flex items-center gap-2 rounded-full bg-amber-400 px-4 py-2 text-sm font-bold text-slate-900 hover:bg-amber-300" data-i18n="installApp">📲 Install app</button><a data-wa-bot class="hidden mt-3 inline-flex items-center gap-2 rounded-full bg-green-500 px-4 py-2 text-sm font-bold text-white hover:bg-green-600" data-i18n="waAsk">💬 Prefer WhatsApp? Ask the expert there</a>
                 </div>
-                <p class="mt-4 mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Pick your work — or just ask</p>
+                <p class="mt-4 mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500" data-i18n="pickWork">Pick your work — or just ask</p>
                 <div id="starters" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
             </section>
             <div id="chat-box" class="flex flex-col gap-4" aria-live="polite"></div>
@@ -84,64 +85,64 @@
                 <button id="remove-file" type="button" class="font-bold text-blue-900 hover:text-red-600" aria-label="Remove attached document">✕</button>
             </div>
             <form id="chat-form" class="flex items-end gap-2 rounded-2xl border border-slate-300 bg-white p-2 focus-within:ring-2 focus-within:ring-blue-500">
-                <label for="camera-file" class="shrink-0 cursor-pointer rounded-xl p-2 text-slate-500 hover:bg-slate-100 hover:text-blue-700" title="Take a photo of the problem">
+                <label for="camera-file" class="shrink-0 cursor-pointer rounded-xl p-1.5 sm:p-2 text-slate-500 hover:bg-slate-100 hover:text-blue-700" title="Take a photo of the problem">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                     <span class="sr-only">Take a photo</span>
                 </label>
                 <input id="camera-file" type="file" class="hidden" accept="image/*" capture="environment">
-                <label for="project-file" class="hidden sm:block shrink-0 cursor-pointer rounded-xl p-2 text-slate-500 hover:bg-slate-100 hover:text-blue-700" title="Attach a photo or document (PDF, Excel, PowerPoint, CSV, TXT)">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
-                    <span class="sr-only">Attach project document</span>
+                <label for="project-file" class="shrink-0 cursor-pointer rounded-xl p-1.5 sm:p-2 text-slate-500 hover:bg-slate-100 hover:text-blue-700" title="Choose a photo from the gallery, or a document (PDF, Excel, PowerPoint, CSV, TXT)">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path stroke-linecap="round" stroke-linejoin="round" d="M21 16l-5-5-8 8"/></svg>
+                    <span class="sr-only">Choose a photo or document</span>
                 </label>
                 <input id="project-file" type="file" class="hidden" accept="image/*,.pdf,.xlsx,.xls,.pptx,.ppt,.csv,.txt">
                 <label for="user-input" class="sr-only">Your question</label>
-                <textarea id="user-input" rows="1" maxlength="4000" placeholder="Type or speak your question…" class="min-w-0 flex-1 resize-none bg-transparent px-1 py-2 text-[15px] focus:outline-none"></textarea>
-                <button type="button" id="mic-btn" class="hidden shrink-0 rounded-xl p-2 text-slate-500 hover:bg-slate-100 hover:text-blue-700" title="Speak your question" aria-label="Speak your question" aria-pressed="false">
+                <textarea id="user-input" rows="1" maxlength="4000" placeholder="Type or speak your question…" data-i18n-placeholder="placeholder" class="min-w-0 flex-1 resize-none bg-transparent px-1 py-2 text-[15px] focus:outline-none"></textarea>
+                <button type="button" id="mic-btn" class="hidden shrink-0 rounded-xl p-1.5 sm:p-2 text-slate-500 hover:bg-slate-100 hover:text-blue-700" title="Speak your question" aria-label="Speak your question" aria-pressed="false">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z"/></svg>
                 </button>
                 <button type="submit" id="send-btn" class="shrink-0 rounded-xl bg-blue-700 px-4 py-2 font-semibold text-white hover:bg-blue-800 disabled:opacity-50" aria-label="Send">
-                    <span id="send-label">Send</span>
+                    <span id="send-label" data-i18n="send">Send</span>
                 </button>
             </form>
             <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-600">
                 <div class="inline-flex rounded-lg border border-slate-300 p-0.5" role="radiogroup" aria-label="Answer style">
-                    <button type="button" data-audience="worker" role="radio" class="rounded-md px-2.5 py-1 font-semibold" title="Short, simple step-by-step answers">🛠️ Simple steps</button>
-                    <button type="button" data-audience="engineer" role="radio" class="rounded-md px-2.5 py-1 font-semibold" title="Detailed answers with calculations, BOQs and tables">📐 Detailed</button>
+                    <button type="button" data-audience="worker" role="radio" class="rounded-md px-2.5 py-1 font-semibold" title="Short, simple step-by-step answers" data-i18n="simple">🛠️ Simple steps</button>
+                    <button type="button" data-audience="engineer" role="radio" class="rounded-md px-2.5 py-1 font-semibold" title="Detailed answers with calculations, BOQs and tables" data-i18n="detailed">📐 Detailed</button>
                 </div>
                 <label id="quote-ready-wrap" class="inline-flex cursor-pointer items-center gap-1.5 font-medium" title="Compact scope, itemised BOQ table, totals, exclusions and rate basis">
-                    <input id="quote-ready" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-blue-700 focus:ring-blue-500">Quote-ready format
+                    <input id="quote-ready" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-blue-700 focus:ring-blue-500"><span data-i18n="quoteReady">Quote-ready format</span>
                 </label>
-                <label class="inline-flex items-center gap-1.5 font-medium">Language
+                <label class="inline-flex items-center gap-1.5 font-medium"><span data-i18n="language">Language</span>
                     <select id="answer-language" class="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="auto">🌐 Auto (same as my question)</option><option value="en">English</option><option value="ar">العربية (Arabic)</option><option value="hi">हिन्दी (Hindi)</option><option value="ur">اردو (Urdu)</option><option value="ml">മലയാളം (Malayalam)</option><option value="ta">தமிழ் (Tamil)</option><option value="te">తెలుగు (Telugu)</option><option value="kn">ಕನ್ನಡ (Kannada)</option><option value="bn">বাংলা (Bengali)</option><option value="mr">मराठी (Marathi)</option><option value="gu">ગુજરાતી (Gujarati)</option><option value="pa">ਪੰਜਾਬੀ (Punjabi)</option><option value="ne">नेपाली (Nepali)</option><option value="si">සිංහල (Sinhala)</option><option value="fr">Français</option><option value="es">Español</option><option value="pt">Português</option><option value="de">Deutsch</option><option value="it">Italiano</option><option value="ru">Русский</option><option value="tr">Türkçe</option><option value="zh-CN">中文 (简体)</option><option value="ja">日本語</option><option value="ko">한국어</option><option value="id">Bahasa Indonesia</option><option value="fil">Filipino</option>
+                        <option value="auto" data-i18n="auto">🌐 Auto (same as my question)</option><option value="en">English</option><option value="hi">हिन्दी (Hindi)</option><option value="ur">اردو (Urdu)</option><option value="ar">العربية (Arabic)</option><option value="ml">മലയാളം (Malayalam)</option><option value="ta">தமிழ் (Tamil)</option><option value="te">తెలుగు (Telugu)</option><option value="kn">ಕನ್ನಡ (Kannada)</option><option value="mr">मराठी (Marathi)</option><option value="bn">বাংলা (Bengali)</option><option value="pa">ਪੰਜਾਬੀ (Punjabi)</option><optgroup label="Other languages (answers only)"><option value="gu">ગુજરાતી (Gujarati)</option><option value="ne">नेपाली (Nepali)</option><option value="si">සිංහල (Sinhala)</option><option value="fil">Filipino</option><option value="id">Bahasa Indonesia</option><option value="fr">Français</option><option value="es">Español</option><option value="pt">Português</option><option value="de">Deutsch</option><option value="it">Italiano</option><option value="ru">Русский</option><option value="tr">Türkçe</option><option value="zh-CN">中文 (简体)</option><option value="ja">日本語</option><option value="ko">한국어</option></optgroup>
                     </select>
                 </label>
                 <button type="button" id="voice-lang-chip" class="hidden rounded-md border border-slate-300 px-2 py-1 font-medium text-slate-600 hover:bg-slate-50" title="Change the language for voice typing"></button>
                 <span class="hidden sm:inline text-slate-400">Enter to send · Shift+Enter for a new line</span>
             </div>
-            <p class="mt-1.5 text-[11px] leading-snug text-slate-400">General professional guidance only. Documents are not stored; questions are logged without your name to improve answers. <a href="disclaimer.html" class="underline hover:text-slate-600">Disclaimer</a> · <a href="privacy.html" class="underline hover:text-slate-600">Privacy</a>. Verify design, testing, standards and approvals with the responsible qualified engineer.</p>
+            <p class="mt-1.5 text-[11px] leading-snug text-slate-400"><span data-i18n="footerNote">General professional guidance only. Documents are not stored; questions are logged without your name to improve answers.</span> <a href="disclaimer.html" class="underline hover:text-slate-600" data-i18n="disclaimer">Disclaimer</a> · <a href="privacy.html" class="underline hover:text-slate-600" data-i18n="privacy">Privacy</a>. <span data-i18n="footerVerify">Verify design, testing, standards and approvals with the responsible qualified engineer.</span></p>
         </div>
     </footer>
 
     <dialog id="voice-dialog" class="w-[min(92vw,24rem)] rounded-2xl p-0 shadow-2xl backdrop:bg-slate-900/50" aria-labelledby="voice-title">
         <div class="p-5">
-            <div class="flex items-start justify-between gap-3"><h2 id="voice-title" class="text-lg font-bold text-slate-900">🎤 Which language will you speak?</h2><button type="button" data-close-voice class="text-xl leading-none text-slate-400 hover:text-slate-700" aria-label="Close">✕</button></div>
-            <p class="mt-1 text-xs text-slate-500">Voice typing needs to know your language. You can change it any time.</p>
+            <div class="flex items-start justify-between gap-3"><h2 id="voice-title" class="text-lg font-bold text-slate-900" data-i18n="voiceTitle">🎤 Which language will you speak?</h2><button type="button" data-close-voice class="text-xl leading-none text-slate-400 hover:text-slate-700" aria-label="Close">✕</button></div>
+            <p class="mt-1 text-xs text-slate-500" data-i18n="voiceSub">Voice typing needs to know your language. You can change it any time.</p>
             <div id="voice-langs" class="mt-3 grid grid-cols-2 gap-2"></div>
         </div>
     </dialog>
 
     <dialog id="terms-dialog" class="w-[min(92vw,26rem)] rounded-2xl p-0 shadow-2xl backdrop:bg-slate-900/60" aria-labelledby="terms-title">
         <div class="p-5">
-            <h2 id="terms-title" class="text-lg font-bold text-slate-900">⚠️ Before you start</h2>
+            <h2 id="terms-title" class="text-lg font-bold text-slate-900" data-i18n="termsTitle">⚠️ Before you start</h2>
             <ul class="mt-3 list-disc space-y-1.5 pl-5 text-sm text-slate-700">
-                <li>Answers are <strong>generated by AI</strong> and can be wrong.</li>
-                <li>They are <strong>general guidance only</strong>: not a design, approval, quotation or professional advice.</li>
-                <li>Always check with <strong>your engineer</strong>, the approved drawings, the codes and site safety rules before acting.</li>
-                <li>In an emergency, call emergency services first (UAE 998 / 999 / 997, India 112).</li>
+                <li data-i18n="t1">Answers are <strong>generated by AI</strong> and can be wrong.</li>
+                <li data-i18n="t2">They are <strong>general guidance only</strong>: not a design, approval, quotation or professional advice.</li>
+                <li data-i18n="t3">Always check with <strong>your engineer</strong>, the approved drawings, the codes and site safety rules before acting.</li>
+                <li data-i18n="t4">In an emergency, call emergency services first (UAE 998 / 999 / 997, India 112).</li>
             </ul>
-            <p class="mt-3 text-xs text-slate-500">By continuing you agree to the <a href="disclaimer.html" class="font-semibold text-blue-700 underline" target="_blank">disclaimer &amp; terms</a> and the <a href="privacy.html" class="font-semibold text-blue-700 underline" target="_blank">privacy notice</a>.</p>
-            <button type="button" id="terms-accept" autofocus class="mt-4 w-full rounded-xl bg-blue-700 px-4 py-3 font-semibold text-white hover:bg-blue-800">I understand — continue</button>
+            <p class="mt-3 text-xs text-slate-500"><span data-i18n="termsAgree">By continuing you agree to:</span> <a href="disclaimer.html" class="font-semibold text-blue-700 underline" target="_blank" data-i18n="disclaimerTerms">Disclaimer &amp; terms</a> · <a href="privacy.html" class="font-semibold text-blue-700 underline" target="_blank" data-i18n="privacyNotice">Privacy notice</a></p>
+            <button type="button" id="terms-accept" autofocus class="mt-4 w-full rounded-xl bg-blue-700 px-4 py-3 font-semibold text-white hover:bg-blue-800" data-i18n="termsBtn">I understand — continue</button>
         </div>
     </dialog>
 
@@ -150,23 +151,23 @@
             <input type="hidden" name="form-name" value="consultation">
             <p class="hidden"><label>Leave empty <input name="bot-field"></label></p>
             <div class="flex items-start justify-between gap-4">
-                <div><h2 class="text-lg font-bold text-slate-900">Request an expert review</h2><p class="mt-1 text-sm text-slate-600">For project-specific review, mix design, plant setup, estimates or site problems. We try to reply within a few days; this is not a guaranteed or paid service.</p></div>
+                <div><h2 class="text-lg font-bold text-slate-900" data-i18n="consultTitle">Request an expert review</h2><p class="mt-1 text-sm text-slate-600" data-i18n="consultText">For project-specific review, mix design, plant setup, estimates or site problems. We try to reply within a few days; this is not a guaranteed or paid service.</p></div>
                 <button type="button" data-close-consult class="text-xl leading-none text-slate-400 hover:text-slate-700" aria-label="Close">✕</button>
             </div>
             <div class="mt-4 grid gap-3 text-sm">
-                <label class="grid min-w-0 gap-1 font-medium text-slate-700">Name<input name="name" required autocomplete="name" class="min-w-0 w-full rounded-lg border border-slate-300 px-3 py-2 font-normal focus:outline-none focus:ring-2 focus:ring-blue-500"></label>
-                <label class="grid min-w-0 gap-1 font-medium text-slate-700">Phone / WhatsApp or email<input name="contact" required autocomplete="email" class="min-w-0 w-full rounded-lg border border-slate-300 px-3 py-2 font-normal focus:outline-none focus:ring-2 focus:ring-blue-500"></label>
+                <label class="grid min-w-0 gap-1 font-medium text-slate-700"><span data-i18n="name">Name</span><input name="name" required autocomplete="name" class="min-w-0 w-full rounded-lg border border-slate-300 px-3 py-2 font-normal focus:outline-none focus:ring-2 focus:ring-blue-500"></label>
+                <label class="grid min-w-0 gap-1 font-medium text-slate-700"><span data-i18n="contact">Phone / WhatsApp or email</span><input name="contact" required autocomplete="email" class="min-w-0 w-full rounded-lg border border-slate-300 px-3 py-2 font-normal focus:outline-none focus:ring-2 focus:ring-blue-500"></label>
                 <div class="grid grid-cols-2 gap-3">
-                    <label class="grid min-w-0 gap-1 font-medium text-slate-700">Location<input name="location" placeholder="e.g. Dubai" class="min-w-0 w-full rounded-lg border border-slate-300 px-3 py-2 font-normal focus:outline-none focus:ring-2 focus:ring-blue-500"></label>
-                    <label class="grid min-w-0 gap-1 font-medium text-slate-700">Topic<select name="topic" class="min-w-0 w-full rounded-lg border border-slate-300 px-2 py-2 font-normal focus:outline-none focus:ring-2 focus:ring-blue-500"><option>RMC / concrete</option><option>Mix design</option><option>BOQ / estimate</option><option>Batching plant / logistics</option><option>QA/QC / site problem</option><option>MEP / fit-out</option><option>Privacy request</option><option>Other</option></select></label>
+                    <label class="grid min-w-0 gap-1 font-medium text-slate-700"><span data-i18n="location">Location</span><input name="location" placeholder="e.g. Dubai" class="min-w-0 w-full rounded-lg border border-slate-300 px-3 py-2 font-normal focus:outline-none focus:ring-2 focus:ring-blue-500"></label>
+                    <label class="grid min-w-0 gap-1 font-medium text-slate-700"><span data-i18n="topic">Topic</span><select name="topic" class="min-w-0 w-full rounded-lg border border-slate-300 px-2 py-2 font-normal focus:outline-none focus:ring-2 focus:ring-blue-500"><option>RMC / concrete</option><option>Mix design</option><option>BOQ / estimate</option><option>Batching plant / logistics</option><option>QA/QC / site problem</option><option>MEP / fit-out</option><option>Privacy request</option><option>Other</option></select></label>
                 </div>
-                <label class="grid min-w-0 gap-1 font-medium text-slate-700">What do you need help with?<textarea name="message" rows="4" required class="min-w-0 w-full rounded-lg border border-slate-300 px-3 py-2 font-normal focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea></label>
+                <label class="grid min-w-0 gap-1 font-medium text-slate-700"><span data-i18n="needHelp">What do you need help with?</span><textarea name="message" rows="4" required class="min-w-0 w-full rounded-lg border border-slate-300 px-3 py-2 font-normal focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea></label>
                 <input type="hidden" name="chat-context">
             </div>
-            <p class="mt-3 text-[11px] text-slate-500">Your details are used only to reply to this request. See the <a href="privacy.html" class="underline" target="_blank">privacy notice</a>.</p>
+            <p class="mt-3 text-[11px] text-slate-500"><span data-i18n="consultPrivacy">Your details are used only to reply to this request.</span> <a href="privacy.html" class="underline" target="_blank" data-i18n="privacyNotice">Privacy notice</a></p>
             <p id="consult-status" class="mt-3 hidden text-sm"></p>
             <div class="mt-4 flex flex-wrap items-center gap-2">
-                <button type="submit" class="rounded-lg bg-blue-700 px-4 py-2 font-semibold text-white hover:bg-blue-800 disabled:opacity-60">Send request</button>
+                <button type="submit" class="rounded-lg bg-blue-700 px-4 py-2 font-semibold text-white hover:bg-blue-800 disabled:opacity-60" data-i18n="sendRequest">Send request</button>
                 <a data-whatsapp class="hidden rounded-lg border border-green-600 px-4 py-2 font-semibold text-green-700 hover:bg-green-50" target="_blank" rel="noopener">WhatsApp instead</a>
             </div>
         </form>
@@ -182,8 +183,8 @@
         const IMAGE_MIME = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp', heic: 'image/heic', heif: 'image/heif' };
         const MAX_IMAGE_SOURCE_BYTES = 25 * 1024 * 1024;   // photos are shrunk before upload
         const SPEECH_LANG = { en: 'en-IN', hi: 'hi-IN', ur: 'ur-PK', ml: 'ml-IN', ta: 'ta-IN', te: 'te-IN', kn: 'kn-IN', bn: 'bn-IN', mr: 'mr-IN', gu: 'gu-IN', pa: 'pa-IN', ne: 'ne-NP', si: 'si-LK', ar: 'ar-AE', fr: 'fr-FR', es: 'es-ES', pt: 'pt-PT', de: 'de-DE', it: 'it-IT', ru: 'ru-RU', tr: 'tr-TR', 'zh-CN': 'zh-CN', ja: 'ja-JP', ko: 'ko-KR', id: 'id-ID', fil: 'fil-PH' };
-        const PLACEHOLDER = { hi: 'अपना सवाल लिखें या बोलें…', ur: 'اپنا سوال لکھیں یا بولیں…', ml: 'നിങ്ങളുടെ ചോദ്യം ടൈപ്പ് ചെയ്യൂ അല്ലെങ്കിൽ പറയൂ…', ta: 'உங்கள் கேள்வியை எழுதுங்கள் அல்லது பேசுங்கள்…', te: 'మీ ప్రశ్నను టైప్ చేయండి లేదా చెప్పండి…', bn: 'আপনার প্রশ্ন লিখুন বা বলুন…', ne: 'आफ्नो प्रश्न लेख्नुहोस् वा बोल्नुहोस्…', pa: 'ਆਪਣਾ ਸਵਾਲ ਲਿਖੋ ਜਾਂ ਬੋਲੋ…', ar: 'اكتب سؤالك أو تحدّث…' };
         const MIME = { ...IMAGE_MIME, pdf: 'application/pdf', xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', xls: 'application/vnd.ms-excel', pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', ppt: 'application/vnd.ms-powerpoint', csv: 'text/csv', txt: 'text/plain' };
+        const STARTER_KEYS = ['st_mason', 'st_steel', 'st_shutter', 'st_elec', 'st_plumb', 'st_ac', 'st_fire', 'st_cctv', 'st_paint', 'st_safety', 'st_eng', 'st_drawing'];
         // [icon, trade, example question, answer style]
         const STARTERS = [
             ['🧱', 'Mason / plaster', 'How much cement and sand for 100 sq ft of 12 mm wall plaster?', 'worker'],
@@ -201,6 +202,28 @@
         ];
 
         const $ = id => document.getElementById(id);
+
+        // ---------- page language ----------
+        // The page follows the chosen answer language; in Auto it follows the phone's language.
+        const DICT = window.I18N || { en: {} };
+        function uiLang() {
+            const chosen = $('answer-language').value;
+            if (chosen !== 'auto') return DICT[chosen] ? chosen : 'en';
+            for (const l of navigator.languages || [navigator.language || 'en']) { const base = String(l).toLowerCase().split('-')[0]; if (DICT[base]) return base; }
+            return 'en';
+        }
+        const t = (key, vars = {}) => String((DICT[uiLang()] || {})[key] ?? DICT.en[key] ?? key).replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? '');
+        function applyI18n() {
+            const lang = uiLang(), rtl = lang === 'ar' || lang === 'ur';
+            document.documentElement.lang = lang;
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                if (el.dataset.i18nOrig === undefined) el.dataset.i18nOrig = el.innerHTML;     // keep the English markup
+                if (lang === 'en') el.innerHTML = el.dataset.i18nOrig; else el.textContent = t(el.dataset.i18n);
+            });
+            document.querySelectorAll('[data-i18n-placeholder]').forEach(el => { el.placeholder = t(el.dataset.i18nPlaceholder); });
+            ['welcome', 'terms-dialog', 'voice-dialog', 'consult-dialog'].forEach(id => { const el = $(id); if (el) el.dir = rtl ? 'rtl' : 'ltr'; });
+            if (typeof renderStarters === 'function') renderStarters();
+        }
         const chatBox = $('chat-box'), scroller = $('chat-scroll'), input = $('user-input'), sendBtn = $('send-btn');
         const store = { get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
 
@@ -221,25 +244,30 @@
         document.querySelectorAll('[data-audience]').forEach(b => b.addEventListener('click', () => setAudience(b.dataset.audience)));
         setAudience(audience, false);
         const langCode = () => $('answer-language').value;
-        const updatePlaceholder = () => { input.placeholder = PLACEHOLDER[langCode()] || 'Type or speak your question…'; };
+        const updatePlaceholder = () => applyI18n();
         $('answer-language').addEventListener('change', () => { savePrefs(); updatePlaceholder(); });
         $('quote-ready').addEventListener('change', savePrefs);
         updatePlaceholder();
 
         // ---------- starters ----------
-        STARTERS.forEach(([icon, label, prompt, style, action]) => {
+        function renderStarters() {
+          $('starters').innerHTML = '';
+          STARTERS.forEach(([icon, label, prompt, style, action], i) => {
             const b = document.createElement('button');
             b.type = 'button';
             b.className = 'min-w-0 w-full text-left rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm hover:border-blue-400 hover:bg-blue-50 transition';
             b.innerHTML = `<span class="mr-1" aria-hidden="true">${icon}</span><span class="font-semibold text-slate-800"></span><span class="block text-xs text-slate-500 mt-0.5 truncate"></span>`;
-            b.children[1].textContent = label; b.children[2].textContent = prompt;
-            b.addEventListener('click', () => { setAudience(style); input.value = prompt; autosize(); if (action === 'attach') { toast('Choose the drawing, product photo or PDF, then tap Send.'); $('project-file').click(); } else input.focus(); });
+            b.children[1].textContent = t(STARTER_KEYS[i]) || label; b.children[2].textContent = prompt;
+            if (uiLang() !== 'en') b.children[2].classList.add('hidden'); // example question is English; the answer comes in the page language
+            b.addEventListener('click', () => { setAudience(style); input.value = prompt; input.dataset.starterLang = uiLang(); autosize(); if (action === 'attach') { toast('Choose the drawing, product photo or PDF, then tap Send.'); $('project-file').click(); } else input.focus(); });
             $('starters').appendChild(b);
-        });
+          });
+        }
+        renderStarters();
 
         // ---------- composer ----------
         function autosize() { input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, 180) + 'px'; }
-        input.addEventListener('input', autosize);
+        input.addEventListener('input', () => { delete input.dataset.starterLang; autosize(); });
         input.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); send(); } });
         $('chat-form').addEventListener('submit', e => { e.preventDefault(); send(); });
         $('new-chat').addEventListener('click', () => { if (busy) return; conversation = []; store.set(STORAGE_KEY, conversation); chatBox.innerHTML = ''; $('welcome').classList.remove('hidden'); pinned = null; clearSelection(); input.focus(); });
@@ -261,7 +289,7 @@
         function updateChip() {
             const chip = $('file-chip');
             if (selectedFile) { $('file-icon').textContent = '📎'; $('file-name').textContent = `${selectedFile.name} (${Math.ceil(selectedFile.size / 1024)} KB)`; }
-            else if (pinned) { $('file-icon').textContent = '📌'; $('file-name').textContent = `${pinned.name} — used for your follow-up questions`; }
+            else if (pinned) { $('file-icon').textContent = '📌'; $('file-name').textContent = `${pinned.name} — ${t('pinned')}`; }
             chip.classList.toggle('hidden', !selectedFile && !pinned);
         }
         function clearSelection() { selectedFile = null; $('project-file').value = ''; $('camera-file').value = ''; updateChip(); }
@@ -392,16 +420,16 @@
         let recognizer = null;
         if (Recognition) {
             const mic = $('mic-btn'); mic.classList.remove('hidden');
-            const setListening = on => { mic.setAttribute('aria-pressed', on); mic.className = `shrink-0 rounded-xl p-2 ${on ? 'bg-red-600 text-white animate-pulse' : 'text-slate-500 hover:bg-slate-100 hover:text-blue-700'}`; };
+            const setListening = on => { mic.setAttribute('aria-pressed', on); mic.className = `shrink-0 rounded-xl p-1.5 sm:p-2 ${on ? 'bg-red-600 text-white animate-pulse' : 'text-slate-500 hover:bg-slate-100 hover:text-blue-700'}`; };
             // Voice language: the chosen answer language, or (in Auto) the language picked once in the voice dialog.
-            const VOICE_NAMES = { en: 'English', hi: 'हिंदी', ur: 'اردو', ml: 'മലയാളം', ta: 'தமிழ்', te: 'తెలుగు', kn: 'ಕನ್ನಡ', bn: 'বাংলা', mr: 'मराठी', gu: 'ગુજરાતી', pa: 'ਪੰਜਾਬੀ', ne: 'नेपाली', si: 'සිංහල', ar: 'العربية', fil: 'Filipino', id: 'Bahasa Indonesia', fr: 'Français', es: 'Español', ru: 'Русский', 'zh-CN': '中文' };
+            const VOICE_NAMES = { en: 'English', hi: 'हिंदी', ur: 'اردو', ar: 'العربية', ml: 'മലയാളം', ta: 'தமிழ்', te: 'తెలుగు', kn: 'ಕನ್ನಡ', mr: 'मराठी', bn: 'বাংলা', pa: 'ਪੰਜਾਬੀ', gu: 'ગુજરાતી', ne: 'नेपाली', si: 'සිංහල', fil: 'Filipino', id: 'Bahasa Indonesia', fr: 'Français', es: 'Español', ru: 'Русский', 'zh-CN': '中文' };
             let voiceLang = (store.get('vijay-expert-prefs') || {}).voiceLang || null;
             const voiceDialog = $('voice-dialog');
             const voiceCode = () => (langCode() !== 'auto' ? langCode() : voiceLang);
             const updateVoiceChip = () => {
                 const chip = $('voice-lang-chip'), code = voiceCode();
                 chip.classList.toggle('hidden', langCode() !== 'auto' || !voiceLang);
-                if (code) chip.textContent = `🎤 ${VOICE_NAMES[code] || code} · change`;
+                if (code) chip.textContent = `🎤 ${VOICE_NAMES[code] || code} · ${t('change')}`;
             };
             Object.entries(VOICE_NAMES).forEach(([code, name]) => {
                 const b = document.createElement('button'); b.type = 'button';
@@ -434,7 +462,7 @@
                 recognizer.onerror = e => { if (e.error === 'not-allowed' || e.error === 'service-not-allowed') toast('Microphone is blocked. Allow it in the browser (🔒 next to the address) and try again.'); else if (e.error === 'language-not-supported') toast('Voice is not available for this language on this phone. Please type instead.'); else if (e.error !== 'aborted' && e.error !== 'no-speech') toast('Could not hear clearly. Please try again.'); };
                 recognizer.onend = () => { recognizer = null; setListening(false); input.focus(); };
                 setListening(true);
-                toast(`Listening in ${VOICE_NAMES[voiceCode()] || voiceCode()}… speak now`);
+                toast(t('listening', { lang: VOICE_NAMES[voiceCode()] || voiceCode() }));
                 try { recognizer.start(); } catch { recognizer = null; setListening(false); }
             }
         }
@@ -474,16 +502,16 @@
         let speakingBtn = null;
         async function speak(text, lang, btn) {
             const synth = window.speechSynthesis;
-            if (speakingBtn) { synth.cancel(); const was = speakingBtn; speakingBtn.textContent = '🔊 Listen'; speakingBtn = null; if (was === btn) return; }
+            if (speakingBtn) { synth.cancel(); const was = speakingBtn; speakingBtn.textContent = t('listen'); speakingBtn = null; if (was === btn) return; }
             const code = detectSpeechLang(text, lang), voices = await loadVoices(synth);
             const voice = voices.find(v => v.lang === code) || voices.find(v => v.lang.replace('_', '-').slice(0, 2) === code.slice(0, 2));
             if (voices.length && !voice) { toast('Your phone has no voice for this language. Add one in phone settings → Text-to-speech, or use English.'); return; }
             const pieces = speechChunks(plainText(text).replace(/⚠️/g, 'Warning.'));
-            speakingBtn = btn; btn.textContent = '⏹ Stop';
+            speakingBtn = btn; btn.textContent = t('stop');
             pieces.forEach((piece, i) => {
                 const u = new SpeechSynthesisUtterance(piece); u.lang = code; if (voice) u.voice = voice; u.rate = 0.95;
-                if (i === pieces.length - 1) u.onend = () => { if (speakingBtn === btn) { btn.textContent = '🔊 Listen'; speakingBtn = null; } };
-                u.onerror = () => { if (speakingBtn === btn) { btn.textContent = '🔊 Listen'; speakingBtn = null; } };
+                if (i === pieces.length - 1) u.onend = () => { if (speakingBtn === btn) { btn.textContent = t('listen'); speakingBtn = null; } };
+                u.onerror = () => { if (speakingBtn === btn) { btn.textContent = t('listen'); speakingBtn = null; } };
                 synth.speak(u);
             });
         }
@@ -500,6 +528,8 @@
             const text = (retryText ?? input.value).trim();
             if (!text) return;
             busy = true; sendBtn.disabled = true; $('send-label').textContent = '…';
+            const starterLang = input.dataset.starterLang; delete input.dataset.starterLang;
+            const answerLang = langCode() === 'auto' && starterLang && starterLang !== 'en' ? starterLang : langCode();
             $('welcome').classList.add('hidden');
             const file = selectedFile;
             if (retryText === undefined) {
@@ -514,22 +544,22 @@
                 else if (pinned) attachment = pinned.attachment;   // follow-up about the same drawing/photo
                 const res = await fetch('/.netlify/functions/chat', {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: text, history, attachment, language: langCode(), audience, quoteReady: audience === 'engineer' && $('quote-ready').checked })
+                    body: JSON.stringify({ message: text, history, attachment, language: answerLang, audience, quoteReady: audience === 'engineer' && $('quote-ready').checked })
                 });
                 let data = {};
                 try { data = await res.json(); } catch {}
                 if (!res.ok || !data.reply) throw new Error(data.error || 'The AI service could not answer right now. Please try again.');
                 typing.remove();
-                conversation.push({ role: 'user', text: file ? `${text}\n\n[Attached: ${file.name}]` : text }, { role: 'model', text: data.reply, lang: $('answer-language').value, cacheKey: data.cacheKey || null });
+                conversation.push({ role: 'user', text: file ? `${text}\n\n[Attached: ${file.name}]` : text }, { role: 'model', text: data.reply, lang: answerLang, cacheKey: data.cacheKey || null });
                 store.set(STORAGE_KEY, conversation.slice(-40));
-                addAI(data.reply, $('answer-language').value, { question: text, cacheKey: data.cacheKey, cached: data.cached === true });
+                addAI(data.reply, answerLang, { question: text, cacheKey: data.cacheKey, cached: data.cached === true });
                 maybeShowCta(text);
                 clearSelection();
             } catch (err) {
                 typing.remove();
                 addError(err.message || 'Unable to reach the AI expert.', text);
             } finally {
-                busy = false; sendBtn.disabled = false; $('send-label').textContent = 'Send';
+                busy = false; sendBtn.disabled = false; $('send-label').textContent = t('send');
                 if (window.matchMedia('(pointer: fine)').matches) input.focus();
             }
         }
@@ -541,14 +571,14 @@
             row('user').appendChild(b); scrollToEnd();
         }
         function addTyping() {
-            const w = row('ai'); w.innerHTML = '<div class="bubble px-4 py-3 shadow-sm flex items-center gap-1.5" role="status" aria-label="Thinking"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="ml-2 text-xs text-slate-500">Preparing answer…</span></div>';
+            const w = row('ai'); w.innerHTML = '<div class="bubble px-4 py-3 shadow-sm flex items-center gap-1.5" role="status" aria-label="Thinking"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="ml-2 text-xs text-slate-500"></span></div>'; w.querySelector('.ml-2').textContent = t('preparing');
             scrollToEnd(); return w;
         }
         function addError(message, retryText) {
             const w = row('ai'); const b = document.createElement('div');
             b.className = 'bubble px-4 py-3 text-sm shadow-sm !border-red-200 !bg-red-50 text-red-800';
             b.textContent = message;
-            const retry = document.createElement('button'); retry.type = 'button'; retry.className = 'ml-3 font-semibold underline'; retry.textContent = 'Retry';
+            const retry = document.createElement('button'); retry.type = 'button'; retry.className = 'ml-3 font-semibold underline'; retry.textContent = t('retry');
             retry.onclick = () => { w.remove(); send(retryText); };
             b.appendChild(retry); w.appendChild(b); scrollToEnd();
         }
@@ -561,13 +591,13 @@
                 wrap.querySelectorAll('button').forEach(b => b.disabled = true);
                 btn.classList.add('!border-blue-500', '!text-blue-700');
                 const base = { vote: v, question, answer: text, language: lang, quoteReady: $('quote-ready').checked, cacheKey: cacheKey || undefined };
-                if (v === 'up') { sendFeedback(base); toast('Thanks for the feedback!'); return; }
+                if (v === 'up') { sendFeedback(base); toast(t('thanks')); return; }
                 const box = document.createElement('form'); box.className = 'mt-1.5 flex w-full gap-1.5';
-                box.innerHTML = '<input maxlength="300" placeholder="What was wrong or missing? (optional)" class="flex-1 rounded-md border border-slate-300 px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"><button class="rounded-md bg-blue-700 px-2.5 py-1 text-xs font-semibold text-white">Send</button>';
-                box.addEventListener('submit', ev => { ev.preventDefault(); sendFeedback({ ...base, reason: box.querySelector('input').value }); box.replaceWith(Object.assign(document.createElement('p'), { className: 'mt-1 w-full text-xs text-slate-500', textContent: 'Thanks — this helps improve the answers.' })); });
+                box.innerHTML = '<input maxlength="300" class="flex-1 rounded-md border border-slate-300 px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"><button class="rounded-md bg-blue-700 px-2.5 py-1 text-xs font-semibold text-white"></button>'; box.querySelector('input').placeholder = t('whatWrong'); box.querySelector('button').textContent = t('sendFb');
+                box.addEventListener('submit', ev => { ev.preventDefault(); sendFeedback({ ...base, reason: box.querySelector('input').value }); box.replaceWith(Object.assign(document.createElement('p'), { className: 'mt-1 w-full text-xs text-slate-500', textContent: t('thanksFb') })); });
                 actions.appendChild(box); box.querySelector('input').focus();
             };
-            [['👍', 'up', 'Helpful answer'], ['👎', 'down', 'Not helpful']].forEach(([icon, v, title]) => {
+            [['👍', 'up', t('helpful')], ['👎', 'down', t('notHelpful')]].forEach(([icon, v, title]) => {
                 const b = document.createElement('button'); b.type = 'button'; b.title = title; b.setAttribute('aria-label', title);
                 b.className = 'rounded-md border border-slate-200 bg-white px-2 py-1 text-xs hover:border-blue-400 disabled:opacity-60';
                 b.textContent = icon; b.onclick = () => vote(v, b); wrap.appendChild(b);
@@ -580,7 +610,8 @@
             if (ctaShown || answers < 2) return; ctaShown = true;
             const w = row('ai'); const card = document.createElement('div');
             card.className = 'rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950 shadow-sm';
-            card.innerHTML = '<p class="font-semibold">Need this checked for your actual project?</p><p class="mt-0.5">You can request a personal review of drawings, mix designs, BOQs or site issues. We try to reply within a few days.</p><div class="mt-2 flex flex-wrap gap-2"><button type="button" class="rounded-lg bg-amber-500 px-3 py-1.5 font-semibold text-slate-900 hover:bg-amber-400">Request a consultation</button></div>';
+            card.innerHTML = '<p class="font-semibold"></p><p class="mt-0.5"></p><div class="mt-2 flex flex-wrap gap-2"><button type="button" class="rounded-lg bg-amber-500 px-3 py-1.5 font-semibold text-slate-900 hover:bg-amber-400"></button></div>';
+            card.children[0].textContent = t('ctaTitle'); card.children[1].textContent = t('ctaText'); card.querySelector('button').textContent = t('ctaBtn');
             card.querySelector('button').onclick = () => openConsult(question);
             if (waNumber) { const a = document.createElement('a'); a.className = 'rounded-lg border border-green-600 bg-white px-3 py-1.5 font-semibold text-green-700'; a.target = '_blank'; a.rel = 'noopener'; a.href = waLink(`Hello, I need help with: ${question}`); a.textContent = 'WhatsApp us'; card.lastElementChild.appendChild(a); }
             w.appendChild(card);
@@ -590,12 +621,12 @@
             const b = document.createElement('div'); b.className = 'bubble px-4 py-3 text-[15px] leading-relaxed shadow-sm break-words';
             if (RTL_LANGS.has(lang) || (lang === 'auto' && isMostlyArabicScript(text))) b.dir = 'rtl';
             renderReply(text, b); col.appendChild(b);
-            if (cached) { const tag = document.createElement('p'); tag.className = 'mt-1 text-[11px] text-slate-400'; tag.textContent = '⚡ Saved answer to this exact question. Tap 👎 if it doesn’t fit and it will be refreshed.'; col.appendChild(tag); }
+            if (cached) { const tag = document.createElement('p'); tag.className = 'mt-1 text-[11px] text-slate-400'; tag.textContent = t('savedAnswer'); col.appendChild(tag); }
             const actions = document.createElement('div'); actions.className = 'mt-1.5 flex flex-wrap gap-1.5';
             const mk = (label, fn, title) => { const btn = document.createElement('button'); btn.type = 'button'; btn.title = title || label; btn.className = 'rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600 hover:border-blue-400 hover:text-blue-700'; btn.textContent = label; btn.onclick = () => fn(btn); actions.appendChild(btn); };
-            if ('speechSynthesis' in window) mk('🔊 Listen', btn => speak(text, lang, btn), 'Read this answer aloud');
-            mk('↗ Share', () => shareAnswer(text), 'Share on WhatsApp or other apps');
-            mk('Copy', async btn => { try { await navigator.clipboard.writeText(text); btn.textContent = 'Copied ✓'; setTimeout(() => btn.textContent = 'Copy', 1500); } catch { toast('Copy is not available in this browser.'); } });
+            if ('speechSynthesis' in window) mk(t('listen'), btn => speak(text, lang, btn));
+            mk(t('share'), () => shareAnswer(text));
+            mk(t('copy'), async btn => { try { await navigator.clipboard.writeText(text); btn.textContent = t('copied'); setTimeout(() => btn.textContent = t('copy'), 1500); } catch { toast('Copy is not available in this browser.'); } });
             mk('PDF', btn => runExport(btn, downloadPdf, text), 'Download as PDF');
             if (text.split('\n').some(isTableRow)) {
                 mk('Excel', btn => runExport(btn, downloadExcel, text), 'Download as Excel');
