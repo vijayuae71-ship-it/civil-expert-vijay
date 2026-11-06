@@ -202,7 +202,7 @@ Retain technical units, numbers, equations, and construction terminology accurat
     const dsrContext = isDsrRequest ? `\n\n${buildCivilCatalogueContext(message)}` : "";
     const contextualGuidance = [relevantFaqContext(message), relevantDubaiRmcCostingContext(message), relevantMixDesignContext(message), relevantEngineeringReference(message)]
       .filter(Boolean).map((context) => `\n\n${context}`).join("");
-    const attachmentNote = attachmentPart ? `\n\nA ${attachment.mimeType.startsWith("image/") ? "site photo" : "project document"} named "${attachment.name}" is attached. Analyze it only as needed for this request.` : "";
+    const attachmentNote = attachmentPart ? `\n\nA ${attachment.mimeType.startsWith("image/") ? "site photo" : "project document"} named "${attachment.name}" is attached. Analyze it only as needed for this request. Today's date is ${new Date().toISOString().slice(0, 10)}; use it to judge expiry, use-by, manufacture and test dates on the attachment.` : "";
     // A drawing, photo or document can stay attached for follow-up questions. With earlier turns,
     // it goes into the FIRST turn and is cached, so each follow-up re-reads it at about a tenth of
     // the price instead of paying for it again. Without earlier turns it goes with this question.

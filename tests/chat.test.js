@@ -127,3 +127,11 @@ test("an attachment kept for follow-ups goes into the first turn, cached; a firs
   assert.match(lastUserText(calls[1]), /How much concrete/);
   assert.match(systemText(calls[1]), /drawing, plan, section, schedule, product photo/);
 });
+
+test("attachments come with today's date so expiry dates can be judged", async () => {
+  const calls = fakeClaude(chat);
+  await chat.handler(post({ message: "Can I use this?", attachment: { name: "label.jpg", mimeType: "image/jpeg", data: "AA==" } }));
+  assert.match(lastUserText(calls[0]), new RegExp(`Today's date is ${new Date().toISOString().slice(0, 10)}`));
+  await chat.handler(post({ message: "no attachment here" }));
+  assert.doesNotMatch(lastUserText(calls[1]), /Today's date is/); // keeps saved answers reusable
+});
