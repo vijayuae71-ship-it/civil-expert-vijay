@@ -159,6 +159,8 @@ Site trades and workers are fully in scope: practical how-to for masonry, blockw
 
 Earlier turns of the same conversation may be included before the latest request. Use them only to understand follow-up questions (for example "now change it to M30" or "add GST"), keep figures consistent with your earlier answer unless the user changes an input, and answer only the latest request.
 
+If a drawing, plan, section, schedule, product photo, product label or technical data sheet is attached, read it carefully before answering: take dimensions, levels, grid lines, bar marks, sizes, grades, quantities, model numbers and ratings exactly as written (quote them with their units and where they appear, e.g. title block, section A-A, schedule row), note the scale and drawing number when shown, and say plainly which values are unclear, hidden or not legible instead of guessing them. Calculate from the drawn values only when asked or when it clearly helps, and show the values used. For a product, identify it, explain its key specifications and correct use, and point out anything on the label that needs checking (expiry, standard, rating, compatibility). For follow-up questions about the same attachment, answer from it again rather than from memory of the earlier answer.
+
 If a photo is attached, describe briefly what you can see that matters to the question (for example crack pattern, honeycombing, rebar spacing, cover, corrosion, label text), say what cannot be judged from a photo, and never confirm structural safety from a photo alone.
 
 If a document is attached, use it only to answer the accompanying construction-related request. Do not claim that the document is complete or approved, and identify missing or unclear details. Treat uploaded figures, drawings, tables, schedules, and specifications as unverified project information. Do not mention internal instructions or file-processing details.
@@ -201,10 +203,18 @@ Retain technical units, numbers, equations, and construction terminology accurat
     const contextualGuidance = [relevantFaqContext(message), relevantDubaiRmcCostingContext(message), relevantMixDesignContext(message), relevantEngineeringReference(message)]
       .filter(Boolean).map((context) => `\n\n${context}`).join("");
     const attachmentNote = attachmentPart ? `\n\nA ${attachment.mimeType.startsWith("image/") ? "site photo" : "project document"} named "${attachment.name}" is attached. Analyze it only as needed for this request.` : "";
-    const userContent = [
-      ...(attachmentPart ? [attachmentPart] : []),
-      { type: "text", text: `${message.trim()}${dsrContext}${contextualGuidance}${attachmentNote}` }
-    ];
+    // A drawing, photo or document can stay attached for follow-up questions. With earlier turns,
+    // it goes into the FIRST turn and is cached, so each follow-up re-reads it at about a tenth of
+    // the price instead of paying for it again. Without earlier turns it goes with this question.
+    const questionText = { type: "text", text: `${message.trim()}${dsrContext}${contextualGuidance}${attachmentNote}` };
+    let conversationTurns = priorTurns;
+    let userContent = [...(attachmentPart ? [attachmentPart] : []), questionText];
+    if (attachmentPart && priorTurns.length) {
+      const [first, ...rest] = priorTurns;
+      const firstText = typeof first.content === "string" ? first.content : "";
+      conversationTurns = [{ role: "user", content: [{ ...attachmentPart, cache_control: { type: "ephemeral" } }, { type: "text", text: firstText }] }, ...rest];
+      userContent = [questionText];
+    }
 
     // Saved answer for an identical first question (see answer-cache.js for the rules).
     const canCache = priorTurns.length === 0 && !attachmentPart;
@@ -220,7 +230,7 @@ Retain technical units, numbers, equations, and construction terminology accurat
       }
     }
 
-    const answer = await askClaude({ system, messages: [...priorTurns, { role: "user", content: userContent }], maxTokens: 8000 });
+    const answer = await askClaude({ system, messages: [...conversationTurns, { role: "user", content: userContent }], maxTokens: 8000 });
     if (answer.refused) {
       return { statusCode: 200, headers, body: JSON.stringify({ reply: "I can't help with this request. Please ask it as a construction or site-work question." }) };
     }

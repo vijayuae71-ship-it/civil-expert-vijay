@@ -150,6 +150,28 @@ const CASES = [
   }
 ];
 
+// ---------- drawing reading (group "drawing"): a small slab drawing in scripts/fixtures ----------
+const drawing = { name: "sample-slab-drawing.png", mimeType: "image/png", data: require("fs").readFileSync(require("path").join(__dirname, "fixtures", "sample-slab-drawing.png")).toString("base64") };
+CASES.push(
+  {
+    group: "drawing", name: "Reads dimensions, thickness, grade, reinforcement and drawing number from a drawing",
+    body: { message: "Read this drawing: what are the slab size, thickness, concrete grade, reinforcement, drawing number and scale?", attachment: drawing, audience: "engineer" },
+    must: [/4500|4\.5\s*m/, /3000|3(\.0)?\s*m/, /150/, /M30/, /T10/, /S-101/, /1\s*:\s*50/]
+  },
+  {
+    group: "drawing", name: "Follow-up about the same drawing calculates from its values",
+    body: {
+      message: "How much concrete is needed for this slab?",
+      attachment: drawing, audience: "engineer",
+      history: [
+        { role: "user", text: "Read this drawing and tell me the slab details.\n\n[Attached: sample-slab-drawing.png]" },
+        { role: "model", text: "Slab S1 on drawing S-101 is 4500 × 3000 mm, 150 mm thick, M30 concrete with T10 @ 150 both ways." }
+      ]
+    },
+    must: [/2\.0[0-9]?\s*m³|2\.0[0-9]?\s*m3|2\.025/, /4\.5/, /0\.15|150/]
+  }
+);
+
 const args = process.argv.slice(2);
 const argValue = (name) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : null; };
 const group = argValue("--group");
