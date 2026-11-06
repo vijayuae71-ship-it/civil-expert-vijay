@@ -133,9 +133,10 @@ const WELCOME = [
   "• When can I remove slab props?",
   "• MCB trips when the water heater is on",
   "",
-  "*Commands*: *new* – start fresh · *detailed* – engineer answers · *simple* – short steps · *consult* – request a review by a senior engineer",
+  "*Commands*: *new* – start fresh · *detailed* – engineer answers · *simple* – short steps · *consult* – request a personal review",
   "",
-  "⚠️ General guidance only. Check design, testing and approvals with your engineer."
+  "⚠️ General guidance only. Check design, testing and approvals with your engineer.",
+  `📄 Disclaimer: ${SITE_URL}/disclaimer · 🔒 Privacy: ${SITE_URL}/privacy`
 ].join("\n");
 
 function command(text) {
@@ -176,7 +177,7 @@ async function handleMessage(event, stores, msg) {
     case "new": await saveConversation(stores.conversations, key, { turns: [], audience: conversation.audience }); return sendText(from, "✅ Started a fresh conversation. Ask your question.");
     case "detailed": await saveConversation(stores.conversations, key, { ...conversation, audience: "engineer" }); return sendText(from, "📐 Detailed answers are on (calculations and full working). Send *simple* to switch back.");
     case "simple": await saveConversation(stores.conversations, key, { ...conversation, audience: "worker" }); return sendText(from, "🛠️ Simple step-by-step answers are on. Send *detailed* for engineer answers.");
-    case "consult": return sendText(from, `To request a personal review of your project by a senior engineer, fill this short form:\n${SITE_URL}/expert#consult`);
+    case "consult": return sendText(from, `To request a personal review of your project, fill this short form (we try to reply within a few days):\n${SITE_URL}/expert#consult`);
     default: break;
   }
 

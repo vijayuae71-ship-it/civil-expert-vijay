@@ -17,7 +17,8 @@ test("uses a Blobs-like store when given one", async () => {
   const data = new Map();
   const store = { get: async (k) => data.get(k) ?? null, set: async (k, v) => { data.set(k, v); } };
   await checkRateLimit(ev("3.3.3.3"), { store });
-  assert.ok([...data.keys()].some((k) => k.startsWith("ip/3.3.3.3/")));
+  assert.ok([...data.keys()].every((k) => !k.includes("3.3.3.3")), "raw IP must not be stored");
+  assert.ok([...data.keys()].some((k) => k.startsWith("ip/")));
   assert.ok([...data.keys()].some((k) => k.startsWith("site/")));
 });
 
