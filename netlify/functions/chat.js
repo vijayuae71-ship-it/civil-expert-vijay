@@ -89,7 +89,9 @@ exports.handler = async (event) => {
   if (!isAllowedOrigin(event)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Requests are accepted only from this website." }) };
 
   try {
-    const { message, attachment, language, quoteReady, history, audience } = JSON.parse(event.body || "{}");
+    const { message, attachment, language, quoteReady, history, audience, channel } = JSON.parse(event.body || "{}");
+    // "whatsapp": the reply is shown in WhatsApp, which has no tables or headings.
+    const isWhatsApp = channel === "whatsapp";
     // "worker": short, simple, step-by-step answers for site trades. "engineer": the detailed format.
     const isWorker = audience === "worker";
     if (typeof message !== "string" || !message.trim()) return { statusCode: 400, headers, body: JSON.stringify({ error: "Please enter a question." }) };
@@ -130,7 +132,7 @@ exports.handler = async (event) => {
     if (limited) return { statusCode: limited.statusCode, headers, body: JSON.stringify({ error: limited.error }) };
 
     // Anonymous usage log (Netlify → Functions → chat → Logs) to see what people ask.
-    console.log(JSON.stringify({ type: "question", language: selectedLanguage, audience: isWorker ? "worker" : "engineer", quoteReady: quoteReady === true, followUp: priorTurns.length > 0, attachment: Boolean(attachmentPart), grade: requestedGrade(message), text: message.trim().slice(0, 300) }));
+    console.log(JSON.stringify({ type: "question", channel: isWhatsApp ? "whatsapp" : "web", language: selectedLanguage, audience: isWorker ? "worker" : "engineer", quoteReady: quoteReady === true, followUp: priorTurns.length > 0, attachment: Boolean(attachmentPart), grade: requestedGrade(message), text: message.trim().slice(0, 300) }));
 
 
     const languageName = selectedLanguage === "auto" ? "the same language as the user's latest message" : supportedLanguages[selectedLanguage];
@@ -140,6 +142,10 @@ exports.handler = async (event) => {
 
     const workerInstruction = isWorker && quoteReady !== true
       ? "\n\nSIMPLE SITE-WORKER MODE IS SELECTED. This overrides the answer framework and length rules above. The reader is a site tradesperson or helper (mason, steel fixer, carpenter/shuttering, electrician, plumber, painter, tiler, welder, scaffolder, operator, foreman) reading on a phone, possibly with limited schooling. Use very simple everyday words and short sentences; explain any technical word in brackets the first time. Give the direct answer first in one line, then numbered steps (at most 8) of what to do with their hands and tools, with quantities in both metric and feet/inches where useful (for example 1 bag = 50 kg). Do not use Markdown tables unless the user asks for one, do not use CPWD tables, headings other than bold step labels, or long theory. Put any safety warning first, marked ⚠️. End with one line telling them when to stop and ask the supervisor or engineer. Keep it under 150 words unless the user asks for more."
+      : "";
+
+    const whatsappInstruction = isWhatsApp
+      ? "\n\nWHATSAPP REPLY. The answer is read in WhatsApp on a phone. Do not use Markdown tables, # headings or links in brackets. Use short lines, *single asterisks* for bold and • for bullets. For BOQ, quantity or ingredient lists, put each item on its own line as 'Item — quantity unit × rate = amount' (or 'Ingredient — kg/m³'). Keep the whole reply under 1,200 characters unless the user asks for more detail; if it must be longer, keep it under 3,000."
       : "";
 
     const quoteModeInstruction = quoteReady === true
@@ -186,7 +192,7 @@ Retain technical units, numbers, equations, and construction terminology accurat
     // repeat requests); the per-request settings go in a second, uncached block after it.
     const system = [
       { type: "text", text: systemInstruction, cache_control: { type: "ephemeral" } },
-      { type: "text", text: `${languageInstruction}${quoteModeInstruction}${workerInstruction}` }
+      { type: "text", text: `${languageInstruction}${quoteModeInstruction}${workerInstruction}${whatsappInstruction}` }
     ];
 
     const isDsrRequest = /\b(boq|bill of quantities|estimate|estimation|quantity schedule|rate analysis|rate\s*analysis|cpwd|dsr)\b/i.test(message);
