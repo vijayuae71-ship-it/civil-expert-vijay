@@ -3,7 +3,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const { checkRateLimit, isAllowedOrigin, LIMITS, _memory } = require("../netlify/functions/rate-limit");
 
-const ev = (ip, headers = {}) => ({ headers: { host: "civil-expert-vijay.netlify.app", "x-nf-client-connection-ip": ip, ...headers } });
+const ev = (ip, headers = {}) => ({ headers: { host: "constructionaiexpert.netlify.app", "x-nf-client-connection-ip": ip, ...headers } });
 
 test("blocks an IP after the hourly limit, others unaffected", async () => {
   _memory.clear();
@@ -28,8 +28,8 @@ test("falls back to memory when the store throws", async () => {
 
 test("origin check", () => {
   assert.equal(isAllowedOrigin(ev("x")), true); // no Origin (same-origin GET-style / curl)
-  assert.equal(isAllowedOrigin(ev("x", { origin: "https://civil-expert-vijay.netlify.app" })), true);
-  assert.equal(isAllowedOrigin(ev("x", { origin: "https://deploy-preview-3--civil-expert-vijay.netlify.app" })), true);
+  assert.equal(isAllowedOrigin(ev("x", { origin: "https://constructionaiexpert.netlify.app" })), true);
+  assert.equal(isAllowedOrigin(ev("x", { origin: "https://deploy-preview-3--constructionaiexpert.netlify.app" })), true);
   assert.equal(isAllowedOrigin(ev("x", { origin: "http://localhost:8888" })), true);
   assert.equal(isAllowedOrigin(ev("x", { origin: "https://evil.example" })), false);
   assert.equal(isAllowedOrigin(ev("x", { origin: "not a url" })), false);

@@ -24,5 +24,5 @@ function fakeClaude(chat, reply = "**Recommendation**\nOK.") {
 }
 const systemText = (params) => (Array.isArray(params.system) ? params.system.map((b) => b.text).join("\n") : params.system);
 const lastUserText = (params) => { const c = params.messages.at(-1).content; return Array.isArray(c) ? c.filter((b) => b.type === "text").map((b) => b.text).join("") : c; };
-const post = (body, headers = {}) => ({ httpMethod: "POST", headers: { host: "civil-expert-vijay.netlify.app", ...headers }, body: JSON.stringify(body) });
+const post = (body, headers = {}) => ({ httpMethod: "POST", headers: { host: "constructionaiexpert.netlify.app", ...headers }, body: JSON.stringify(body) });
 module.exports = { fakeClaude, systemText, lastUserText, post };

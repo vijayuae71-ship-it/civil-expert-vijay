@@ -28,7 +28,7 @@ function isAllowedOrigin(event) {
   try { host = new URL(origin).host; } catch { return false; }
   const siteHost = h.host || h.Host;
   const extra = String(process.env.ALLOWED_ORIGINS || "").split(",").map((s) => s.trim()).filter(Boolean);
-  return host === siteHost || /^localhost(:\d+)?$/.test(host) || /--civil-expert-vijay\.netlify\.app$/.test(host) || extra.includes(host);
+  return host === siteHost || /^localhost(:\d+)?$/.test(host) || /--constructionaiexpert\.netlify\.app$/.test(host) || extra.includes(host);
 }
 
 async function openStore(event) {
