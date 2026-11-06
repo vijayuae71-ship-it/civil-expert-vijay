@@ -133,6 +133,17 @@ const REFERENCES = [
     ]
   },
   {
+    id: "fire-alarm-detectors",
+    match: /\b(smoke detectors?|heat detectors?|fire alarm|detector spacing|detector layout|call point|sounders?)\b/i,
+    source: "BS 5839-1 and NFPA 72 (UAE Fire & Life Safety Code largely references NFPA; confirm the edition and authority)",
+    lines: [
+      "BS 5839-1, flat ceilings: every point within 7.5 m of a smoke detector (5.3 m for heat detectors); in corridors under 2 m wide this allows smoke detectors at about 15 m centres, 7.5 m from end walls.",
+      "NFPA 72, smooth ceilings: smoke detectors at 30 ft (9.1 m) nominal spacing, every point within 0.7 × spacing, max 15 ft (4.6 m) to walls.",
+      "Clearance from air supply diffusers and returns: BS 5839-1 — not within 1 m; NFPA 72 — at least 3 ft (0.9 m). Detectors at least 0.5 m from walls and partitions (BS 5839-1).",
+      "Reduce spacing for deep beams, sloped or high ceilings and partitioned areas; the fire alarm designer and authority (e.g. Civil Defence) approve the final layout."
+    ]
+  },
+  {
     id: "rebar-basics",
     match: /\b(bar bending|bbs|cutting length|lap length|lapping|hook length|stirrups?|ring|cover block|development length|rebar spacing|sariya|saria)\b/i,
     source: "IS 2502 (bending), IS 456:2000 cl. 26 (detailing); approved drawings govern",

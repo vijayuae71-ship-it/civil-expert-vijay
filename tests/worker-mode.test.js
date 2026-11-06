@@ -58,3 +58,16 @@ test("safety references match worker questions and not ordinary ones", () => {
   assert.equal(relevantEngineeringReference("wall height 3 m blockwork"), "");
   assert.equal(relevantEngineeringReference("current rate of cement"), "");
 });
+
+test("fire alarm reference gives the 1 m diffuser clearance and matches detector questions", () => {
+  const ref = relevantEngineeringReference("smoke detector spacing near AC diffuser");
+  assert.match(ref, /not within 1 m/);
+  assert.match(ref, /3 ft \(0\.9 m\)/);
+  assert.equal(relevantEngineeringReference("concrete slab smoke from welding"), "");
+});
+
+test("prompt asks for UAE/India side by side when location is missing", async () => {
+  const calls = fakeClaude(chat);
+  await chat.handler(post({ message: "water demand per person" }));
+  assert.match(systemText(calls[0]), /both the UAE and India/);
+});

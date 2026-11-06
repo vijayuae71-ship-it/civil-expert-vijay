@@ -32,7 +32,7 @@ jobs:
           GROUP: ${{ inputs.group }}
         run: |
           set +e
-          if [ -n "$GROUP" ]; then npm run -s eval -- --group "$GROUP" --report answer-report.md; else npm run -s eval -- --report answer-report.md; fi
+          if [ -n "$GROUP" ]; then npm run -s eval -- --group "$GROUP" --report answer-report.md --print-all; else npm run -s eval -- --report answer-report.md --print-all; fi
           status=$?
           cat answer-report.md >> "$GITHUB_STEP_SUMMARY" 2>/dev/null
           exit $status
