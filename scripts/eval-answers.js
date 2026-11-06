@@ -150,6 +150,54 @@ const CASES = [
   }
 ];
 
+// ---------- drawing reading (group "drawing"): a small slab drawing in scripts/fixtures ----------
+const drawing = { name: "sample-slab-drawing.png", mimeType: "image/png", data: require("fs").readFileSync(require("path").join(__dirname, "fixtures", "sample-slab-drawing.png")).toString("base64") };
+CASES.push(
+  {
+    group: "drawing", name: "Reads dimensions, thickness, grade, reinforcement and drawing number from a drawing",
+    body: { message: "Read this drawing: what are the slab size, thickness, concrete grade, reinforcement, drawing number and scale?", attachment: drawing, audience: "engineer" },
+    must: [/4500|4\.5\s*m/, /3000|3(\.0)?\s*m/, /150/, /M30/, /T10/, /S-101/, /1\s*:\s*50/]
+  },
+  {
+    group: "drawing", name: "Follow-up about the same drawing calculates from its values",
+    body: {
+      message: "How much concrete is needed for this slab?",
+      attachment: drawing, audience: "engineer",
+      history: [
+        { role: "user", text: "Read this drawing and tell me the slab details.\n\n[Attached: sample-slab-drawing.png]" },
+        { role: "model", text: "Slab S1 on drawing S-101 is 4500 × 3000 mm, 150 mm thick, M30 concrete with T10 @ 150 both ways." }
+      ]
+    },
+    must: [/2\.0[0-9]?\s*m³|2\.0[0-9]?\s*m3|2\.025/, /4\.5/, /0\.15|150/]
+  }
+);
+
+// ---------- unusual product photos (group "product"): fictional labels in scripts/fixtures ----------
+const photo = (file) => ({ name: file, mimeType: "image/jpeg", data: require("fs").readFileSync(require("path").join(__dirname, "fixtures", file)).toString("base64") });
+CASES.push(
+  {
+    group: "product", name: "Expired waterbar: notices the use-by date and says not to use it",
+    body: { message: "Can I use this waterbar strip for our basement pour next week?", attachment: photo("product-waterbar.jpg"), audience: "worker" },
+    must: [/(expir|03\/2025|use by|use-by)/i, /(do not|don't|not)[^.\n]{0,80}(use|install)|replace|fresh|new (stock|batch|roll)/i]
+  },
+  {
+    group: "product", name: "Epoxy at 2 °C: follows the label's +8 °C minimum and PPE",
+    body: { message: "Can I inject cracks with this tonight? It is 2 °C outside.", attachment: photo("product-epoxy.jpg"), audience: "worker" },
+    must: [/\+?\s?8\s*°\s*C/, /(no|not|don't|do not|cannot|can't)/i, /(glove|H317|skin)/i]
+  },
+  {
+    group: "product", name: "Non-construction product (honey): stays in scope",
+    body: { message: "How should I use this?", attachment: photo("product-honey.jpg"), audience: "worker" },
+    must: [/(construction|site)/i],
+    mustNot: [/(teaspoon|tablespoon|recipe|tea\b|toast|sweeten)/i]
+  },
+  {
+    group: "product", name: "Blurry cement bag: admits it cannot read the label instead of guessing",
+    body: { message: "What grade and standard is this cement, and what is the batch number?", attachment: photo("product-blurry-cement.jpg"), audience: "engineer" },
+    must: [/(not (clearly )?(legible|readable|visible)|illegible|can(no|')t (clearly )?(read|make out|confirm)|blurr|unclear|clearer photo|retake)/i]
+  }
+);
+
 const args = process.argv.slice(2);
 const argValue = (name) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : null; };
 const group = argValue("--group");

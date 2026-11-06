@@ -107,3 +107,31 @@ test("quote-ready mode retries an incomplete quote", async () => {
   assert.equal(typeof calls[1].system, "string");
   assert.equal(JSON.parse(res.body).reply, COMPLETE_QUOTE);
 });
+
+test("an attachment kept for follow-ups goes into the first turn, cached; a first question carries it itself", async () => {
+  const calls = fakeClaude(chat);
+  const attachment = { name: "slab.jpg", mimeType: "image/jpeg", data: "AA==" };
+  await chat.handler(post({ message: "What is the slab thickness?", attachment }));
+  let msgs = calls[0].messages;
+  assert.equal(msgs.length, 1);
+  assert.equal(msgs[0].content[0].type, "image");
+  assert.equal(msgs[0].content[0].cache_control, undefined);
+
+  await chat.handler(post({ message: "How much concrete for it?", attachment, history: [{ role: "user", text: "What is the slab thickness?\n\n[Attached: slab.jpg]" }, { role: "model", text: "150 mm." }] }));
+  msgs = calls[1].messages;
+  assert.deepEqual(msgs.map((m) => m.role), ["user", "assistant", "user"]);
+  assert.equal(msgs[0].content[0].type, "image");
+  assert.deepEqual(msgs[0].content[0].cache_control, { type: "ephemeral" });
+  assert.match(msgs[0].content[1].text, /slab thickness/);
+  assert.ok(msgs[2].content.every((b) => b.type === "text"));
+  assert.match(lastUserText(calls[1]), /How much concrete/);
+  assert.match(systemText(calls[1]), /drawing, plan, section, schedule, product photo/);
+});
+
+test("attachments come with today's date so expiry dates can be judged", async () => {
+  const calls = fakeClaude(chat);
+  await chat.handler(post({ message: "Can I use this?", attachment: { name: "label.jpg", mimeType: "image/jpeg", data: "AA==" } }));
+  assert.match(lastUserText(calls[0]), new RegExp(`Today's date is ${new Date().toISOString().slice(0, 10)}`));
+  await chat.handler(post({ message: "no attachment here" }));
+  assert.doesNotMatch(lastUserText(calls[1]), /Today's date is/); // keeps saved answers reusable
+});
