@@ -22,13 +22,6 @@ const SYNONYMS = {
   fixing: ["anchor", "anchors", "aac", "fixture"],
   fix: ["anchor", "anchors", "fixture", "cabinet"],
   cabinet: ["fixture", "anchor", "anchors", "aac"],
-  heavy: ["fixture", "anchor", "anchors", "support"],
-  aac: ["autoclaved", "aerated", "block", "masonry", "adhesive"],
-  masonry: ["aac", "block", "brick", "adhesive"],
-  adhesive: ["aac", "thin", "bed", "masonry"],
-  fixing: ["anchor", "anchors", "aac", "fixture"],
-  fix: ["anchor", "anchors", "fixture", "cabinet"],
-  cabinet: ["fixture", "anchor", "anchors", "aac"],
   heavy: ["fixture", "anchor", "anchors", "support"]
 };
 function tokens(value) {

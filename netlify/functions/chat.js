@@ -4,6 +4,47 @@ const { relevantDubaiRmcCostingContext } = require("./dubai-rmc-costing");
 const { relevantMixDesignContext, requestedGrade } = require("./mix-design-guidance");
 const { relevantEngineeringReference } = require("./site-engineering-reference");
 const { checkRateLimit, isAllowedOrigin } = require("./rate-limit");
+const Anthropic = require("@anthropic-ai/sdk").default;
+
+// Model and effort can be changed in Netlify env vars without a code change.
+// Effort "low" keeps answers fast (Netlify functions have a time limit); try "medium" for deeper answers.
+const MODEL = process.env.EXPERT_MODEL || "claude-opus-5-5";
+const EFFORT = process.env.EXPERT_EFFORT || "low";
+const TIMEOUT_MS = Number(process.env.EXPERT_TIMEOUT_MS) || 25000;
+
+let client = null;
+const getClient = () => (client ||= new Anthropic({ timeout: TIMEOUT_MS, maxRetries: 0 }));
+function setClientForTests(fake) { client = fake; }
+
+// One Claude call. If a safety classifier declines, the server retries on Anthropic's
+// recommended fallback model ("default" fallbacks; not offered for Haiku).
+async function askClaude({ system, messages, maxTokens }) {
+  const params = { model: MODEL, max_tokens: maxTokens, system, messages, output_config: { effort: EFFORT } };
+  if (!/haiku/i.test(MODEL)) { params.betas = ["server-side-fallback-2026-07-01"]; params.fallbacks = "default"; }
+  const response = await getClient().beta.messages.create(params);
+  const u = response.usage || {};
+  console.log(JSON.stringify({ type: "usage", model: response.model, stop: response.stop_reason, input: u.input_tokens, cacheRead: u.cache_read_input_tokens, cacheWrite: u.cache_creation_input_tokens, output: u.output_tokens }));
+  if (response.stop_reason === "refusal") return { refused: true, text: "" };
+  const text = (response.content || []).filter((block) => block.type === "text").map((block) => block.text).join("").trim();
+  return { refused: false, text, stopReason: response.stop_reason };
+}
+
+// Turns the browser's attachment into a Claude content block. Excel and PowerPoint files are
+// converted to text in the browser before upload, so they arrive here as text/plain.
+const IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+const TEXT_TYPES = new Set(["text/plain", "text/csv"]);
+const MAX_TEXT_CHARS = 300000;
+function attachmentBlock(attachment) {
+  const { name, mimeType, data } = attachment;
+  if (IMAGE_TYPES.has(mimeType)) return { type: "image", source: { type: "base64", media_type: mimeType, data } };
+  if (mimeType === "application/pdf") return { type: "document", title: name, source: { type: "base64", media_type: "application/pdf", data } };
+  if (TEXT_TYPES.has(mimeType)) {
+    const text = Buffer.from(data, "base64").toString("utf8");
+    if (text.length > MAX_TEXT_CHARS) return { tooLong: true };
+    return { type: "document", title: name, source: { type: "text", media_type: "text/plain", data: text } };
+  }
+  return null;
+}
 
 // Earlier turns of this conversation, so follow-up questions ("now make it M30") keep context.
 // Only the last few turns are kept, each trimmed, and the sequence must start with a user turn.
@@ -11,7 +52,7 @@ function sanitizeHistory(history) {
   const turns = (Array.isArray(history) ? history : [])
     .filter((turn) => turn && (turn.role === "user" || turn.role === "model") && typeof turn.text === "string" && turn.text.trim())
     .slice(-8)
-    .map((turn) => ({ role: turn.role, parts: [{ text: turn.text.trim().slice(0, 3000) }] }));
+    .map((turn) => ({ role: turn.role === "model" ? "assistant" : "user", content: turn.text.trim().slice(0, 3000) }));
   while (turns.length && turns[0].role !== "user") turns.shift();
   return turns;
 }
@@ -40,13 +81,6 @@ function isIncompleteQuote(text, language = "en") {
 exports.handler = async (event) => {
   const headers = { "Content-Type": "application/json" };
   const maxFileBytes = 4 * 1024 * 1024;
-  const allowedMimeTypes = new Set([
-    "application/pdf", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-    "application/vnd.ms-powerpoint", "text/csv", "text/plain",
-    // Photos from site: cracks, rebar, drawings, product labels.
-    "image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"
-  ]);
 
   if (event.httpMethod !== "POST") return { statusCode: 405, headers, body: JSON.stringify({ error: "Method Not Allowed" }) };
   if (!isAllowedOrigin(event)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Requests are accepted only from this website." }) };
@@ -74,18 +108,19 @@ exports.handler = async (event) => {
 
     let attachmentPart = null;
     if (attachment) {
-      if (!attachment.name || !attachment.mimeType || !attachment.data || !allowedMimeTypes.has(attachment.mimeType)) {
+      if (!attachment.name || typeof attachment.mimeType !== "string" || typeof attachment.data !== "string" || !attachment.data) {
         return { statusCode: 400, headers, body: JSON.stringify({ error: "Please attach a photo, PDF, Excel, PowerPoint, CSV, or TXT file." }) };
       }
       const byteLength = Buffer.byteLength(attachment.data, "base64");
       if (byteLength > maxFileBytes) return { statusCode: 413, headers, body: JSON.stringify({ error: "Please choose a document smaller than 4 MB." }) };
-      attachmentPart = { inlineData: { mimeType: attachment.mimeType, data: attachment.data } };
+      attachmentPart = attachmentBlock(attachment);
+      if (!attachmentPart) return { statusCode: 400, headers, body: JSON.stringify({ error: "Please attach a photo (JPEG/PNG), PDF, Excel, PowerPoint, CSV, or TXT file. If this keeps happening, refresh the page." }) };
+      if (attachmentPart.tooLong) return { statusCode: 413, headers, body: JSON.stringify({ error: "This document has too much text. Please send only the sheet or pages you need help with." }) };
     }
 
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      console.error("GEMINI_API_KEY is not configured.");
-      return { statusCode: 500, headers, body: JSON.stringify({ error: "The AI service has not been configured yet. Add GEMINI_API_KEY in Netlify environment variables." }) };
+    if (!process.env.ANTHROPIC_API_KEY && !client) {
+      console.error("ANTHROPIC_API_KEY is not configured.");
+      return { statusCode: 500, headers, body: JSON.stringify({ error: "The AI service has not been configured yet. Add ANTHROPIC_API_KEY in Netlify environment variables." }) };
     }
 
     const limited = await checkRateLimit(event);
@@ -94,9 +129,6 @@ exports.handler = async (event) => {
     // Anonymous usage log (Netlify → Functions → chat → Logs) to see what people ask.
     console.log(JSON.stringify({ type: "question", language: selectedLanguage, audience: isWorker ? "worker" : "engineer", quoteReady: quoteReady === true, followUp: priorTurns.length > 0, attachment: Boolean(attachmentPart), grade: requestedGrade(message), text: message.trim().slice(0, 300) }));
 
-    // Key goes in a header, not the URL, so it never appears in request logs.
-    const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
-    const geminiHeaders = { "Content-Type": "application/json", "x-goog-api-key": apiKey };
 
     const languageName = selectedLanguage === "auto" ? "the same language as the user's latest message" : supportedLanguages[selectedLanguage];
     const languageInstruction = selectedLanguage === "auto"
@@ -145,66 +177,61 @@ Never guess, fabricate, approximate, or present an uncertain CPWD DSR item numbe
 
 For a multi-item BOQ, organise the table under clear work sections where useful (for example: preliminaries, earthwork, concrete, masonry, finishes, waterproofing, external works, and the applicable MEP section). Show each section subtotal and one Grand Total; do not double-count an item in a section subtotal and the Grand Total. Before the detailed table, include a short **Cost Summary** listing section totals only when quantities and rates are sufficiently established. State one explicit **Rate basis** in the remarks or immediately below the table: **CPWD DSR base rate** for verified schedule entries; **Client/project rate** only where the user supplied that rate; or **Preliminary market estimate** when the user asks for a cost, quote, budget, estimate, or price and no verified DSR rate is available; it must be clearly marked location- and date-dependent. Reasonable indicative market/project rates may be used for a first-pass cost estimate, but never label them as CPWD DSR rates or state that they are CPWD-derived. Never blend these bases or label a market/client rate as a CPWD DSR rate. For a rate analysis, separate material, labour, plant/T&P, carriage/lead/lift, overheads, and statutory/tender additions only when the applicable source or the user’s project inputs support them; otherwise show them as to be verified rather than inventing a breakup.
 
-${languageInstruction} Retain technical units, numbers, equations, and construction terminology accurately. Do not assume a project location, supply voltage, frequency, circuit rating, code, authority requirement, or local standard unless the user supplies it. For electrical and MEP guidance, state these as project- and location-dependent and direct the user to verify them against the applicable authority, approved design, and project specification. Use standard construction terminology in the selected language, keeping the established English term in parentheses where a precise local equivalent is unclear. In every language, remain professional, respectful, neutral, and culturally considerate. Never use abusive, insulting, harassing, discriminatory, hateful, sexually inappropriate, or demeaning language. Do not mirror abusive wording from a user; calmly redirect the conversation to respectful, construction-related assistance.${quoteModeInstruction}${workerInstruction}`;
+Retain technical units, numbers, equations, and construction terminology accurately. Do not assume a project location, supply voltage, frequency, circuit rating, code, authority requirement, or local standard unless the user supplies it. For electrical and MEP guidance, state these as project- and location-dependent and direct the user to verify them against the applicable authority, approved design, and project specification. Use standard construction terminology in the selected language, keeping the established English term in parentheses where a precise local equivalent is unclear. In every language, remain professional, respectful, neutral, and culturally considerate. Never use abusive, insulting, harassing, discriminatory, hateful, sexually inappropriate, or demeaning language. Do not mirror abusive wording from a user; calmly redirect the conversation to respectful, construction-related assistance.`;
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 45000);
-    let response;
-    try {
-      const isDsrRequest = /\b(boq|bill of quantities|estimate|estimation|quantity schedule|rate analysis|rate\s*analysis|cpwd|dsr)\b/i.test(message);
-      const dsrContext = isDsrRequest ? `\n\n${buildCivilCatalogueContext(message)}` : "";
-      const faqContext = relevantFaqContext(message);
-      const dubaiRmcContext = relevantDubaiRmcCostingContext(message);
-      const mixDesignContext = relevantMixDesignContext(message);
-      const engineeringContext = relevantEngineeringReference(message);
-      const contextualGuidance = [faqContext, dubaiRmcContext, mixDesignContext, engineeringContext].filter(Boolean).map((context) => `\n\n${context}`).join("");
-      const parts = [{ text: attachmentPart ? `${message.trim()}${dsrContext}${contextualGuidance}\n\nA ${attachment.mimeType.startsWith("image/") ? "site photo" : "project document"} named \"${attachment.name}\" is attached. Analyze it only as needed for this request.` : `${message.trim()}${dsrContext}${contextualGuidance}` }];
-      if (attachmentPart) parts.push(attachmentPart);
-      response = await fetch(GEMINI_URL, {
-        method: "POST", headers: geminiHeaders, signal: controller.signal,
-        body: JSON.stringify({ systemInstruction: { parts: [{ text: systemInstruction }] }, contents: [...priorTurns, { role: "user", parts }], generationConfig: { temperature: 0.15, maxOutputTokens: 1600, thinkingConfig: { thinkingBudget: 0 } } })
-      });
-    } finally { clearTimeout(timeout); }
+    // The long base prompt is identical for every visitor, so it is cached (cheaper and faster on
+    // repeat requests); the per-request settings go in a second, uncached block after it.
+    const system = [
+      { type: "text", text: systemInstruction, cache_control: { type: "ephemeral" } },
+      { type: "text", text: `${languageInstruction}${quoteModeInstruction}${workerInstruction}` }
+    ];
 
-    const data = await response.json();
-    if (!response.ok) {
-      console.error("Gemini API error:", response.status, data);
-      return { statusCode: response.status >= 400 && response.status < 600 ? response.status : 502, headers, body: JSON.stringify({ error: data?.error?.message || "The AI service could not answer right now. Please try again." }) };
+    const isDsrRequest = /\b(boq|bill of quantities|estimate|estimation|quantity schedule|rate analysis|rate\s*analysis|cpwd|dsr)\b/i.test(message);
+    const dsrContext = isDsrRequest ? `\n\n${buildCivilCatalogueContext(message)}` : "";
+    const contextualGuidance = [relevantFaqContext(message), relevantDubaiRmcCostingContext(message), relevantMixDesignContext(message), relevantEngineeringReference(message)]
+      .filter(Boolean).map((context) => `\n\n${context}`).join("");
+    const attachmentNote = attachmentPart ? `\n\nA ${attachment.mimeType.startsWith("image/") ? "site photo" : "project document"} named "${attachment.name}" is attached. Analyze it only as needed for this request.` : "";
+    const userContent = [
+      ...(attachmentPart ? [attachmentPart] : []),
+      { type: "text", text: `${message.trim()}${dsrContext}${contextualGuidance}${attachmentNote}` }
+    ];
+
+    const answer = await askClaude({ system, messages: [...priorTurns, { role: "user", content: userContent }], maxTokens: 8000 });
+    if (answer.refused) {
+      return { statusCode: 200, headers, body: JSON.stringify({ reply: "I can't help with this request. Please ask it as a construction or site-work question." }) };
     }
-    let reply = data?.candidates?.[0]?.content?.parts?.map((part) => part.text || "").join("").trim();
+    let reply = answer.text;
     if (!reply) return { statusCode: 502, headers, body: JSON.stringify({ error: "The AI service returned an unexpected response. Please try again." }) };
 
     if (quoteReady === true && isIncompleteQuote(reply, selectedLanguage)) {
       const repairInstruction = `You prepare compact construction quotations. Return a COMPLETE quote-ready answer in ${languageName} and nothing else. Start with **Scope** and **Assumptions**. Then write one valid Markdown BOQ table with: one header row, one separator row, at least 2 fully populated priced item rows, and a Sub-total row. Every data cell must contain a value; do not emit blank pipe rows. After the table write **Grand Total**, **Rate basis**, **Exclusions**, and **Validity / Next Step**. Use a maximum of 250 words. If no exact CPWD entry/rate is page-verified, write “To be verified against applicable CPWD DSR” only in the reference column, use **Preliminary Market Rate (₹)** for the rate-column header, and call every price a **Preliminary market estimate**. Never use CPWD DSR Base Rate (₹) unless its exact source rate is page-verified. Never stop after a table heading.`;
       for (let attempt = 0; attempt < 2 && isIncompleteQuote(reply, selectedLanguage); attempt += 1) {
-        const repairController = new AbortController();
-        const repairTimeout = setTimeout(() => repairController.abort(), 10000);
         try {
-          const repairResponse = await fetch(GEMINI_URL, {
-            method: "POST", headers: geminiHeaders, signal: repairController.signal,
-            body: JSON.stringify({
-              systemInstruction: { parts: [{ text: repairInstruction }] },
-              // Do not give the model the broken table draft: it can cause a repeated header-only reply.
-              contents: [{ role: "user", parts: [{ text: `Construction request to quote: ${message.trim()}${relevantDubaiRmcCostingContext(message) ? `\n\n${relevantDubaiRmcCostingContext(message)}` : ""}` }] }],
-              generationConfig: { temperature: 0, maxOutputTokens: 1200, thinkingConfig: { thinkingBudget: 0 } }
-            })
+          // Do not give the model the broken table draft: it can cause a repeated header-only reply.
+          const repaired = await askClaude({
+            system: repairInstruction,
+            messages: [{ role: "user", content: `Construction request to quote: ${message.trim()}${relevantDubaiRmcCostingContext(message) ? `\n\n${relevantDubaiRmcCostingContext(message)}` : ""}` }],
+            maxTokens: 4000
           });
-          const repairData = await repairResponse.json();
-          const repairedReply = repairData?.candidates?.[0]?.content?.parts?.map((part) => part.text || "").join("").trim();
-          if (repairResponse.ok && repairedReply && !isIncompleteQuote(repairedReply, selectedLanguage)) reply = repairedReply;
+          if (!repaired.refused && repaired.text && !isIncompleteQuote(repaired.text, selectedLanguage)) reply = repaired.text;
         } catch (repairError) {
           console.error("Quote-ready repair retry failed:", repairError?.name || repairError);
-        } finally {
-          clearTimeout(repairTimeout);
         }
       }
     }
 
     return { statusCode: 200, headers, body: JSON.stringify({ reply }) };
   } catch (error) {
-    console.error("Chat function error:", error);
-    return { statusCode: error?.name === "AbortError" ? 504 : 500, headers, body: JSON.stringify({ error: error?.name === "AbortError" ? "The AI request took too long. Please try again." : "Failed to connect to the AI expert. Please try again." }) };
+    console.error("Chat function error:", error?.name, error?.status, error?.message);
+    const fail = (statusCode, message) => ({ statusCode, headers, body: JSON.stringify({ error: message }) });
+    if (error instanceof Anthropic.APIConnectionTimeoutError) return fail(504, "The AI request took too long. Please try again, or ask a shorter question.");
+    if (error instanceof Anthropic.RateLimitError) return fail(429, "The AI expert is busy right now. Please try again in a minute.");
+    if (error instanceof Anthropic.AuthenticationError || error instanceof Anthropic.PermissionDeniedError) return fail(500, "The AI service is not configured correctly. Please check ANTHROPIC_API_KEY.");
+    if (error instanceof Anthropic.BadRequestError) return fail(400, "The AI service could not read this request. Please try a shorter question or a different file.");
+    if (error instanceof Anthropic.APIError && error.status >= 500) return fail(503, "The AI service is temporarily unavailable. Please try again shortly.");
+    if (error instanceof Anthropic.APIConnectionError) return fail(502, "Could not reach the AI service. Please try again.");
+    return fail(500, "Failed to connect to the AI expert. Please try again.");
   }
 };
 
-module.exports = Object.assign(module.exports, { sanitizeHistory, hasCompletedQuoteTable, isIncompleteQuote });
+module.exports = Object.assign(module.exports, { sanitizeHistory, hasCompletedQuoteTable, isIncompleteQuote, attachmentBlock, setClientForTests, MODEL });

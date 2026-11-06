@@ -1,11 +1,11 @@
 "use strict";
-// Answer-quality check against the REAL Gemini API. Run before changing prompts:
-//   GEMINI_API_KEY=... npm run eval
+// Answer-quality check against the REAL Claude API. Run before changing prompts:
+//   ANTHROPIC_API_KEY=... npm run eval
 // Each case sends a real question through the chat function and checks the reply
-// contains what a good answer must contain. Costs a few Gemini calls per run.
+// contains what a good answer must contain. Costs a few Claude calls per run (roughly US$0.02 each with the default model).
 
-if (!process.env.GEMINI_API_KEY) {
-  console.error("Set GEMINI_API_KEY to run the answer checks.");
+if (!process.env.ANTHROPIC_API_KEY) {
+  console.error("Set ANTHROPIC_API_KEY to run the answer checks.");
   process.exit(1);
 }
 process.env.CHAT_LIMIT_PER_IP_HOUR = "1000";

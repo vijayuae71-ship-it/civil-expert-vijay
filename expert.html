@@ -219,6 +219,7 @@
             if (!file) return;
             const ext = file.name.split('.').pop().toLowerCase();
             const isImage = Boolean(IMAGE_MIME[ext]) || /^image\//.test(file.type);
+            if (ext === 'ppt') { toast('Old .ppt files cannot be read. Please save it as PDF or .pptx and attach again.'); return removeFile(); }
             if (!MIME[ext] && !isImage) { toast('Please attach a photo, PDF, Excel, PowerPoint, CSV or TXT file.'); return removeFile(); }
             if (file.size > (isImage ? MAX_IMAGE_SOURCE_BYTES : MAX_FILE_BYTES)) { toast(isImage ? 'This photo is too large.' : 'Please choose a file smaller than 4 MB.'); return removeFile(); }
             selectedFile = file;
@@ -243,11 +244,42 @@
                 const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
                 return { name: file.name.replace(/\.[^.]+$/, '') + '.jpg', mimeType: 'image/jpeg', data: dataUrl.split(',')[1] };
             } catch {
-                if (file.size > MAX_FILE_BYTES) throw new Error('This photo could not be prepared. Please take it again or choose a smaller one.');
-                return rawToAttachment(file);   // e.g. HEIC the browser cannot decode: send as-is
+                // e.g. an iPhone HEIC photo on a browser that cannot open it
+                throw new Error('This photo format could not be opened. Please set the camera to JPEG ("Most Compatible") or send a screenshot of the photo.');
             }
         }
-        const fileToAttachment = file => (IMAGE_MIME[file.name.split('.').pop().toLowerCase()] || /^image\//.test(file.type)) ? imageToAttachment(file) : rawToAttachment(file);
+        function utf8ToBase64(text) {
+            const bytes = new TextEncoder().encode(text); let binary = '';
+            for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+            return btoa(binary);
+        }
+        const textAttachment = (name, text) => ({ name, mimeType: 'text/plain', data: utf8ToBase64(text) });
+        // The AI reads text, PDFs and photos; spreadsheets and slides are turned into text here, in the browser.
+        async function spreadsheetToAttachment(file) {
+            await loadLib('xlsx');
+            const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' });
+            const text = wb.SheetNames.map(n => `### Sheet: ${n}\n${XLSX.utils.sheet_to_csv(wb.Sheets[n], { blankrows: false })}`).join('\n\n');
+            return textAttachment(`${file.name} (converted to text)`, text);
+        }
+        async function slidesToAttachment(file) {
+            await loadLib('jszip');
+            const zip = await JSZip.loadAsync(await file.arrayBuffer());
+            const slides = Object.keys(zip.files).filter(n => /^ppt\/slides\/slide\d+\.xml$/.test(n)).sort((a, b) => parseInt(a.match(/\d+/)) - parseInt(b.match(/\d+/)));
+            const parts = [];
+            for (const [i, n] of slides.entries()) {
+                const xml = await zip.file(n).async('string');
+                const words = [...xml.matchAll(/<a:t>([^<]*)<\/a:t>/g)].map(m => m[1].replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'"));
+                parts.push(`### Slide ${i + 1}\n${words.join(' ')}`);
+            }
+            return textAttachment(`${file.name} (converted to text)`, parts.join('\n\n'));
+        }
+        function fileToAttachment(file) {
+            const ext = file.name.split('.').pop().toLowerCase();
+            if (IMAGE_MIME[ext] || /^image\//.test(file.type)) return imageToAttachment(file);
+            if (ext === 'xlsx' || ext === 'xls') return spreadsheetToAttachment(file);
+            if (ext === 'pptx') return slidesToAttachment(file);
+            return rawToAttachment(file);
+        }
         const rawToAttachment = file => new Promise((resolve, reject) => {
             const r = new FileReader();
             r.onload = () => resolve({ name: file.name, mimeType: MIME[file.name.split('.').pop().toLowerCase()] || file.type || 'image/jpeg', data: String(r.result).split(',')[1] });
@@ -505,7 +537,8 @@
         const LIBS = {
             pdf: ['https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js', () => window.jspdf],
             xlsx: ['https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js', () => window.XLSX],
-            pptx: ['https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js', () => window.PptxGenJS]
+            pptx: ['https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js', () => window.PptxGenJS],
+            jszip: ['https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js', () => window.JSZip]
         };
         const loading = {};
         function loadLib(key) {

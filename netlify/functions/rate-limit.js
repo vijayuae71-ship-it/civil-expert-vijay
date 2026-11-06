@@ -1,6 +1,6 @@
 "use strict";
 
-// Per-visitor and site-wide request limits that protect the Gemini bill.
+// Per-visitor and site-wide request limits that protect the AI (Claude API) bill.
 // Counts live in Netlify Blobs so they hold across function instances; if Blobs is
 // unavailable (local dev, outage) an in-memory counter for this instance is used, so
 // the chat keeps working rather than failing closed.
