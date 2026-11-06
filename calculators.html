@@ -3,26 +3,145 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Construction Calculators & Templates | Construction AI Expert</title>
-  <meta name="description" content="Free concrete volume and blockwork quantity calculators with wastage allowance for construction planning and budgeting."><meta name="theme-color" content="#1e3a8a"><link rel="canonical" href="https://constructionaiexpert.netlify.app/calculators"><meta property="og:type" content="website"><meta property="og:site_name" content="Construction AI Expert"><meta property="og:title" content="Construction Calculators & Templates | Construction AI Expert"><meta property="og:description" content="Free concrete volume and blockwork quantity calculators with wastage allowance for construction planning and budgeting."><meta property="og:url" content="https://constructionaiexpert.netlify.app/calculators"><meta property="og:image" content="https://constructionaiexpert.netlify.app/assets/og-image.png"><meta name="twitter:card" content="summary_large_image"><link rel="icon" href="assets/logo.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="assets/apple-touch-icon.png"><link rel="stylesheet" href="assets/site.css">
+  <title>Construction Calculators | Construction AI Expert</title>
+  <meta name="description" content="Free construction calculators: concrete, plaster cement and sand, paint litres, tiles and adhesive, steel weight and stirrup cutting length, brickwork, AC tonnage and water tank size. Works offline.">
+  <meta name="theme-color" content="#1e3a8a">
+  <link rel="canonical" href="https://constructionaiexpert.netlify.app/calculators">
+  <meta property="og:type" content="website"><meta property="og:site_name" content="Construction AI Expert"><meta property="og:title" content="Construction Calculators | Construction AI Expert">
+  <meta property="og:description" content="Concrete, plaster, paint, tiles, steel, brickwork, AC and water tank calculators — free, with the working shown.">
+  <meta property="og:url" content="https://constructionaiexpert.netlify.app/calculators"><meta property="og:image" content="https://constructionaiexpert.netlify.app/assets/og-image.png"><meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" href="assets/logo.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="assets/site.css">
+  <script src="assets/calc.js"></script>
+  <script src="assets/app.js" defer></script>
 </head>
 <body class="bg-slate-50 text-slate-900 font-sans">
   <nav class="bg-white border-b border-slate-200"><div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3"><a href="index.html" class="flex min-w-0 items-center gap-2 font-bold leading-tight text-slate-800"><img src="assets/logo.svg" alt="" width="32" height="32" class="w-8 h-8">Construction AI Expert</a><div class="flex items-center gap-4 text-sm font-medium text-blue-700"><a href="expert.html" class="whitespace-nowrap hover:text-blue-900">Ask AI</a><a href="calculators.html" class="hidden sm:inline hover:text-blue-900">Calculators</a><a href="construction-faq.html" class="hidden sm:inline hover:text-blue-900">FAQ</a><a href="expert.html#consult" class="whitespace-nowrap rounded-lg bg-amber-500 px-3 py-1.5 font-semibold text-slate-900 hover:bg-amber-400"><span class="sm:hidden">Review</span><span class="hidden sm:inline">Expert review</span></a></div></div></nav>
-  <main class="max-w-4xl mx-auto px-5 py-10">
-    <div class="mb-8"><h1 class="text-3xl font-extrabold text-blue-900">Calculators & Templates</h1><p class="mt-2 text-slate-600">Fast preliminary estimates for planning. Confirm project-specific quantities, mix designs, rates, and approvals with the responsible qualified professional.</p></div>
-    <div class="grid md:grid-cols-2 gap-6">
-      <section class="bg-white border rounded-2xl p-6 shadow-sm"><h2 class="text-xl font-bold text-blue-800">Concrete volume calculator</h2><p class="mt-1 text-sm text-slate-500">For slabs, footings, walls, and other rectangular elements.</p><div class="mt-4 grid grid-cols-3 gap-3"><label class="text-sm">Length (m)<input id="length" type="number" min="0" step="0.01" class="mt-1 w-full rounded border p-2" placeholder="10"></label><label class="text-sm">Width (m)<input id="width" type="number" min="0" step="0.01" class="mt-1 w-full rounded border p-2" placeholder="5"></label><label class="text-sm">Depth (m)<input id="depth" type="number" min="0" step="0.01" class="mt-1 w-full rounded border p-2" placeholder="0.15"></label></div><label class="mt-3 block text-sm">Wastage allowance (%)<input id="waste" type="number" min="0" step="0.1" value="5" class="mt-1 w-full rounded border p-2"></label><button onclick="calculateConcrete()" class="mt-4 rounded-lg bg-blue-700 px-4 py-2 font-semibold text-white hover:bg-blue-800">Calculate</button><div id="concrete-result" class="mt-4 hidden rounded-lg bg-blue-50 p-4 text-sm text-blue-950"></div></section>
-      <section class="bg-white border rounded-2xl p-6 shadow-sm"><h2 class="text-xl font-bold text-blue-800">Blockwork quantity calculator</h2><p class="mt-1 text-sm text-slate-500">Preliminary block count for a wall, excluding openings.</p><div class="mt-4 grid grid-cols-2 gap-3"><label class="text-sm">Wall length (m)<input id="wall-length" type="number" min="0" step="0.01" class="mt-1 w-full rounded border p-2" placeholder="10"></label><label class="text-sm">Wall height (m)<input id="wall-height" type="number" min="0" step="0.01" class="mt-1 w-full rounded border p-2" placeholder="3"></label></div><label class="mt-3 block text-sm">Block face size<select id="block-size" class="mt-1 w-full rounded border p-2"><option value="12.5">400 × 200 mm (12.5 blocks/m²)</option><option value="10">400 × 250 mm (10 blocks/m²)</option></select></label><label class="mt-3 block text-sm">Wastage allowance (%)<input id="block-waste" type="number" min="0" step="0.1" value="5" class="mt-1 w-full rounded border p-2"></label><button onclick="calculateBlocks()" class="mt-4 rounded-lg bg-blue-700 px-4 py-2 font-semibold text-white hover:bg-blue-800">Calculate</button><div id="block-result" class="mt-4 hidden rounded-lg bg-blue-50 p-4 text-sm text-blue-950"></div></section>
-    </div>
-    <section class="mt-6 bg-white border rounded-2xl p-6 shadow-sm"><h2 class="text-xl font-bold text-blue-800">Downloadable starting templates</h2><p class="mt-1 text-sm text-slate-500">Simple CSV templates that open in Excel. Adapt them to the project, specification, and local commercial requirements.</p><div class="mt-4 flex flex-wrap gap-3"><button onclick="downloadTemplate('rate')" class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-100">Rate analysis template</button><button onclick="downloadTemplate('boq')" class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-100">BOQ template</button><button onclick="downloadTemplate('inspection')" class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-100">Concrete inspection checklist</button></div></section>
-    <section class="mt-6 rounded-2xl bg-blue-900 p-6 text-white"><h2 class="text-xl font-bold">Need a project-specific calculation?</h2><p class="mt-2 text-blue-100">Ask the Expert with your location, drawings, dimensions, specifications, quantities, and material requirements.</p><a href="expert.html" class="mt-4 inline-block rounded-lg bg-white px-4 py-2 font-semibold text-blue-800">Ask My Expert →</a></section>
+
+  <main class="max-w-5xl mx-auto px-4 py-8">
+    <h1 class="text-3xl font-extrabold text-blue-900">Construction calculators</h1>
+    <p class="mt-2 text-slate-600">Free quick estimates for planning and ordering, with the working shown. They also work without internet once the app is installed. Check project quantities, mix designs and approvals with the responsible engineer.</p>
+    <button type="button" data-install-app class="hidden mt-4 rounded-full bg-blue-700 px-5 py-2.5 font-semibold text-white hover:bg-blue-800">📲 Install the app on this phone</button>
+
+    <div id="jump" class="mt-5 flex flex-wrap gap-2" aria-label="Jump to calculator"></div>
+    <div id="calcs" class="mt-6 grid gap-5 md:grid-cols-2"></div>
+
+    <section class="mt-8 bg-white border rounded-2xl p-6 shadow-sm">
+      <h2 class="text-xl font-bold text-blue-800">Downloadable starting templates</h2>
+      <p class="mt-1 text-sm text-slate-500">Simple CSV templates that open in Excel. Adapt them to the project, specification and local commercial requirements.</p>
+      <div class="mt-4 flex flex-wrap gap-3">
+        <button onclick="downloadTemplate('rate')" class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-100">Rate analysis template</button>
+        <button onclick="downloadTemplate('boq')" class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-100">BOQ template</button>
+        <button onclick="downloadTemplate('inspection')" class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-100">Concrete inspection checklist</button>
+      </div>
+    </section>
+
+    <section class="mt-6 rounded-2xl bg-blue-900 p-6 text-white">
+      <h2 class="text-xl font-bold">Need a project-specific calculation?</h2>
+      <p class="mt-2 text-blue-100">Ask the AI expert with your drawings, dimensions and specifications — or tap “Ask the AI about this” under any result.</p>
+      <a href="expert.html" class="mt-4 inline-block rounded-lg bg-white px-4 py-2 font-semibold text-blue-800">Ask the AI Expert →</a>
+    </section>
   </main>
+
   <script>
-    function number(id) { return Number(document.getElementById(id).value); }
-    function result(id, html) { const el=document.getElementById(id); el.innerHTML=html; el.classList.remove('hidden'); }
-    function calculateConcrete() { const l=number('length'), w=number('width'), d=number('depth'), waste=number('waste'); if (![l,w,d,waste].every(n=>Number.isFinite(n)&&n>=0) || !l || !w || !d) return result('concrete-result','Please enter valid positive length, width, and depth values.'); const net=l*w*d, total=net*(1+waste/100); result('concrete-result',`<strong>Net volume:</strong> ${net.toFixed(2)} m³<br><strong>Order quantity including ${waste}% wastage:</strong> ${total.toFixed(2)} m³<br><span class="text-xs">Round the final order quantity according to supplier and project requirements.</span>`); }
-    function calculateBlocks() { const l=number('wall-length'), h=number('wall-height'), rate=number('block-size'), waste=number('block-waste'); if (![l,h,rate,waste].every(n=>Number.isFinite(n)&&n>=0) || !l || !h) return result('block-result','Please enter valid positive wall dimensions.'); const area=l*h, net=Math.ceil(area*rate), total=Math.ceil(net*(1+waste/100)); result('block-result',`<strong>Wall area:</strong> ${area.toFixed(2)} m²<br><strong>Estimated net blocks:</strong> ${net}<br><strong>Allowing ${waste}% wastage:</strong> ${total} blocks<br><span class="text-xs">Deduct door/window openings and confirm actual block dimensions and joint thickness.</span>`); }
-    function downloadTemplate(kind) { const templates={rate:[['Rate Analysis Template'],['Item description','Unit','Quantity','Material rate','Labour rate','Plant/other','Total'],['','','','','','','']],boq:[['BOQ Template'],['Item no.','Description','Unit','Quantity','Rate','Amount','Remarks'],['','','','','','','']],inspection:[['Concrete Inspection Checklist'],['Check item','Status','Observation / action','Responsible person'],['Formwork line, level, and cleanliness','','',''],['Reinforcement size, spacing, and cover','','',''],['Concrete grade and delivery ticket','','',''],['Slump / workability test','','',''],['Compaction and finishing','','',''],['Curing arrangement','','','']]}; const csv=templates[kind].map(row=>row.map(v=>`"${String(v).replaceAll('"','""')}"`).join(',')).join('\n'); const blob=new Blob([csv],{type:'text/csv;charset=utf-8'}), a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`${kind}-template.csv`; a.click(); URL.revokeObjectURL(a.href); }
+  (() => {
+    const AREA_UNITS = [["m2", "m²"], ["sqft", "sq ft"]];
+    // [id, icon, title, description, fields, formula]. Field: [key, label, type, default, extra]
+    const CALCS = [
+      ["concrete", "🏗️", "Concrete volume", "Slabs, footings, walls, columns (rectangular).", [
+        ["length", "Length (m)", "number", 10], ["width", "Width (m)", "number", 5], ["depth", "Depth / thickness (m)", "number", 0.15, { step: 0.01 }], ["wastagePct", "Wastage %", "number", 5]
+      ], Calc.concrete],
+      ["plaster", "🪣", "Plaster: cement & sand", "Cement–sand plaster on walls or ceilings.", [
+        ["areaValue", "Area", "number", 100], ["unit", "Unit", "select", "sqft", { options: AREA_UNITS }],
+        ["thicknessMm", "Thickness (mm)", "select", "12", { options: [["6", "6 mm (ceiling)"], ["12", "12 mm (internal)"], ["15", "15 mm"], ["20", "20 mm (external)"]] }],
+        ["sandParts", "Mix (cement : sand)", "select", "4", { options: [["3", "1 : 3"], ["4", "1 : 4"], ["5", "1 : 5"], ["6", "1 : 6"]] }], ["wastagePct", "Wastage %", "number", 5]
+      ], Calc.plaster],
+      ["paint", "🎨", "Paint litres", "Room walls (and ceiling) by size.", [
+        ["length", "Room length", "number", 12], ["width", "Room width", "number", 10], ["height", "Height", "number", 10], ["unit", "Unit", "select", "ft", { options: [["ft", "feet"], ["m", "metres"]] }],
+        ["openings", "Doors + windows area (same unit²)", "number", 0], ["includeCeiling", "Include ceiling", "checkbox", false],
+        ["coats", "Coats", "number", 2], ["coverage", "Coverage per coat (m²/litre, from tin)", "number", 10], ["wastagePct", "Wastage %", "number", 5]
+      ], Calc.paint],
+      ["tiles", "🔲", "Tiles & adhesive", "Floor or wall tiling.", [
+        ["areaValue", "Area", "number", 20], ["unit", "Unit", "select", "m2", { options: AREA_UNITS }],
+        ["tileLengthMm", "Tile length (mm)", "number", 600], ["tileWidthMm", "Tile width (mm)", "number", 600],
+        ["wastagePct", "Wastage % (cutting, breakage)", "number", 8], ["piecesPerBox", "Pieces per box (optional)", "number", 0],
+        ["adhesiveKgPerM2", "Adhesive (kg/m²)", "number", 4, { step: 0.5 }]
+      ], Calc.tiles],
+      ["steel", "🔩", "Steel weight & stirrup length", "Bar weight by d²/162; add beam size for the stirrup cutting length.", [
+        ["diaMm", "Bar diameter (mm)", "select", "12", { options: ["8", "10", "12", "16", "20", "25", "32"].map((d) => [d, `${d} mm`]) }],
+        ["barLengthM", "Bar length (m)", "number", 12], ["bars", "Number of bars", "number", 10],
+        ["memberWidthMm", "Beam width (mm, optional)", "number", 230], ["memberDepthMm", "Beam depth (mm, optional)", "number", 450],
+        ["coverMm", "Clear cover (mm)", "number", 25], ["stirrupDiaMm", "Stirrup diameter (mm)", "select", "8", { options: [["6", "6 mm"], ["8", "8 mm"], ["10", "10 mm"], ["12", "12 mm"]] }]
+      ], Calc.steel],
+      ["brickwork", "🧱", "Brickwork", "Bricks, cement and sand for a wall.", [
+        ["length", "Wall length (m)", "number", 5], ["height", "Wall height (m)", "number", 3],
+        ["thicknessMm", "Wall thickness", "select", "230", { options: [["100", "100 mm (half, modular)"], ["115", "115 mm (half)"], ["200", "200 mm (full, modular)"], ["230", "230 mm (full)"]] }],
+        ["brick", "Brick size", "select", "230x110x75", { options: [["190x90x90", "190 × 90 × 90 (modular)"], ["230x110x75", "230 × 110 × 75 (traditional)"]] }],
+        ["sandParts", "Mortar mix", "select", "6", { options: [["4", "1 : 4"], ["5", "1 : 5"], ["6", "1 : 6"]] }], ["wastagePct", "Brick wastage %", "number", 5]
+      ], Calc.brickwork],
+      ["ac", "❄️", "AC tonnage (rule of thumb)", "Quick split-AC size for a room in hot weather. Not a heat-load calculation.", [
+        ["areaValue", "Room area", "number", 20], ["unit", "Unit", "select", "m2", { options: AREA_UNITS }],
+        ["wattsPerM2", "Room condition", "select", "170", { options: [["120", "Shaded, mild climate"], ["170", "Normal room, hot climate (e.g. Gulf)"], ["220", "Sunny / west glass / top floor"]] }],
+        ["people", "People", "number", 2], ["applianceW", "Lights + appliances (W)", "number", 300]
+      ], Calc.acTonnage],
+      ["water", "🚰", "Water tank size", "Domestic storage for a building.", [
+        ["persons", "Number of people", "number", 100],
+        ["lpcd", "Litres per person per day", "select", "135", { options: [["135", "135 — India, flats with flushing (NBC)"], ["200", "200 — India, large city / higher use"], ["250", "250 — UAE apartment (typical design)"], ["350", "350 — villa with garden"]] }],
+        ["storageDays", "Days of storage", "number", 1, { step: 0.5 }]
+      ], Calc.waterTank],
+      ["blocks", "🧊", "Blockwork", "Concrete blocks for a wall (openings not deducted).", [
+        ["length", "Wall length (m)", "number", 10], ["height", "Wall height (m)", "number", 3],
+        ["blocksPerM2", "Block face size", "select", "12.5", { options: [["12.5", "400 × 200 mm (12.5 / m²)"], ["10", "400 × 250 mm (10 / m²)"]] }], ["wastagePct", "Wastage %", "number", 5]
+      ], Calc.blockwork]
+    ];
+
+    const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+    const box = document.getElementById("calcs"), jump = document.getElementById("jump");
+    for (const [id, icon, title, desc, fields, fn] of CALCS) {
+      const chip = document.createElement("a"); chip.href = `#${id}`; chip.className = "rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:border-blue-400";
+      chip.textContent = `${icon} ${title}`; jump.appendChild(chip);
+      const card = document.createElement("section"); card.id = id; card.className = "scroll-mt-4 rounded-2xl border bg-white p-5 shadow-sm";
+      card.innerHTML = `<h2 class="text-lg font-bold text-blue-800">${icon} ${esc(title)}</h2><p class="mt-1 text-sm text-slate-500">${esc(desc)}</p><form class="mt-4 grid grid-cols-2 gap-3" novalidate></form><div class="mt-4 rounded-xl bg-blue-50 p-4 text-sm text-blue-950" aria-live="polite"></div>`;
+      const form = card.querySelector("form"), out = card.lastElementChild;
+      for (const [key, label, type, def, extra = {}] of fields) {
+        const wrap = document.createElement("label");
+        if (type === "checkbox") {
+          wrap.className = "col-span-2 flex items-center gap-2 text-sm font-medium text-slate-700";
+          wrap.innerHTML = `<input type="checkbox" name="${key}" class="h-4 w-4" ${def ? "checked" : ""}> ${esc(label)}`;
+        } else {
+          wrap.className = "grid min-w-0 gap-1 text-sm font-medium text-slate-700";
+          const input = type === "select"
+            ? `<select name="${key}" class="min-w-0 w-full rounded-lg border border-slate-300 bg-white px-2 py-2 font-normal">${extra.options.map(([v, l]) => `<option value="${esc(v)}" ${String(v) === String(def) ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>`
+            : `<input name="${key}" type="number" inputmode="decimal" min="0" step="${extra.step || "any"}" value="${def}" class="min-w-0 w-full rounded-lg border border-slate-300 px-3 py-2 font-normal">`;
+          wrap.innerHTML = `${esc(label)}${input}`;
+        }
+        form.appendChild(wrap);
+      }
+      const update = () => {
+        const args = {};
+        for (const [key, , type] of fields) {
+          const el = form.querySelector(`[name="${key}"]`); // not form.elements[key]: "length" is a reserved property
+          if (type === "checkbox") args[key] = el.checked;
+          else if (el.tagName === "SELECT" && isNaN(Number(el.value))) args[key] = el.value;
+          else args[key] = el.value === "" ? NaN : Number(el.value);
+        }
+        try {
+          const r = fn(args);
+          out.innerHTML = `<dl class="grid gap-1.5">${r.results.map(([l, v], i) => `<div class="flex flex-wrap justify-between gap-x-3 ${i === 0 ? "text-base font-bold" : ""}"><dt>${esc(l)}</dt><dd class="font-semibold">${esc(v)}</dd></div>`).join("")}</dl>
+            <details class="mt-3"><summary class="cursor-pointer text-xs font-semibold text-blue-700">How it's worked out</summary><ul class="mt-2 list-disc space-y-1 pl-5 text-xs text-slate-700">${r.steps.map((s) => `<li>${esc(s)}</li>`).join("")}</ul></details>
+            <a class="mt-3 inline-block text-xs font-semibold text-blue-700 underline" href="expert.html?q=${encodeURIComponent(r.ask)}">Ask the AI about this →</a>`;
+        } catch (e) {
+          out.innerHTML = `<p class="text-slate-600">${esc(e.message)}</p>`;
+        }
+      };
+      form.addEventListener("input", update); form.addEventListener("change", update); form.addEventListener("submit", (e) => e.preventDefault());
+      box.appendChild(card); update();
+    }
+  })();
+
+  function downloadTemplate(kind) { const templates={rate:[['Rate Analysis Template'],['Item description','Unit','Quantity','Material rate','Labour rate','Plant/other','Total'],['','','','','','','']],boq:[['BOQ Template'],['Item no.','Description','Unit','Quantity','Rate','Amount','Remarks'],['','','','','','','']],inspection:[['Concrete Inspection Checklist'],['Check item','Status','Observation / action','Responsible person'],['Formwork line, level, and cleanliness','','',''],['Reinforcement size, spacing, and cover','','',''],['Concrete grade and delivery ticket','','',''],['Slump / workability test','','',''],['Compaction and finishing','','',''],['Curing arrangement','','','']]}; const csv=templates[kind].map(row=>row.map(v=>`"${String(v).replaceAll('"','""')}"`).join(',')).join('\n'); const blob=new Blob([csv],{type:'text/csv;charset=utf-8'}), a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`${kind}-template.csv`; a.click(); URL.revokeObjectURL(a.href); }
   </script>
-<footer class="border-t border-slate-200 bg-white mt-10"><p class="max-w-5xl mx-auto px-4 py-6 text-sm text-slate-500">General professional guidance only. <a href="disclaimer.html" class="text-blue-700 hover:underline">Disclaimer &amp; terms</a> · <a href="privacy.html" class="text-blue-700 hover:underline">Privacy notice</a></p></footer></body>
+  <footer class="border-t border-slate-200 bg-white mt-10"><p class="max-w-5xl mx-auto px-4 py-6 text-sm text-slate-500">General professional guidance only. Results are preliminary planning figures. <a href="disclaimer.html" class="text-blue-700 hover:underline">Disclaimer &amp; terms</a> · <a href="privacy.html" class="text-blue-700 hover:underline">Privacy notice</a></p></footer>
+</body>
 </html>

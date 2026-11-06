@@ -15,7 +15,7 @@
     <meta property="og:image" content="https://constructionaiexpert.netlify.app/assets/og-image.png">
     <meta name="twitter:card" content="summary_large_image">
     <link rel="icon" href="assets/logo.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
-    <link rel="stylesheet" href="assets/site.css">
+    <link rel="stylesheet" href="assets/site.css"><link rel="manifest" href="manifest.webmanifest"><script src="assets/app.js" defer></script>
     <script src="assets/site-config.js"></script>
     <style>
         html, body { height: 100%; }
@@ -68,7 +68,7 @@
                     <h1 class="text-xl font-bold">Ask any construction question</h1>
                     <p class="mt-1 text-sm text-blue-100">For every worker on site — mason, steel fixer, carpenter, electrician, plumber, painter, foreman or engineer. Type or 🎤 speak in your own language, or 📷 send a photo of the problem, a drawing or a product label and ask about it.</p>
                     <p class="mt-2 text-sm font-medium text-white" lang="mul">हिंदी · اردو · മലയാളം · தமிழ் · বাংলা · नेपाली · తెలుగు · ਪੰਜਾਬੀ · العربية · English</p>
-                    <a data-wa-bot class="hidden mt-3 inline-flex items-center gap-2 rounded-full bg-green-500 px-4 py-2 text-sm font-bold text-white hover:bg-green-600">💬 Prefer WhatsApp? Ask the expert there</a>
+                    <button type="button" data-install-app class="hidden mt-3 mr-2 inline-flex items-center gap-2 rounded-full bg-amber-400 px-4 py-2 text-sm font-bold text-slate-900 hover:bg-amber-300">📲 Install app</button><a data-wa-bot class="hidden mt-3 inline-flex items-center gap-2 rounded-full bg-green-500 px-4 py-2 text-sm font-bold text-white hover:bg-green-600">💬 Prefer WhatsApp? Ask the expert there</a>
                 </div>
                 <p class="mt-4 mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Pick your work — or just ask</p>
                 <div id="starters" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
@@ -717,6 +717,9 @@
             conversation.forEach((m, i) => m.role === 'user' ? addUser(m.text) : addAI(m.text, m.lang, { scroll: false, question: conversation[i - 1]?.text || '', cacheKey: m.cacheKey }));
             scroller.scrollTop = scroller.scrollHeight;
         }
+        // Question passed in the link (e.g. "Ask the AI about this" on the calculators page).
+        const preset = new URLSearchParams(location.search).get('q');
+        if (preset) { input.value = preset.slice(0, 4000); history.replaceState(null, '', location.pathname); }
         autosize();
         requireTerms();
     })();
