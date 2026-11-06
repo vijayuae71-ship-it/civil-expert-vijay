@@ -1,7 +1,7 @@
 {
   "name": "civil-expert-vijay",
   "private": true,
-  "description": "Engineer Vijay's AI construction expert (static site + Netlify functions)",
+  "description": "Construction AI Expert: AI construction answers for site workers and engineers (static site + Netlify functions)",
   "scripts": {
     "build": "tailwindcss -i assets/tailwind.input.css -o assets/site.css --minify",
     "test": "node --test tests/*.test.js",

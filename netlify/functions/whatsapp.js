@@ -14,6 +14,7 @@
 const crypto = require("crypto");
 const chat = require("./chat");
 const { toWhatsApp, splitMessages } = require("./whatsapp-format");
+const { BRAND_NAME } = require("./brand");
 
 const API_VERSION = process.env.WHATSAPP_API_VERSION || "v23.0";
 const SITE_URL = process.env.URL || "https://civil-expert-vijay.netlify.app";
@@ -123,7 +124,7 @@ async function firstTimeSeen(store, messageId) {
 
 // ---------- messages ----------
 const WELCOME = [
-  "👷 *Vijay's AI Expert* — construction help on WhatsApp",
+  `👷 *${BRAND_NAME}* — construction help on WhatsApp`,
   "",
   "Ask any site question in your own language (हिंदी, اردو, മലയാളം, தமிழ், বাংলা, नेपाली, English…). You can also send a 📷 photo of the problem.",
   "",
@@ -132,7 +133,7 @@ const WELCOME = [
   "• When can I remove slab props?",
   "• MCB trips when the water heater is on",
   "",
-  "*Commands*: *new* – start fresh · *detailed* – engineer answers · *simple* – short steps · *consult* – talk to Engineer Vijay",
+  "*Commands*: *new* – start fresh · *detailed* – engineer answers · *simple* – short steps · *consult* – request a review by a senior engineer",
   "",
   "⚠️ General guidance only. Check design, testing and approvals with your engineer."
 ].join("\n");
@@ -143,7 +144,7 @@ function command(text) {
   if (/^(new|reset|restart|clear)$/.test(t)) return "new";
   if (/^(detailed|engineer|detail)$/.test(t)) return "detailed";
   if (/^(simple|worker|short)$/.test(t)) return "simple";
-  if (/^(consult|contact|vijay|talk to vijay)$/.test(t)) return "consult";
+  if (/^(consult|contact|expert|review|expert review)$/.test(t)) return "consult";
   return null;
 }
 
@@ -175,7 +176,7 @@ async function handleMessage(event, stores, msg) {
     case "new": await saveConversation(stores.conversations, key, { turns: [], audience: conversation.audience }); return sendText(from, "✅ Started a fresh conversation. Ask your question.");
     case "detailed": await saveConversation(stores.conversations, key, { ...conversation, audience: "engineer" }); return sendText(from, "📐 Detailed answers are on (calculations and full working). Send *simple* to switch back.");
     case "simple": await saveConversation(stores.conversations, key, { ...conversation, audience: "worker" }); return sendText(from, "🛠️ Simple step-by-step answers are on. Send *detailed* for engineer answers.");
-    case "consult": return sendText(from, `To talk to Engineer Vijay about your project, fill this short form:\n${SITE_URL}/expert#consult`);
+    case "consult": return sendText(from, `To request a personal review of your project by a senior engineer, fill this short form:\n${SITE_URL}/expert#consult`);
     default: break;
   }
 

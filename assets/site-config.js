@@ -1,7 +1,9 @@
 // Site-wide settings. Fill these in to switch on the matching buttons.
 window.SITE_CONFIG = {
-  // Engineer Vijay's personal WhatsApp for consultations, international format, digits only,
-  // e.g. "9715XXXXXXXX". Leave empty to hide the "WhatsApp Vijay" buttons.
+  // Product name used by page scripts (exports, share text). Page text uses the same name.
+  brandName: "Construction AI Expert",
+  // WhatsApp number for expert-review requests, international format, digits only,
+  // e.g. "9715XXXXXXXX". Leave empty to hide the "WhatsApp us" buttons.
   whatsappNumber: "",
   // The AI expert's WhatsApp Business number (the bot). Leave empty to hide "Ask on WhatsApp".
   whatsappBotNumber: "",

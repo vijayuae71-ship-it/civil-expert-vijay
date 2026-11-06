@@ -1,6 +1,6 @@
 "use strict";
 
-// Indicative Dubai market rates for RMC costing (cement and GGBS), supplied by Engineer Vijay.
+// Indicative Dubai market rates for RMC costing (cement and GGBS), supplied by the site owner.
 // Update the figures and AS_OF together whenever the market moves.
 // They are market rates, not CPWD rates, a mix design or a supplier quotation.
 const AS_OF = "2026-11";          // year-month the rates were taken
