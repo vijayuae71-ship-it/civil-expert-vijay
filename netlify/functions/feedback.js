@@ -3,6 +3,10 @@
 // Records 👍/👎 on answers. Each vote is written to the function log and, when
 // available, to the "answer-feedback" Netlify Blobs store (Netlify → Blobs) for review.
 const { isAllowedOrigin, clientIp } = require("./rate-limit");
+const answerCache = require("./answer-cache");
+
+let answerStoreOverride; // tests inject a fake store
+function setAnswerStoreForTests(store) { answerStoreOverride = store; }
 
 const recent = new Map(); // per-instance flood guard
 
@@ -16,7 +20,8 @@ function validate(body) {
     question: clip(body.question, 1000),
     answer: clip(body.answer, 4000),
     language: clip(body.language, 10) || "en",
-    quoteReady: body.quoteReady === true
+    quoteReady: body.quoteReady === true,
+    cacheKey: answerCache.isCacheKey(body.cacheKey) ? body.cacheKey : null
   };
 }
 
@@ -34,6 +39,13 @@ exports.handler = async (event) => {
   if (times.length >= 60) return { statusCode: 429, headers, body: JSON.stringify({ error: "Too many feedback submissions." }) };
   times.push(now); recent.set(ip, times);
 
+  // A 👎 removes that saved answer so the next visitor gets a fresh one.
+  if (entry.vote === "down" && entry.cacheKey) {
+    const store = answerStoreOverride !== undefined ? answerStoreOverride : answerCache.openStore(event);
+    const removed = await answerCache.deleteAnswer(store, entry.cacheKey);
+    console.log(JSON.stringify({ type: "cache_removed", removed }));
+  }
+
   const record = { ...entry, at: new Date(now).toISOString() };
   console.log(JSON.stringify({ type: "feedback", vote: record.vote, reason: record.reason, question: record.question.slice(0, 300) }));
   try {
@@ -47,3 +59,4 @@ exports.handler = async (event) => {
 };
 
 exports.validate = validate;
+exports.setAnswerStoreForTests = setAnswerStoreForTests;

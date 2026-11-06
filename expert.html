@@ -400,9 +400,9 @@
                 try { data = await res.json(); } catch {}
                 if (!res.ok || !data.reply) throw new Error(data.error || 'The AI service could not answer right now. Please try again.');
                 typing.remove();
-                conversation.push({ role: 'user', text: file ? `${text}\n\n[Attached: ${file.name}]` : text }, { role: 'model', text: data.reply, lang: $('answer-language').value });
+                conversation.push({ role: 'user', text: file ? `${text}\n\n[Attached: ${file.name}]` : text }, { role: 'model', text: data.reply, lang: $('answer-language').value, cacheKey: data.cacheKey || null });
                 store.set(STORAGE_KEY, conversation.slice(-40));
-                addAI(data.reply, $('answer-language').value, { question: text });
+                addAI(data.reply, $('answer-language').value, { question: text, cacheKey: data.cacheKey, cached: data.cached === true });
                 maybeShowCta(text);
                 removeFile();
             } catch (err) {
@@ -435,12 +435,12 @@
         function sendFeedback(payload) {
             fetch('/.netlify/functions/feedback', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), keepalive: true }).catch(() => {});
         }
-        function feedbackControls(actions, text, question, lang) {
+        function feedbackControls(actions, text, question, lang, cacheKey) {
             const wrap = document.createElement('span'); wrap.className = 'inline-flex items-center gap-1 ml-1';
             const vote = (v, btn) => {
                 wrap.querySelectorAll('button').forEach(b => b.disabled = true);
                 btn.classList.add('!border-blue-500', '!text-blue-700');
-                const base = { vote: v, question, answer: text, language: lang, quoteReady: $('quote-ready').checked };
+                const base = { vote: v, question, answer: text, language: lang, quoteReady: $('quote-ready').checked, cacheKey: cacheKey || undefined };
                 if (v === 'up') { sendFeedback(base); toast('Thanks for the feedback!'); return; }
                 const box = document.createElement('form'); box.className = 'mt-1.5 flex w-full gap-1.5';
                 box.innerHTML = '<input maxlength="300" placeholder="What was wrong or missing? (optional)" class="flex-1 rounded-md border border-slate-300 px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"><button class="rounded-md bg-blue-700 px-2.5 py-1 text-xs font-semibold text-white">Send</button>';
@@ -465,11 +465,12 @@
             if (waNumber) { const a = document.createElement('a'); a.className = 'rounded-lg border border-green-600 bg-white px-3 py-1.5 font-semibold text-green-700'; a.target = '_blank'; a.rel = 'noopener'; a.href = waLink(`Hello Engineer Vijay, I need help with: ${question}`); a.textContent = 'WhatsApp Vijay'; card.lastElementChild.appendChild(a); }
             w.appendChild(card);
         }
-        function addAI(text, lang, { scroll = true, question = '' } = {}) {
+        function addAI(text, lang, { scroll = true, question = '', cacheKey = null, cached = false } = {}) {
             const w = row('ai'); const col = document.createElement('div'); col.className = 'max-w-full w-full sm:w-auto sm:max-w-[95%]';
             const b = document.createElement('div'); b.className = 'bubble px-4 py-3 text-[15px] leading-relaxed shadow-sm break-words';
             if (RTL_LANGS.has(lang) || (lang === 'auto' && isMostlyArabicScript(text))) b.dir = 'rtl';
             renderReply(text, b); col.appendChild(b);
+            if (cached) { const tag = document.createElement('p'); tag.className = 'mt-1 text-[11px] text-slate-400'; tag.textContent = '⚡ Saved answer to this exact question. Tap 👎 if it doesn’t fit and it will be refreshed.'; col.appendChild(tag); }
             const actions = document.createElement('div'); actions.className = 'mt-1.5 flex flex-wrap gap-1.5';
             const mk = (label, fn, title) => { const btn = document.createElement('button'); btn.type = 'button'; btn.title = title || label; btn.className = 'rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600 hover:border-blue-400 hover:text-blue-700'; btn.textContent = label; btn.onclick = () => fn(btn); actions.appendChild(btn); };
             if ('speechSynthesis' in window) mk('🔊 Listen', btn => speak(text, lang, btn), 'Read this answer aloud');
@@ -480,7 +481,7 @@
                 mk('Excel', btn => runExport(btn, downloadExcel, text), 'Download as Excel');
                 mk('PowerPoint', btn => runExport(btn, downloadPowerPoint, text), 'Download as PowerPoint');
             }
-            feedbackControls(actions, text, question, lang);
+            feedbackControls(actions, text, question, lang, cacheKey);
             col.appendChild(actions); w.appendChild(col);
             if (scroll) w.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
@@ -660,7 +661,7 @@
         // ---------- restore previous conversation ----------
         if (conversation.length) {
             $('welcome').classList.add('hidden');
-            conversation.forEach((m, i) => m.role === 'user' ? addUser(m.text) : addAI(m.text, m.lang, { scroll: false, question: conversation[i - 1]?.text || '' }));
+            conversation.forEach((m, i) => m.role === 'user' ? addUser(m.text) : addAI(m.text, m.lang, { scroll: false, question: conversation[i - 1]?.text || '', cacheKey: m.cacheKey }));
             scroller.scrollTop = scroller.scrollHeight;
         }
         autosize();

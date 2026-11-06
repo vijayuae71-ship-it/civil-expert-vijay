@@ -5,6 +5,7 @@ const { relevantMixDesignContext, requestedGrade } = require("./mix-design-guida
 const { relevantEngineeringReference } = require("./site-engineering-reference");
 const { checkRateLimit, isAllowedOrigin } = require("./rate-limit");
 const Anthropic = require("@anthropic-ai/sdk").default;
+const answerCache = require("./answer-cache");
 
 // Model and effort can be changed in Netlify env vars without a code change.
 // Effort "low" keeps answers fast (Netlify functions have a time limit); try "medium" for deeper answers.
@@ -15,6 +16,8 @@ const TIMEOUT_MS = Number(process.env.EXPERT_TIMEOUT_MS) || 25000;
 let client = null;
 const getClient = () => (client ||= new Anthropic({ timeout: TIMEOUT_MS, maxRetries: 0 }));
 function setClientForTests(fake) { client = fake; }
+let answerStoreOverride; // tests inject a fake store; undefined = use Netlify Blobs
+function setAnswerStoreForTests(store) { answerStoreOverride = store; }
 
 // One Claude call. If a safety classifier declines, the server retries on Anthropic's
 // recommended fallback model ("default" fallbacks; not offered for Haiku).
@@ -196,6 +199,20 @@ Retain technical units, numbers, equations, and construction terminology accurat
       { type: "text", text: `${message.trim()}${dsrContext}${contextualGuidance}${attachmentNote}` }
     ];
 
+    // Saved answer for an identical first question (see answer-cache.js for the rules).
+    const canCache = priorTurns.length === 0 && !attachmentPart;
+    const cacheStore = canCache ? (answerStoreOverride !== undefined ? answerStoreOverride : answerCache.openStore(event)) : null;
+    const cacheKey = canCache
+      ? answerCache.cacheKey({ model: MODEL, effort: EFFORT, system, message, context: `${dsrContext}${contextualGuidance}`, settings: { language: selectedLanguage, audience: isWorker ? "worker" : "engineer", quoteReady: quoteReady === true } })
+      : null;
+    if (cacheKey) {
+      const saved = await answerCache.getCachedAnswer(cacheStore, cacheKey);
+      if (saved) {
+        console.log(JSON.stringify({ type: "cache_hit", savedAt: saved.at, text: message.trim().slice(0, 120) }));
+        return { statusCode: 200, headers, body: JSON.stringify({ reply: saved.reply, cached: true, cacheKey }) };
+      }
+    }
+
     const answer = await askClaude({ system, messages: [...priorTurns, { role: "user", content: userContent }], maxTokens: 8000 });
     if (answer.refused) {
       return { statusCode: 200, headers, body: JSON.stringify({ reply: "I can't help with this request. Please ask it as a construction or site-work question." }) };
@@ -220,7 +237,11 @@ Retain technical units, numbers, equations, and construction terminology accurat
       }
     }
 
-    return { statusCode: 200, headers, body: JSON.stringify({ reply }) };
+    // Save only complete answers: not cut off, and (in quote mode) a complete quotation.
+    const complete = answer.stopReason === "end_turn" && !(quoteReady === true && isIncompleteQuote(reply, selectedLanguage));
+    if (cacheKey && complete) await answerCache.saveAnswer(cacheStore, cacheKey, { reply, model: MODEL, question: message.trim() });
+
+    return { statusCode: 200, headers, body: JSON.stringify(cacheKey && complete ? { reply, cacheKey } : { reply }) };
   } catch (error) {
     console.error("Chat function error:", error?.name, error?.status, error?.message);
     const fail = (statusCode, message) => ({ statusCode, headers, body: JSON.stringify({ error: message }) });
@@ -234,4 +255,4 @@ Retain technical units, numbers, equations, and construction terminology accurat
   }
 };
 
-module.exports = Object.assign(module.exports, { sanitizeHistory, hasCompletedQuoteTable, isIncompleteQuote, attachmentBlock, setClientForTests, MODEL });
+module.exports = Object.assign(module.exports, { sanitizeHistory, hasCompletedQuoteTable, isIncompleteQuote, attachmentBlock, setClientForTests, setAnswerStoreForTests, MODEL });

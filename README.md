@@ -8,6 +8,13 @@ Static pages (`index`, `expert`, `calculators`, `construction-faq`) + Netlify Fu
 | `chat` | Claude answers (Anthropic API, `@anthropic-ai/sdk`). Adds code-sourced context (`site-engineering-reference.js`, `mix-design-guidance.js`, `cpwd-civil-catalogue.js`, `dubai-rmc-costing.js`, FAQ) when a question matches. Rate limited (`rate-limit.js`). |
 | `feedback` | 👍/👎 on answers, stored in Netlify Blobs store `answer-feedback`. |
 
+### Saved answers (repeat questions cost nothing)
+`answer-cache.js` stores each complete answer in the Netlify Blobs store `answer-cache`. The same question asked again is answered from there without calling Claude.
+- Reused only for a **first question with no attachment**, with the **same wording** once case, spacing and punctuation are ignored. **Numbers and units must match exactly** ("100 sq ft" ≠ "1000 sq ft", "M25" ≠ "M30"), along with the same language, answer style, quote mode and model.
+- Editing the prompt or any knowledge file automatically starts a fresh cache: the key includes the exact text sent to Claude.
+- A 👎 deletes that saved answer. Entries expire after 30 days (`ANSWER_CACHE_TTL_DAYS`). Set `ANSWER_CACHE=off` to disable.
+- Hits appear in the `chat` function log as `"type":"cache_hit"`.
+
 ## One-time Netlify setup
 1. **Environment variable** `ANTHROPIC_API_KEY` — create a key at console.anthropic.com → API keys, and add billing credit there. `GEMINI_API_KEY` is no longer used and can be deleted.
    Optional: `EXPERT_MODEL` (default `claude-opus-5-5`; `claude-sonnet-5-5` is about half the cost, `claude-haiku-5-5` about 1/40th), `EXPERT_EFFORT` (default `low` — fastest; `medium` thinks more but is slower), `EXPERT_TIMEOUT_MS` (default 25000).
