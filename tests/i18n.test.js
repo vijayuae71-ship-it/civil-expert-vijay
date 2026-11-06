@@ -27,6 +27,7 @@ test("every data-i18n key used on the page exists", () => {
   for (const m of html.matchAll(/\bt\('([a-zA-Z_]+)'/g)) assert.ok(m[1] in I18N.en, `t('${m[1]}')`);
 });
 
-test("the languages named on the welcome line all have page text", () => {
-  for (const lang of ["hi", "ur", "ml", "ta", "bn", "ne", "te", "pa", "ar"]) assert.ok(I18N[lang], lang);
+test("page text exists for exactly the 11 supported languages", () => {
+  const wanted = ["en", "hi", "ur", "ar", "ml", "ta", "te", "kn", "mr", "bn", "pa"];
+  assert.deepEqual(Object.keys(I18N).sort(), [...wanted].sort());
 });
