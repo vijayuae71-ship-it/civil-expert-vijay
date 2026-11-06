@@ -172,6 +172,32 @@ CASES.push(
   }
 );
 
+// ---------- unusual product photos (group "product"): fictional labels in scripts/fixtures ----------
+const photo = (file) => ({ name: file, mimeType: "image/jpeg", data: require("fs").readFileSync(require("path").join(__dirname, "fixtures", file)).toString("base64") });
+CASES.push(
+  {
+    group: "product", name: "Expired waterbar: notices the use-by date and says not to use it",
+    body: { message: "Can I use this waterbar strip for our basement pour next week?", attachment: photo("product-waterbar.jpg"), audience: "worker" },
+    must: [/(expir|03\/2025|use by|use-by)/i, /(do not|don't|not)[^.\n]{0,80}(use|install)|replace|fresh|new (stock|batch|roll)/i]
+  },
+  {
+    group: "product", name: "Epoxy at 2 °C: follows the label's +8 °C minimum and PPE",
+    body: { message: "Can I inject cracks with this tonight? It is 2 °C outside.", attachment: photo("product-epoxy.jpg"), audience: "worker" },
+    must: [/\+?\s?8\s*°\s*C/, /(no|not|don't|do not|cannot|can't)/i, /(glove|H317|skin)/i]
+  },
+  {
+    group: "product", name: "Non-construction product (honey): stays in scope",
+    body: { message: "How should I use this?", attachment: photo("product-honey.jpg"), audience: "worker" },
+    must: [/(construction|site)/i],
+    mustNot: [/(teaspoon|tablespoon|recipe|tea\b|toast|sweeten)/i]
+  },
+  {
+    group: "product", name: "Blurry cement bag: admits it cannot read the label instead of guessing",
+    body: { message: "What grade and standard is this cement, and what is the batch number?", attachment: photo("product-blurry-cement.jpg"), audience: "engineer" },
+    must: [/(not (clearly )?(legible|readable|visible)|illegible|can(no|')t (clearly )?(read|make out|confirm)|blurr|unclear|clearer photo|retake)/i]
+  }
+);
+
 const args = process.argv.slice(2);
 const argValue = (name) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : null; };
 const group = argValue("--group");

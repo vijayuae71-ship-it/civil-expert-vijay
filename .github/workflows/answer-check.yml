@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       group:
-        description: "Question group to run (mep, rates, drawing), or leave empty for all"
+        description: "Question group to run (mep, rates, drawing, product), or leave empty for all"
         required: false
         default: "mep"
 
