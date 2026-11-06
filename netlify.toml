@@ -4,6 +4,10 @@
   # Builds assets/site.css from the Tailwind classes used in the pages.
   command = "npm run build"
 
+[build.environment]
+  # Node 22 for the build and the functions (matches the version the tests run on).
+  NODE_VERSION = "22"
+
 [functions]
   node_bundler = "esbuild"
 
