@@ -198,6 +198,18 @@ CASES.push(
   }
 );
 
+// ---------- answer language (group "language"): reply must be in the script of the question or the chosen language ----------
+const words = (range, n) => new RegExp(`([${range}]+[\\s,.?!:;()-]+){${n},}`);
+CASES.push(
+  { group: "language", name: "Hindi (Devanagari) question, Auto → Hindi answer", body: { message: "100 वर्ग फुट प्लास्टर के लिए कितना सीमेंट और रेत लगेगा?", language: "auto", audience: "worker" }, must: [words("\\u0900-\\u097F", 15)] },
+  { group: "language", name: "Hinglish question, Auto → Hinglish (Latin) answer", body: { message: "slab ki curing kitne din karni chahiye?", language: "auto", audience: "worker" }, must: [/\b(din|karein|karna|chahiye|hai|paani|ke)\b/i], mustNot: [words("\\u0900-\\u097F", 8)] },
+  { group: "language", name: "Urdu question, Auto → Urdu answer", body: { message: "سلیب کی کیورنگ کتنے دن کرنی چاہیے؟", language: "auto", audience: "worker" }, must: [words("\\u0600-\\u06FF", 12)] },
+  { group: "language", name: "Tamil question, Auto → Tamil answer", body: { message: "ஸ்லாப் கியூரிங் எத்தனை நாட்கள் செய்ய வேண்டும்?", language: "auto", audience: "worker" }, must: [words("\\u0B80-\\u0BFF", 10)] },
+  { group: "language", name: "Bengali question, Auto → Bengali answer", body: { message: "ছাদ ঢালাইয়ের পর কত দিন কিউরিং করতে হবে?", language: "auto", audience: "worker" }, must: [words("\\u0980-\\u09FF", 10)] },
+  { group: "language", name: "English question, Malayalam chosen → Malayalam answer", body: { message: "How many days should I cure a concrete slab?", language: "ml", audience: "worker" }, must: [words("\\u0D00-\\u0D7F", 10)] },
+  { group: "language", name: "English question, Arabic chosen → Arabic answer", body: { message: "What is the minimum cover for a footing?", language: "ar", audience: "engineer" }, must: [words("\\u0600-\\u06FF", 15)] }
+);
+
 const args = process.argv.slice(2);
 const argValue = (name) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : null; };
 const group = argValue("--group");

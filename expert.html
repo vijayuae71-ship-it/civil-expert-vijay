@@ -116,11 +116,20 @@
                         <option value="auto">🌐 Auto (same as my question)</option><option value="en">English</option><option value="ar">العربية (Arabic)</option><option value="hi">हिन्दी (Hindi)</option><option value="ur">اردو (Urdu)</option><option value="ml">മലയാളം (Malayalam)</option><option value="ta">தமிழ் (Tamil)</option><option value="te">తెలుగు (Telugu)</option><option value="kn">ಕನ್ನಡ (Kannada)</option><option value="bn">বাংলা (Bengali)</option><option value="mr">मराठी (Marathi)</option><option value="gu">ગુજરાતી (Gujarati)</option><option value="pa">ਪੰਜਾਬੀ (Punjabi)</option><option value="ne">नेपाली (Nepali)</option><option value="si">සිංහල (Sinhala)</option><option value="fr">Français</option><option value="es">Español</option><option value="pt">Português</option><option value="de">Deutsch</option><option value="it">Italiano</option><option value="ru">Русский</option><option value="tr">Türkçe</option><option value="zh-CN">中文 (简体)</option><option value="ja">日本語</option><option value="ko">한국어</option><option value="id">Bahasa Indonesia</option><option value="fil">Filipino</option>
                     </select>
                 </label>
+                <button type="button" id="voice-lang-chip" class="hidden rounded-md border border-slate-300 px-2 py-1 font-medium text-slate-600 hover:bg-slate-50" title="Change the language for voice typing"></button>
                 <span class="hidden sm:inline text-slate-400">Enter to send · Shift+Enter for a new line</span>
             </div>
             <p class="mt-1.5 text-[11px] leading-snug text-slate-400">General professional guidance only. Documents are not stored; questions are logged without your name to improve answers. <a href="disclaimer.html" class="underline hover:text-slate-600">Disclaimer</a> · <a href="privacy.html" class="underline hover:text-slate-600">Privacy</a>. Verify design, testing, standards and approvals with the responsible qualified engineer.</p>
         </div>
     </footer>
+
+    <dialog id="voice-dialog" class="w-[min(92vw,24rem)] rounded-2xl p-0 shadow-2xl backdrop:bg-slate-900/50" aria-labelledby="voice-title">
+        <div class="p-5">
+            <div class="flex items-start justify-between gap-3"><h2 id="voice-title" class="text-lg font-bold text-slate-900">🎤 Which language will you speak?</h2><button type="button" data-close-voice class="text-xl leading-none text-slate-400 hover:text-slate-700" aria-label="Close">✕</button></div>
+            <p class="mt-1 text-xs text-slate-500">Voice typing needs to know your language. You can change it any time.</p>
+            <div id="voice-langs" class="mt-3 grid grid-cols-2 gap-2"></div>
+        </div>
+    </dialog>
 
     <dialog id="terms-dialog" class="w-[min(92vw,26rem)] rounded-2xl p-0 shadow-2xl backdrop:bg-slate-900/60" aria-labelledby="terms-title">
         <div class="p-5">
@@ -202,7 +211,7 @@
         else if (!prefs.language) $('answer-language').value = 'auto';
         $('quote-ready').checked = !!prefs.quoteReady;
         let audience = prefs.audience === 'engineer' ? 'engineer' : 'worker';
-        const savePrefs = () => store.set('vijay-expert-prefs', { language: $('answer-language').value, quoteReady: $('quote-ready').checked, audience });
+        const savePrefs = () => store.set('vijay-expert-prefs', { ...(store.get('vijay-expert-prefs') || {}), language: $('answer-language').value, quoteReady: $('quote-ready').checked, audience });
         function setAudience(value, save = true) {
             audience = value;
             document.querySelectorAll('[data-audience]').forEach(b => { const on = b.dataset.audience === value; b.setAttribute('aria-checked', on); b.className = `rounded-md px-2.5 py-1 font-semibold ${on ? 'bg-blue-700 text-white' : 'text-slate-600 hover:bg-slate-100'}`; });
@@ -384,19 +393,50 @@
         if (Recognition) {
             const mic = $('mic-btn'); mic.classList.remove('hidden');
             const setListening = on => { mic.setAttribute('aria-pressed', on); mic.className = `shrink-0 rounded-xl p-2 ${on ? 'bg-red-600 text-white animate-pulse' : 'text-slate-500 hover:bg-slate-100 hover:text-blue-700'}`; };
+            // Voice language: the chosen answer language, or (in Auto) the language picked once in the voice dialog.
+            const VOICE_NAMES = { en: 'English', hi: 'हिंदी', ur: 'اردو', ml: 'മലയാളം', ta: 'தமிழ்', te: 'తెలుగు', kn: 'ಕನ್ನಡ', bn: 'বাংলা', mr: 'मराठी', gu: 'ગુજરાતી', pa: 'ਪੰਜਾਬੀ', ne: 'नेपाली', si: 'සිංහල', ar: 'العربية', fil: 'Filipino', id: 'Bahasa Indonesia', fr: 'Français', es: 'Español', ru: 'Русский', 'zh-CN': '中文' };
+            let voiceLang = (store.get('vijay-expert-prefs') || {}).voiceLang || null;
+            const voiceDialog = $('voice-dialog');
+            const voiceCode = () => (langCode() !== 'auto' ? langCode() : voiceLang);
+            const updateVoiceChip = () => {
+                const chip = $('voice-lang-chip'), code = voiceCode();
+                chip.classList.toggle('hidden', langCode() !== 'auto' || !voiceLang);
+                if (code) chip.textContent = `🎤 ${VOICE_NAMES[code] || code} · change`;
+            };
+            Object.entries(VOICE_NAMES).forEach(([code, name]) => {
+                const b = document.createElement('button'); b.type = 'button';
+                b.className = 'rounded-lg border border-slate-200 px-3 py-2 text-left text-sm font-semibold hover:border-blue-400 hover:bg-blue-50';
+                b.textContent = name; b.dataset.code = code;
+                b.addEventListener('click', () => {
+                    voiceLang = code;
+                    const prefs = store.get('vijay-expert-prefs') || {}; store.set('vijay-expert-prefs', { ...prefs, voiceLang: code });
+                    voiceDialog.close(); updateVoiceChip(); startListening();
+                });
+                $('voice-langs').appendChild(b);
+            });
+            voiceDialog.querySelector('[data-close-voice]').addEventListener('click', () => voiceDialog.close());
+            $('voice-lang-chip').addEventListener('click', () => voiceDialog.showModal ? voiceDialog.showModal() : voiceDialog.setAttribute('open', ''));
+            $('answer-language').addEventListener('change', updateVoiceChip);
+            updateVoiceChip();
+
             mic.addEventListener('click', () => {
                 if (recognizer) { recognizer.stop(); return; }
+                if (!voiceCode()) { voiceDialog.showModal ? voiceDialog.showModal() : voiceDialog.setAttribute('open', ''); return; }
+                startListening();
+            });
+            function startListening() {
+                if (recognizer) return;
                 recognizer = new Recognition();
-                recognizer.lang = SPEECH_LANG[langCode()] || navigator.language || 'en-IN';
+                recognizer.lang = SPEECH_LANG[voiceCode()] || navigator.language || 'en-IN';
                 recognizer.interimResults = true; recognizer.continuous = false;
                 const before = input.value ? input.value.trimEnd() + ' ' : '';
                 recognizer.onresult = e => { input.value = before + [...e.results].map(r => r[0].transcript).join(''); autosize(); };
-                recognizer.onerror = e => { if (e.error === 'not-allowed') toast('Allow microphone access to speak your question.'); else if (e.error === 'language-not-supported') toast('Voice is not available for this language on this phone. Please type instead.'); else if (e.error !== 'aborted' && e.error !== 'no-speech') toast('Could not hear clearly. Please try again.'); };
+                recognizer.onerror = e => { if (e.error === 'not-allowed' || e.error === 'service-not-allowed') toast('Microphone is blocked. Allow it in the browser (🔒 next to the address) and try again.'); else if (e.error === 'language-not-supported') toast('Voice is not available for this language on this phone. Please type instead.'); else if (e.error !== 'aborted' && e.error !== 'no-speech') toast('Could not hear clearly. Please try again.'); };
                 recognizer.onend = () => { recognizer = null; setListening(false); input.focus(); };
                 setListening(true);
-                if (langCode() === 'auto' && !before) toast('Listening… (choose your language below for better voice typing)');
+                toast(`Listening in ${VOICE_NAMES[voiceCode()] || voiceCode()}… speak now`);
                 try { recognizer.start(); } catch { recognizer = null; setListening(false); }
-            });
+            }
         }
 
         // ---------- read aloud / share ----------
@@ -409,16 +449,43 @@
             return best[0];
         }
         const plainText = text => String(text).split('\n').filter(l => !isDivider(l)).map(l => isTableRow(l) ? splitRow(l).filter(Boolean).join(', ') : l).join('\n').replace(/[*#`|]/g, '').replace(/\n{2,}/g, '\n').trim();
+        // Phones often load their voice list a moment after the page: wait briefly before deciding none exists.
+        function loadVoices(synth) {
+            const now = synth.getVoices();
+            if (now.length) return Promise.resolve(now);
+            return new Promise(resolve => {
+                const done = () => resolve(synth.getVoices());
+                synth.addEventListener?.('voiceschanged', done, { once: true });
+                setTimeout(done, 1200);
+            });
+        }
+        // Chrome on Android stops long utterances after ~15 s, so speak in short sentence-sized pieces.
+        function speechChunks(text, max = 180) {
+            const parts = [], sentences = text.split(/(?<=[.!?।؟\n])\s+/);
+            let cur = '';
+            for (const sentence of sentences) {
+                if ((cur + ' ' + sentence).trim().length > max && cur) { parts.push(cur.trim()); cur = ''; }
+                if (sentence.length > max) { for (let i = 0; i < sentence.length; i += max) parts.push(sentence.slice(i, i + max)); continue; }
+                cur += ' ' + sentence;
+            }
+            if (cur.trim()) parts.push(cur.trim());
+            return parts;
+        }
         let speakingBtn = null;
-        function speak(text, lang, btn) {
+        async function speak(text, lang, btn) {
             const synth = window.speechSynthesis;
             if (speakingBtn) { synth.cancel(); const was = speakingBtn; speakingBtn.textContent = '🔊 Listen'; speakingBtn = null; if (was === btn) return; }
-            const code = detectSpeechLang(text, lang), voices = synth.getVoices();
-            const voice = voices.find(v => v.lang === code) || voices.find(v => v.lang.slice(0, 2) === code.slice(0, 2));
-            if (voices.length && !voice) { toast('Your phone has no voice for this language. Add one in phone settings → Text-to-speech.'); return; }
-            const u = new SpeechSynthesisUtterance(plainText(text).replace(/⚠️/g, 'Warning.')); u.lang = code; if (voice) u.voice = voice; u.rate = 0.95;
-            u.onend = u.onerror = () => { if (speakingBtn === btn) { btn.textContent = '🔊 Listen'; speakingBtn = null; } };
-            speakingBtn = btn; btn.textContent = '⏹ Stop'; synth.speak(u);
+            const code = detectSpeechLang(text, lang), voices = await loadVoices(synth);
+            const voice = voices.find(v => v.lang === code) || voices.find(v => v.lang.replace('_', '-').slice(0, 2) === code.slice(0, 2));
+            if (voices.length && !voice) { toast('Your phone has no voice for this language. Add one in phone settings → Text-to-speech, or use English.'); return; }
+            const pieces = speechChunks(plainText(text).replace(/⚠️/g, 'Warning.'));
+            speakingBtn = btn; btn.textContent = '⏹ Stop';
+            pieces.forEach((piece, i) => {
+                const u = new SpeechSynthesisUtterance(piece); u.lang = code; if (voice) u.voice = voice; u.rate = 0.95;
+                if (i === pieces.length - 1) u.onend = () => { if (speakingBtn === btn) { btn.textContent = '🔊 Listen'; speakingBtn = null; } };
+                u.onerror = () => { if (speakingBtn === btn) { btn.textContent = '🔊 Listen'; speakingBtn = null; } };
+                synth.speak(u);
+            });
         }
         async function shareAnswer(text) {
             const body = `${plainText(text).slice(0, 3500)}\n\n— ${BRAND}: ${(window.SITE_CONFIG || {}).siteUrl || location.origin}/expert`;

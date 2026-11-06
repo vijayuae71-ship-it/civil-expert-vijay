@@ -14,3 +14,10 @@ for (const page of fs.readdirSync(root).filter((f) => f.endsWith(".html"))) {
     scripts.forEach((code, i) => assert.doesNotThrow(() => new Function(code), `script ${i}`));
   });
 }
+
+test("the microphone is allowed on the site (voice typing) — Permissions-Policy must not block it", () => {
+  const toml = fs.readFileSync(path.join(root, "netlify.toml"), "utf8");
+  const policy = (toml.match(/Permissions-Policy = "([^"]*)"/) || [])[1] || "";
+  assert.doesNotMatch(policy, /microphone=\(\)/);
+  assert.match(policy, /microphone=\(self\)/);
+});
