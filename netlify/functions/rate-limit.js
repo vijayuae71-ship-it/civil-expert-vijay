@@ -11,7 +11,11 @@ const LIMITS = Object.freeze({
   sitePerDay: Number(process.env.CHAT_LIMIT_SITE_DAY) || 2000
 });
 
+const crypto = require("crypto");
 const memory = new Map();
+
+// IP addresses are never stored: counters are keyed by a one-way keyed hash of the address.
+const ipKey = (ip) => crypto.createHmac("sha256", process.env.PRIVACY_SALT || process.env.ANTHROPIC_API_KEY || "construction-ai-expert").update(String(ip)).digest("hex").slice(0, 24);
 
 function clientIp(event) {
   const h = event?.headers || {};
@@ -61,7 +65,7 @@ async function bump(store, key, ttlMs) {
 
 // Returns null when allowed, or { statusCode, error } when the request must be refused.
 async function checkRateLimit(event, { store, now = new Date() } = {}) {
-  const ip = clientIp(event);
+  const ip = ipKey(clientIp(event));
   const hour = now.toISOString().slice(0, 13);
   const day = now.toISOString().slice(0, 10);
   const s = store === undefined ? await openStore(event) : store;
@@ -75,4 +79,4 @@ async function checkRateLimit(event, { store, now = new Date() } = {}) {
   return null;
 }
 
-module.exports = { LIMITS, checkRateLimit, isAllowedOrigin, clientIp, _memory: memory };
+module.exports = { LIMITS, checkRateLimit, isAllowedOrigin, clientIp, ipKey, _memory: memory };
