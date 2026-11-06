@@ -1,0 +1,45 @@
+# Runs the real-Claude answer checks (scripts/eval-answers.js) on demand.
+# Start it from GitHub → Actions → "Answer check" → Run workflow.
+# Needs the repository secret ANTHROPIC_API_KEY (Settings → Secrets and variables → Actions).
+# Each run costs a few cents of Claude usage (about US$0.02 per question).
+name: Answer check
+
+on:
+  workflow_dispatch:
+    inputs:
+      group:
+        description: "Question group to run (mep), or leave empty for all"
+        required: false
+        default: "mep"
+
+permissions:
+  contents: read
+
+jobs:
+  answers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Ask the real questions
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GROUP: ${{ inputs.group }}
+        run: |
+          set +e
+          if [ -n "$GROUP" ]; then npm run -s eval -- --group "$GROUP" --report answer-report.md; else npm run -s eval -- --report answer-report.md; fi
+          status=$?
+          cat answer-report.md >> "$GITHUB_STEP_SUMMARY" 2>/dev/null
+          exit $status
+      - name: Keep the full answers
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: answer-report
+          path: answer-report.md
+          if-no-files-found: ignore
