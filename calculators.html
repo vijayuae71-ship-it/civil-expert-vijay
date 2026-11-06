@@ -121,7 +121,7 @@
       const update = () => {
         const args = {};
         for (const [key, , type] of fields) {
-          const el = form.querySelector(`[name="${key}"]`); // not form.elements[key]: "length" is a reserved property
+          const el = form.querySelector(`[name="${key}"]`); // look up by name: the form property "length" is reserved
           if (type === "checkbox") args[key] = el.checked;
           else if (el.tagName === "SELECT" && isNaN(Number(el.value))) args[key] = el.value;
           else args[key] = el.value === "" ? NaN : Number(el.value);
