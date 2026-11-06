@@ -136,6 +136,17 @@ const CASES = [
     group: "mep", name: "Fire alarm detector spacing",
     body: { message: "What spacing for smoke detectors in a corridor and in an open office?", audience: "engineer" },
     must: [/(NFPA ?72|BS 5839|UAE Fire|Civil Defence)/i, /(\d+(\.\d+)?\s*m)/, /corridor/i]
+  },
+  {
+    group: "mep", name: "Smoke detector clearance from AC diffusers (BS 5839-1: 1 m)",
+    body: { message: "How far should a smoke detector be from an AC supply diffuser?", audience: "engineer" },
+    must: [/\b1(\.0)?\s*m\b/i, /(BS 5839|NFPA ?72)/i],
+    mustNot: [/BS[^.\n]{0,40}0\.5\s*m[^.\n]{0,40}diffuser/i]
+  },
+  {
+    group: "mep", name: "Location not given: water demand shows UAE and India (or asks)",
+    body: { message: "What per-person daily water demand should I use to size a residential water tank?", audience: "engineer" },
+    must: [/(UAE|Dubai|DEWA|Abu Dhabi)/i, /(India|NBC|IS 1172)/i]
   }
 ];
 
