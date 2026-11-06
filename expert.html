@@ -449,16 +449,43 @@
             return best[0];
         }
         const plainText = text => String(text).split('\n').filter(l => !isDivider(l)).map(l => isTableRow(l) ? splitRow(l).filter(Boolean).join(', ') : l).join('\n').replace(/[*#`|]/g, '').replace(/\n{2,}/g, '\n').trim();
+        // Phones often load their voice list a moment after the page: wait briefly before deciding none exists.
+        function loadVoices(synth) {
+            const now = synth.getVoices();
+            if (now.length) return Promise.resolve(now);
+            return new Promise(resolve => {
+                const done = () => resolve(synth.getVoices());
+                synth.addEventListener?.('voiceschanged', done, { once: true });
+                setTimeout(done, 1200);
+            });
+        }
+        // Chrome on Android stops long utterances after ~15 s, so speak in short sentence-sized pieces.
+        function speechChunks(text, max = 180) {
+            const parts = [], sentences = text.split(/(?<=[.!?।؟\n])\s+/);
+            let cur = '';
+            for (const sentence of sentences) {
+                if ((cur + ' ' + sentence).trim().length > max && cur) { parts.push(cur.trim()); cur = ''; }
+                if (sentence.length > max) { for (let i = 0; i < sentence.length; i += max) parts.push(sentence.slice(i, i + max)); continue; }
+                cur += ' ' + sentence;
+            }
+            if (cur.trim()) parts.push(cur.trim());
+            return parts;
+        }
         let speakingBtn = null;
-        function speak(text, lang, btn) {
+        async function speak(text, lang, btn) {
             const synth = window.speechSynthesis;
             if (speakingBtn) { synth.cancel(); const was = speakingBtn; speakingBtn.textContent = '🔊 Listen'; speakingBtn = null; if (was === btn) return; }
-            const code = detectSpeechLang(text, lang), voices = synth.getVoices();
-            const voice = voices.find(v => v.lang === code) || voices.find(v => v.lang.slice(0, 2) === code.slice(0, 2));
-            if (voices.length && !voice) { toast('Your phone has no voice for this language. Add one in phone settings → Text-to-speech.'); return; }
-            const u = new SpeechSynthesisUtterance(plainText(text).replace(/⚠️/g, 'Warning.')); u.lang = code; if (voice) u.voice = voice; u.rate = 0.95;
-            u.onend = u.onerror = () => { if (speakingBtn === btn) { btn.textContent = '🔊 Listen'; speakingBtn = null; } };
-            speakingBtn = btn; btn.textContent = '⏹ Stop'; synth.speak(u);
+            const code = detectSpeechLang(text, lang), voices = await loadVoices(synth);
+            const voice = voices.find(v => v.lang === code) || voices.find(v => v.lang.replace('_', '-').slice(0, 2) === code.slice(0, 2));
+            if (voices.length && !voice) { toast('Your phone has no voice for this language. Add one in phone settings → Text-to-speech, or use English.'); return; }
+            const pieces = speechChunks(plainText(text).replace(/⚠️/g, 'Warning.'));
+            speakingBtn = btn; btn.textContent = '⏹ Stop';
+            pieces.forEach((piece, i) => {
+                const u = new SpeechSynthesisUtterance(piece); u.lang = code; if (voice) u.voice = voice; u.rate = 0.95;
+                if (i === pieces.length - 1) u.onend = () => { if (speakingBtn === btn) { btn.textContent = '🔊 Listen'; speakingBtn = null; } };
+                u.onerror = () => { if (speakingBtn === btn) { btn.textContent = '🔊 Listen'; speakingBtn = null; } };
+                synth.speak(u);
+            });
         }
         async function shareAnswer(text) {
             const body = `${plainText(text).slice(0, 3500)}\n\n— ${BRAND}: ${(window.SITE_CONFIG || {}).siteUrl || location.origin}/expert`;
