@@ -42,3 +42,5 @@ npm test           # unit tests, no network
 ANTHROPIC_API_KEY=... npm run eval   # checks real answers (M100 mix, Dubai quote, follow-ups …)
 ```
 Run `npm test` after any change and `npm run eval` after changing prompts or knowledge files.
+
+**From a phone:** GitHub → **Actions → Answer check → Run workflow** runs the same real-Claude checks (group `mep` by default; leave it empty for all). It needs the repository secret `ANTHROPIC_API_KEY` (Settings → Secrets and variables → Actions). The full answers appear on the run's summary page.

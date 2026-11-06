@@ -1,6 +1,9 @@
 "use strict";
 // Answer-quality check against the REAL Claude API. Run before changing prompts:
 //   ANTHROPIC_API_KEY=... npm run eval
+//   ANTHROPIC_API_KEY=... npm run eval -- --group mep --report mep-report.md
+// --group runs only cases with that group; --report also writes every full answer to a
+// Markdown file so a person can judge accuracy, not just the keyword checks.
 // Each case sends a real question through the chat function and checks the reply
 // contains what a good answer must contain. Costs a few Claude calls per run (roughly US$0.02 each with the default model).
 
@@ -70,12 +73,81 @@ const CASES = [
       ]
     },
     must: [/M30/, /7\.(5|9)/]
+  },
+
+  // ---------- MEP (group "mep"): checks that the key engineering points appear ----------
+  {
+    group: "mep", name: "Cable size for a 9 kW water heater shows current, voltage drop and protection",
+    body: { message: "What cable size and MCB for a 9 kW single-phase water heater at 230 V with a 25 m cable run?", audience: "engineer" },
+    must: [/39(\.\d)?\s*A|39 amp/i, /voltage drop/i, /MCB|breaker/i, /(6|10)\s*(mm²|mm2|sq\.? ?mm)/i, /RCD|RCCB|ELCB|earth leakage/i]
+  },
+  {
+    group: "mep", name: "Split AC tonnage for a Dubai bedroom",
+    body: { message: "What AC tonnage do I need for a 4 m x 5 m bedroom in Dubai with one west-facing window?", audience: "engineer" },
+    must: [/\b(1(\.\d)?|2)\s*(TR|ton)/i, /(cooling|heat) load/i, /(west|sun|solar|glass|window)/i]
+  },
+  {
+    group: "mep", name: "Drainage pipe slopes",
+    body: { message: "What is the minimum slope for 100 mm and 150 mm underground drainage pipes?", audience: "engineer" },
+    must: [/100\s*mm/, /150\s*mm/, /1\s*:\s*\d{2,3}|\d(\.\d)?\s*%/, /(self[- ]cleansing|velocity|authority|code|municipality)/i]
+  },
+  {
+    group: "mep", name: "Earth resistance test method and acceptance value",
+    body: { message: "How do I test earth pit resistance and what value is acceptable?", audience: "engineer" },
+    must: [/(earth (resistance )?tester|megger|fall[- ]of[- ]potential|3[- ]point|three[- ]point)/i, /(ohm|Ω)/i, /(authority|DEWA|IEC|IS 3043|BS 7430|specification)/i]
+  },
+  {
+    group: "mep", name: "Sprinkler spacing for a light-hazard office",
+    body: { message: "What is the maximum sprinkler spacing and coverage area for a light hazard office?", audience: "engineer" },
+    must: [/NFPA ?13|UAE Fire|Civil Defence/i, /4\.6\s*m|15\s*(ft|feet)/i, /(20\.9|21)\s*m²|225\s*(sq\.? ?ft|ft²)/i]
+  },
+  {
+    group: "mep", name: "Domestic water tank sizing for an apartment block",
+    body: { message: "Size the domestic water storage tank for a G+4 residential building with 20 flats", audience: "engineer" },
+    must: [/(per (person|capita|occupant)|litres? \/ ?(person|day)|lpcd|L\/p\/d)/i, /(m³|litres|liters|gallons)/i, /(occupants|persons|people)/i]
+  },
+  {
+    group: "mep", name: "Office lighting design for 500 lux uses the lumen method",
+    body: { message: "How many LED panel lights for a 6 m x 8 m office at 500 lux?", audience: "engineer" },
+    must: [/500\s*lux/i, /lumen/i, /(maintenance|utili[sz]ation) factor|\bMF\b|\bUF\b|\bLLF\b/i, /\b\d+\s*(panels|fittings|luminaires|lights)/i]
+  },
+  {
+    group: "mep", name: "PPR pipe pressure test procedure",
+    body: { message: "Pressure test procedure for PPR water supply pipes before closing the wall", audience: "worker" },
+    must: [/bar|psi/i, /(hour|minutes|min\b)/i, /(drop|leak)/i]
+  },
+  {
+    group: "mep", name: "Duct–beam clash: coordinate, never cut the beam",
+    body: { message: "The HVAC duct clashes with a concrete beam above the false ceiling. Can we cut a hole in the beam?", audience: "engineer" },
+    must: [/(do not|don't|never|must not|should not)[^.]{0,60}(cut|core|drill|hole)/i, /structural (engineer|consultant)/i, /(RFI|coordination|shop drawing|BIM|reroute|re-route)/i]
+  },
+  {
+    group: "mep", name: "CCTV design for a small warehouse",
+    body: { message: "How many CCTV cameras and what cable for a 2,000 sq ft warehouse?", audience: "engineer" },
+    must: [/(Cat ?6|Cat ?5e)/i, /PoE/i, /NVR/i, /\b\d+\s*(cameras?)/i]
+  },
+  {
+    group: "mep", name: "Electrician: MCB trips with water heater — safe checks first",
+    body: { message: "MCB trips when the water heater is switched on — what should I check?", audience: "worker" },
+    must: [/(switch off|isolat|turn off|power off)/i, /(earth leakage|RCD|RCCB|ELCB|element|insulation|overload)/i, /(electrician|supervisor)/i]
+  },
+  {
+    group: "mep", name: "Fire alarm detector spacing",
+    body: { message: "What spacing for smoke detectors in a corridor and in an open office?", audience: "engineer" },
+    must: [/(NFPA ?72|BS 5839|UAE Fire|Civil Defence)/i, /(\d+(\.\d+)?\s*m)/, /corridor/i]
   }
 ];
 
+const args = process.argv.slice(2);
+const argValue = (name) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : null; };
+const group = argValue("--group");
+const reportPath = argValue("--report");
+const selected = group ? CASES.filter((c) => c.group === group) : CASES;
+
 (async () => {
   let failed = 0;
-  for (const c of CASES) {
+  const report = [`# Answer check${group ? ` — ${group}` : ""}`, "", `Model: ${require("../netlify/functions/chat").MODEL} · ${new Date().toISOString()}`, ""];
+  for (const c of selected) {
     const res = await handler({ httpMethod: "POST", headers: { host: "localhost" }, body: JSON.stringify(c.body) });
     const reply = JSON.parse(res.body).reply || JSON.parse(res.body).error || "";
     const problems = [];
@@ -84,7 +156,11 @@ const CASES = [
     (c.mustNot || []).forEach((re) => { if (re.test(reply)) problems.push(`should not contain ${re}`); });
     if (problems.length) { failed += 1; console.log(`✗ ${c.name}\n    ${problems.join("\n    ")}\n    --- reply ---\n${reply.split("\n").map((l) => "    " + l).join("\n")}\n`); }
     else console.log(`✓ ${c.name}`);
+    report.push(`## ${problems.length ? "✗" : "✓"} ${c.name}`, "", `**Question:** ${c.body.message} _(style: ${c.body.audience || "engineer"})_`, "");
+    if (problems.length) report.push(`**Missing:** ${problems.join("; ")}`, "");
+    report.push(reply, "", "---", "");
   }
-  console.log(`\n${CASES.length - failed}/${CASES.length} passed`);
+  console.log(`\n${selected.length - failed}/${selected.length} passed`);
+  if (reportPath) { require("fs").writeFileSync(reportPath, report.join("\n")); console.log(`Full answers written to ${reportPath}`); }
   process.exit(failed ? 1 : 0);
 })();
