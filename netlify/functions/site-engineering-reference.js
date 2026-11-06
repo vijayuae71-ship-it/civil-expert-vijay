@@ -93,6 +93,57 @@ const REFERENCES = [
     ]
   },
   {
+    id: "heat-stress",
+    match: /\b(heat ?stroke|heat stress|heat exhaustion|dehydrat\w*|midday break|summer break|too hot|garmi|loo)\b/i,
+    source: "UAE MOHRE midday break rule and general heat-stress practice",
+    lines: [
+      "UAE midday break: no outdoor work in direct sun 12:30–15:00 from 15 June to 15 September (check the current year's MOHRE announcement and exemptions).",
+      "Drink water little and often (about a cup every 15–20 minutes in heat), rest in shade, wear light loose clothing; new arrivals need about a week to get used to the heat.",
+      "Heat stroke signs: confusion, very hot skin, no sweating, collapse, fits — call emergency help (UAE 998, India 112/108), move to shade, cool with water and fanning, do not give drinks if not fully awake."
+    ]
+  },
+  {
+    id: "work-at-height",
+    match: /\b(work(ing)? at height|height work|harness|scaffold\w*|ladders?|fall(ing|s)? (from|off)|fell|edge protection|roof work)\b/i,
+    source: "General construction safety practice (e.g. OSHA 1926 Subparts M/L/X; site HSE plan governs)",
+    lines: [
+      "Fall protection is required above the height set by the site rules (commonly 1.8–2 m): guardrails first; otherwise full-body harness with lanyard clipped to an approved anchor at all times (100% tie-off).",
+      "Use only scaffolds tagged as inspected (green tag); never remove braces, guardrails or toe boards; do not stand on the top two rungs of a ladder; ladders set at about 1 out for every 4 up and extending about 1 m above the landing.",
+      "Report missing edge protection, open shafts or damaged harnesses to the supervisor before starting work."
+    ]
+  },
+  {
+    id: "electrical-safety",
+    match: /\b(electric shock|current lag\w*|live wire|shock|isolat\w*|lock ?out|loto|elcb|rccb|rcd|earthing|earth leakage|mcb trip\w*)\b/i,
+    source: "General electrical safety practice (IEC 60364 / local authority rules; site permit system governs)",
+    lines: [
+      "Never work on live circuits: switch off, lock out and tag (LOTO), then test with an approved tester before touching; only authorised electricians do isolation.",
+      "Use RCD/ELCB-protected (30 mA) supply for portable tools; check cables and plugs for damage; keep connections off wet ground.",
+      "Electric shock: do not touch the person until power is off — switch off or push them away with dry wood/plastic, call emergency help (UAE 998, India 112/108), start CPR if not breathing."
+    ]
+  },
+  {
+    id: "excavation-safety",
+    match: /\b(excavation|trench\w*|cave[- ]?in|shoring|digging|khudai)\b/i,
+    source: "General excavation safety practice (e.g. OSHA 1926 Subpart P; local rules govern)",
+    lines: [
+      "Trenches deeper than the limit in the site rules (commonly 1.2–1.5 m) need shoring, trench boxes or sloped/benched sides before anyone enters.",
+      "Keep spoil, materials and machines at least 0.6–1 m back from the edge; provide a ladder within easy reach; barricade open excavations.",
+      "Check for underground services (permit/scan) before digging; stop and inform the supervisor if water, cracks or soil movement appear."
+    ]
+  },
+  {
+    id: "rebar-basics",
+    match: /\b(bar bending|bbs|cutting length|lap length|lapping|hook length|stirrups?|ring|cover block|development length|rebar spacing|sariya|saria)\b/i,
+    source: "IS 2502 (bending), IS 456:2000 cl. 26 (detailing); approved drawings govern",
+    lines: [
+      "Weight of a bar per metre = d² ÷ 162 kg (d in mm): 8 mm 0.395, 10 mm 0.617, 12 mm 0.889, 16 mm 1.58, 20 mm 2.47, 25 mm 3.85 kg/m.",
+      "Cutting length = total of the bar's straight lengths + hooks/bends − bend deductions; common bend deduction 1d for 45°, 2d for 90°, 3d for 135°. Stirrup 135° hook length typically 10d (or as per drawing, min 75 mm).",
+      "Lap and development lengths, spacing and cover come from the structural drawings or bar bending schedule; if not shown, ask the engineer — do not guess (a typical tension lap is about 40–50d).",
+      "Use cover blocks of the drawing cover size under and beside bars at about 1 m spacing; tie all crossing bars at edges and alternate crossings inside."
+    ]
+  },
+  {
     id: "concrete-defects",
     match: /\b(honeycomb(ing)?|cold joint|segregation|bleeding|plastic shrinkage|crack(s|ing)?|spalling|efflorescence|repair mortar)\b/i,
     source: "General concrete practice (IS 456 cl. 13–14; ACI 224R, ACI 546R)",

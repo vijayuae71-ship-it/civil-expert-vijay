@@ -65,10 +65,11 @@
         <div class="max-w-3xl mx-auto px-4 py-5">
             <section id="welcome" class="mb-5">
                 <div class="rounded-2xl bg-gradient-to-br from-blue-900 to-blue-700 text-white p-5 shadow">
-                    <h1 class="text-xl font-bold">Ask a construction question</h1>
-                    <p class="mt-1 text-sm text-blue-100">25+ years of RMC, concrete and site-operations experience across India and the UAE. Ask follow-ups, attach a BOQ or drawing (PDF, Excel, PPT, CSV, TXT), and export any answer.</p>
+                    <h1 class="text-xl font-bold">Ask any construction question</h1>
+                    <p class="mt-1 text-sm text-blue-100">For every worker on site — mason, steel fixer, carpenter, electrician, plumber, painter, foreman or engineer. Type or 🎤 speak in your own language, or 📷 send a photo of the problem.</p>
+                    <p class="mt-2 text-sm font-medium text-white" lang="mul">हिंदी · اردو · മലയാളം · தமிழ் · বাংলা · नेपाली · తెలుగు · ਪੰਜਾਬੀ · العربية · English</p>
                 </div>
-                <p class="mt-4 mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Try one of these</p>
+                <p class="mt-4 mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Pick your work — or just ask</p>
                 <div id="starters" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
             </section>
             <div id="chat-box" class="flex flex-col gap-4" aria-live="polite"></div>
@@ -82,24 +83,36 @@
                 <button id="remove-file" type="button" class="font-bold text-blue-900 hover:text-red-600" aria-label="Remove attached document">✕</button>
             </div>
             <form id="chat-form" class="flex items-end gap-2 rounded-2xl border border-slate-300 bg-white p-2 focus-within:ring-2 focus-within:ring-blue-500">
-                <label for="project-file" class="shrink-0 cursor-pointer rounded-xl p-2 text-slate-500 hover:bg-slate-100 hover:text-blue-700" title="Attach a project document (max 4 MB)">
+                <label for="camera-file" class="shrink-0 cursor-pointer rounded-xl p-2 text-slate-500 hover:bg-slate-100 hover:text-blue-700" title="Take a photo of the problem">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    <span class="sr-only">Take a photo</span>
+                </label>
+                <input id="camera-file" type="file" class="hidden" accept="image/*" capture="environment">
+                <label for="project-file" class="hidden sm:block shrink-0 cursor-pointer rounded-xl p-2 text-slate-500 hover:bg-slate-100 hover:text-blue-700" title="Attach a photo or document (PDF, Excel, PowerPoint, CSV, TXT)">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
                     <span class="sr-only">Attach project document</span>
                 </label>
-                <input id="project-file" type="file" class="hidden" accept=".pdf,.xlsx,.xls,.pptx,.ppt,.csv,.txt">
+                <input id="project-file" type="file" class="hidden" accept="image/*,.pdf,.xlsx,.xls,.pptx,.ppt,.csv,.txt">
                 <label for="user-input" class="sr-only">Your question</label>
-                <textarea id="user-input" rows="1" maxlength="4000" placeholder="Ask about concrete, logistics, BOQs, MEP…" class="flex-1 resize-none bg-transparent px-1 py-2 text-[15px] focus:outline-none"></textarea>
+                <textarea id="user-input" rows="1" maxlength="4000" placeholder="Type or speak your question…" class="min-w-0 flex-1 resize-none bg-transparent px-1 py-2 text-[15px] focus:outline-none"></textarea>
+                <button type="button" id="mic-btn" class="hidden shrink-0 rounded-xl p-2 text-slate-500 hover:bg-slate-100 hover:text-blue-700" title="Speak your question" aria-label="Speak your question" aria-pressed="false">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z"/></svg>
+                </button>
                 <button type="submit" id="send-btn" class="shrink-0 rounded-xl bg-blue-700 px-4 py-2 font-semibold text-white hover:bg-blue-800 disabled:opacity-50" aria-label="Send">
                     <span id="send-label">Send</span>
                 </button>
             </form>
             <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-600">
-                <label class="inline-flex cursor-pointer items-center gap-1.5 font-medium" title="Compact scope, itemised BOQ table, totals, exclusions and rate basis">
+                <div class="inline-flex rounded-lg border border-slate-300 p-0.5" role="radiogroup" aria-label="Answer style">
+                    <button type="button" data-audience="worker" role="radio" class="rounded-md px-2.5 py-1 font-semibold" title="Short, simple step-by-step answers">🛠️ Simple steps</button>
+                    <button type="button" data-audience="engineer" role="radio" class="rounded-md px-2.5 py-1 font-semibold" title="Detailed answers with calculations, BOQs and tables">📐 Detailed</button>
+                </div>
+                <label id="quote-ready-wrap" class="inline-flex cursor-pointer items-center gap-1.5 font-medium" title="Compact scope, itemised BOQ table, totals, exclusions and rate basis">
                     <input id="quote-ready" type="checkbox" class="h-4 w-4 rounded border-slate-300 text-blue-700 focus:ring-blue-500">Quote-ready format
                 </label>
                 <label class="inline-flex items-center gap-1.5 font-medium">Language
                     <select id="answer-language" class="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="en">English</option><option value="ar">العربية (Arabic)</option><option value="hi">हिन्दी (Hindi)</option><option value="ur">اردو (Urdu)</option><option value="ml">മലയാളം (Malayalam)</option><option value="ta">தமிழ் (Tamil)</option><option value="te">తెలుగు (Telugu)</option><option value="kn">ಕನ್ನಡ (Kannada)</option><option value="bn">বাংলা (Bengali)</option><option value="mr">मराठी (Marathi)</option><option value="gu">ગુજરાતી (Gujarati)</option><option value="pa">ਪੰਜਾਬੀ (Punjabi)</option><option value="ne">नेपाली (Nepali)</option><option value="si">සිංහල (Sinhala)</option><option value="fr">Français</option><option value="es">Español</option><option value="pt">Português</option><option value="de">Deutsch</option><option value="it">Italiano</option><option value="ru">Русский</option><option value="tr">Türkçe</option><option value="zh-CN">中文 (简体)</option><option value="ja">日本語</option><option value="ko">한국어</option><option value="id">Bahasa Indonesia</option><option value="fil">Filipino</option>
+                        <option value="auto">🌐 Auto (same as my question)</option><option value="en">English</option><option value="ar">العربية (Arabic)</option><option value="hi">हिन्दी (Hindi)</option><option value="ur">اردو (Urdu)</option><option value="ml">മലയാളം (Malayalam)</option><option value="ta">தமிழ் (Tamil)</option><option value="te">తెలుగు (Telugu)</option><option value="kn">ಕನ್ನಡ (Kannada)</option><option value="bn">বাংলা (Bengali)</option><option value="mr">मराठी (Marathi)</option><option value="gu">ગુજરાતી (Gujarati)</option><option value="pa">ਪੰਜਾਬੀ (Punjabi)</option><option value="ne">नेपाली (Nepali)</option><option value="si">සිංහල (Sinhala)</option><option value="fr">Français</option><option value="es">Español</option><option value="pt">Português</option><option value="de">Deutsch</option><option value="it">Italiano</option><option value="ru">Русский</option><option value="tr">Türkçe</option><option value="zh-CN">中文 (简体)</option><option value="ja">日本語</option><option value="ko">한국어</option><option value="id">Bahasa Indonesia</option><option value="fil">Filipino</option>
                     </select>
                 </label>
                 <span class="hidden sm:inline text-slate-400">Enter to send · Shift+Enter for a new line</span>
@@ -140,14 +153,21 @@
         const HISTORY_TURNS = 8;            // previous messages sent for context
         const STORAGE_KEY = 'vijay-expert-chat-v2';
         const RTL_LANGS = new Set(['ar', 'ur']);
-        const MIME = { pdf: 'application/pdf', xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', xls: 'application/vnd.ms-excel', pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', ppt: 'application/vnd.ms-powerpoint', csv: 'text/csv', txt: 'text/plain' };
+        const IMAGE_MIME = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp', heic: 'image/heic', heif: 'image/heif' };
+        const MAX_IMAGE_SOURCE_BYTES = 25 * 1024 * 1024;   // photos are shrunk before upload
+        const SPEECH_LANG = { en: 'en-IN', hi: 'hi-IN', ur: 'ur-PK', ml: 'ml-IN', ta: 'ta-IN', te: 'te-IN', kn: 'kn-IN', bn: 'bn-IN', mr: 'mr-IN', gu: 'gu-IN', pa: 'pa-IN', ne: 'ne-NP', si: 'si-LK', ar: 'ar-AE', fr: 'fr-FR', es: 'es-ES', pt: 'pt-PT', de: 'de-DE', it: 'it-IT', ru: 'ru-RU', tr: 'tr-TR', 'zh-CN': 'zh-CN', ja: 'ja-JP', ko: 'ko-KR', id: 'id-ID', fil: 'fil-PH' };
+        const PLACEHOLDER = { hi: 'अपना सवाल लिखें या बोलें…', ur: 'اپنا سوال لکھیں یا بولیں…', ml: 'നിങ്ങളുടെ ചോദ്യം ടൈപ്പ് ചെയ്യൂ അല്ലെങ്കിൽ പറയൂ…', ta: 'உங்கள் கேள்வியை எழுதுங்கள் அல்லது பேசுங்கள்…', te: 'మీ ప్రశ్నను టైప్ చేయండి లేదా చెప్పండి…', bn: 'আপনার প্রশ্ন লিখুন বা বলুন…', ne: 'आफ्नो प्रश्न लेख्नुहोस् वा बोल्नुहोस्…', pa: 'ਆਪਣਾ ਸਵਾਲ ਲਿਖੋ ਜਾਂ ਬੋਲੋ…', ar: 'اكتب سؤالك أو تحدّث…' };
+        const MIME = { ...IMAGE_MIME, pdf: 'application/pdf', xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', xls: 'application/vnd.ms-excel', pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', ppt: 'application/vnd.ms-powerpoint', csv: 'text/csv', txt: 'text/plain' };
+        // [icon, trade, example question, answer style]
         const STARTERS = [
-            ['🧱', 'M25 concrete rate analysis', 'Prepare a rate analysis for 1 m³ of M25 RMC including pumping'],
-            ['🔍', 'Diagnose honeycombing', 'Diagnose honeycombing in a column and suggest repair method'],
-            ['✅', 'Pour inspection checklist', 'Create a pre-pour concrete inspection checklist for a slab'],
-            ['📋', 'Review a BOQ', 'Review this BOQ and identify important checks'],
-            ['🎨', 'Painting estimate', '1200 sft 2BHK interior luxury paint cost estimate'],
-            ['🚚', 'Transit mixer planning', 'How many transit mixers for a 300 m³ raft pour in 8 hours with a 40 min round trip?']
+            ['🧱', 'Mason / plaster', 'How much cement and sand for 100 sq ft of 12 mm wall plaster?', 'worker'],
+            ['🔩', 'Steel fixer', 'Cutting length of an 8 mm stirrup for a 230 × 450 mm beam with 25 mm cover', 'worker'],
+            ['🪵', 'Shuttering', 'When can I remove slab shuttering and props?', 'worker'],
+            ['⚡', 'Electrician', 'MCB trips when the water heater is switched on — what should I check?', 'worker'],
+            ['🚰', 'Plumber', 'What slope should a 100 mm drain pipe have?', 'worker'],
+            ['🎨', 'Painter / tiler', 'How many litres of paint for a 12 × 10 ft room with 10 ft height, 2 coats?', 'worker'],
+            ['⛑️', 'Safety', 'What are the signs of heat stroke and what should we do?', 'worker'],
+            ['📐', 'Engineer / BOQ', 'Prepare a rate analysis for 1 m³ of M25 RMC including pumping', 'engineer']
         ];
 
         const $ = id => document.getElementById(id);
@@ -158,19 +178,32 @@
         let conversation = Array.isArray(store.get(STORAGE_KEY)) ? store.get(STORAGE_KEY) : [];
         const prefs = store.get('vijay-expert-prefs') || {};
         if (prefs.language && [...$('answer-language').options].some(o => o.value === prefs.language)) $('answer-language').value = prefs.language;
+        else if (!prefs.language) $('answer-language').value = 'auto';
         $('quote-ready').checked = !!prefs.quoteReady;
-        const savePrefs = () => store.set('vijay-expert-prefs', { language: $('answer-language').value, quoteReady: $('quote-ready').checked });
-        $('answer-language').addEventListener('change', savePrefs);
+        let audience = prefs.audience === 'engineer' ? 'engineer' : 'worker';
+        const savePrefs = () => store.set('vijay-expert-prefs', { language: $('answer-language').value, quoteReady: $('quote-ready').checked, audience });
+        function setAudience(value, save = true) {
+            audience = value;
+            document.querySelectorAll('[data-audience]').forEach(b => { const on = b.dataset.audience === value; b.setAttribute('aria-checked', on); b.className = `rounded-md px-2.5 py-1 font-semibold ${on ? 'bg-blue-700 text-white' : 'text-slate-600 hover:bg-slate-100'}`; });
+            $('quote-ready-wrap').classList.toggle('hidden', value !== 'engineer');
+            if (save) savePrefs();
+        }
+        document.querySelectorAll('[data-audience]').forEach(b => b.addEventListener('click', () => setAudience(b.dataset.audience)));
+        setAudience(audience, false);
+        const langCode = () => $('answer-language').value;
+        const updatePlaceholder = () => { input.placeholder = PLACEHOLDER[langCode()] || 'Type or speak your question…'; };
+        $('answer-language').addEventListener('change', () => { savePrefs(); updatePlaceholder(); });
         $('quote-ready').addEventListener('change', savePrefs);
+        updatePlaceholder();
 
         // ---------- starters ----------
-        STARTERS.forEach(([icon, label, prompt]) => {
+        STARTERS.forEach(([icon, label, prompt, style]) => {
             const b = document.createElement('button');
             b.type = 'button';
             b.className = 'min-w-0 w-full text-left rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm hover:border-blue-400 hover:bg-blue-50 transition';
             b.innerHTML = `<span class="mr-1" aria-hidden="true">${icon}</span><span class="font-semibold text-slate-800"></span><span class="block text-xs text-slate-500 mt-0.5 truncate"></span>`;
             b.children[1].textContent = label; b.children[2].textContent = prompt;
-            b.addEventListener('click', () => { input.value = prompt; autosize(); input.focus(); });
+            b.addEventListener('click', () => { setAudience(style); input.value = prompt; autosize(); input.focus(); });
             $('starters').appendChild(b);
         });
 
@@ -185,21 +218,39 @@
         function setFile(file) {
             if (!file) return;
             const ext = file.name.split('.').pop().toLowerCase();
-            if (!MIME[ext]) { toast('Please attach a PDF, Excel, PowerPoint, CSV or TXT file.'); return removeFile(); }
-            if (file.size > MAX_FILE_BYTES) { toast('Please choose a file smaller than 4 MB.'); return removeFile(); }
+            const isImage = Boolean(IMAGE_MIME[ext]) || /^image\//.test(file.type);
+            if (!MIME[ext] && !isImage) { toast('Please attach a photo, PDF, Excel, PowerPoint, CSV or TXT file.'); return removeFile(); }
+            if (file.size > (isImage ? MAX_IMAGE_SOURCE_BYTES : MAX_FILE_BYTES)) { toast(isImage ? 'This photo is too large.' : 'Please choose a file smaller than 4 MB.'); return removeFile(); }
             selectedFile = file;
             $('file-name').textContent = `${file.name} (${Math.ceil(file.size / 1024)} KB)`;
             $('file-chip').classList.remove('hidden');
         }
-        function removeFile() { selectedFile = null; $('project-file').value = ''; $('file-chip').classList.add('hidden'); }
+        function removeFile() { selectedFile = null; $('project-file').value = ''; $('camera-file').value = ''; $('file-chip').classList.add('hidden'); }
         $('project-file').addEventListener('change', e => setFile(e.target.files[0]));
+        $('camera-file').addEventListener('change', e => setFile(e.target.files[0]));
         $('remove-file').addEventListener('click', removeFile);
         ['dragenter', 'dragover'].forEach(t => document.body.addEventListener(t, e => { if (e.dataTransfer?.types?.includes('Files')) { e.preventDefault(); document.body.classList.add('drop-active'); } }));
         ['dragleave', 'drop'].forEach(t => document.body.addEventListener(t, e => { if (t === 'drop' || e.target === document.body) document.body.classList.remove('drop-active'); }));
         document.body.addEventListener('drop', e => { e.preventDefault(); setFile(e.dataTransfer.files[0]); });
-        const fileToAttachment = file => new Promise((resolve, reject) => {
+        // Phone photos are often 3–8 MB: shrink to ≤1600 px JPEG so they upload fast on site data.
+        async function imageToAttachment(file) {
+            try {
+                const bitmap = await createImageBitmap(file);
+                const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height));
+                const canvas = document.createElement('canvas');
+                canvas.width = Math.round(bitmap.width * scale); canvas.height = Math.round(bitmap.height * scale);
+                canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+                return { name: file.name.replace(/\.[^.]+$/, '') + '.jpg', mimeType: 'image/jpeg', data: dataUrl.split(',')[1] };
+            } catch {
+                if (file.size > MAX_FILE_BYTES) throw new Error('This photo could not be prepared. Please take it again or choose a smaller one.');
+                return rawToAttachment(file);   // e.g. HEIC the browser cannot decode: send as-is
+            }
+        }
+        const fileToAttachment = file => (IMAGE_MIME[file.name.split('.').pop().toLowerCase()] || /^image\//.test(file.type)) ? imageToAttachment(file) : rawToAttachment(file);
+        const rawToAttachment = file => new Promise((resolve, reject) => {
             const r = new FileReader();
-            r.onload = () => resolve({ name: file.name, mimeType: MIME[file.name.split('.').pop().toLowerCase()] || file.type, data: String(r.result).split(',')[1] });
+            r.onload = () => resolve({ name: file.name, mimeType: MIME[file.name.split('.').pop().toLowerCase()] || file.type || 'image/jpeg', data: String(r.result).split(',')[1] });
             r.onerror = () => reject(new Error('The selected document could not be read.'));
             r.readAsDataURL(file);
         });
@@ -245,6 +296,54 @@
 
         const scrollToEnd = () => scroller.scrollTo({ top: scroller.scrollHeight, behavior: 'smooth' });
 
+        // ---------- voice input ----------
+        const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognizer = null;
+        if (Recognition) {
+            const mic = $('mic-btn'); mic.classList.remove('hidden');
+            const setListening = on => { mic.setAttribute('aria-pressed', on); mic.className = `shrink-0 rounded-xl p-2 ${on ? 'bg-red-600 text-white animate-pulse' : 'text-slate-500 hover:bg-slate-100 hover:text-blue-700'}`; };
+            mic.addEventListener('click', () => {
+                if (recognizer) { recognizer.stop(); return; }
+                recognizer = new Recognition();
+                recognizer.lang = SPEECH_LANG[langCode()] || navigator.language || 'en-IN';
+                recognizer.interimResults = true; recognizer.continuous = false;
+                const before = input.value ? input.value.trimEnd() + ' ' : '';
+                recognizer.onresult = e => { input.value = before + [...e.results].map(r => r[0].transcript).join(''); autosize(); };
+                recognizer.onerror = e => { if (e.error === 'not-allowed') toast('Allow microphone access to speak your question.'); else if (e.error === 'language-not-supported') toast('Voice is not available for this language on this phone. Please type instead.'); else if (e.error !== 'aborted' && e.error !== 'no-speech') toast('Could not hear clearly. Please try again.'); };
+                recognizer.onend = () => { recognizer = null; setListening(false); input.focus(); };
+                setListening(true);
+                if (langCode() === 'auto' && !before) toast('Listening… (choose your language below for better voice typing)');
+                try { recognizer.start(); } catch { recognizer = null; setListening(false); }
+            });
+        }
+
+        // ---------- read aloud / share ----------
+        function isMostlyArabicScript(text) { const ar = (text.match(/[\u0600-\u06FF]/g) || []).length, lat = (text.match(/[A-Za-z]/g) || []).length; return ar > lat; }
+        function detectSpeechLang(text, lang) {
+            if (lang !== 'auto') return SPEECH_LANG[lang] || 'en-IN';
+            const scripts = [[/[\u0900-\u097F]/g, 'hi-IN'], [/[\u0600-\u06FF]/g, 'ar-AE'], [/[\u0D00-\u0D7F]/g, 'ml-IN'], [/[\u0B80-\u0BFF]/g, 'ta-IN'], [/[\u0C00-\u0C7F]/g, 'te-IN'], [/[\u0C80-\u0CFF]/g, 'kn-IN'], [/[\u0980-\u09FF]/g, 'bn-IN'], [/[\u0A80-\u0AFF]/g, 'gu-IN'], [/[\u0A00-\u0A7F]/g, 'pa-IN'], [/[\u0D80-\u0DFF]/g, 'si-LK']];
+            let best = ['en-IN', (text.match(/[A-Za-z]/g) || []).length];
+            scripts.forEach(([re, code]) => { const n = (text.match(re) || []).length; if (n > best[1]) best = [code, n]; });
+            return best[0];
+        }
+        const plainText = text => String(text).split('\n').filter(l => !isDivider(l)).map(l => isTableRow(l) ? splitRow(l).filter(Boolean).join(', ') : l).join('\n').replace(/[*#`|]/g, '').replace(/\n{2,}/g, '\n').trim();
+        let speakingBtn = null;
+        function speak(text, lang, btn) {
+            const synth = window.speechSynthesis;
+            if (speakingBtn) { synth.cancel(); const was = speakingBtn; speakingBtn.textContent = '🔊 Listen'; speakingBtn = null; if (was === btn) return; }
+            const code = detectSpeechLang(text, lang), voices = synth.getVoices();
+            const voice = voices.find(v => v.lang === code) || voices.find(v => v.lang.slice(0, 2) === code.slice(0, 2));
+            if (voices.length && !voice) { toast('Your phone has no voice for this language. Add one in phone settings → Text-to-speech.'); return; }
+            const u = new SpeechSynthesisUtterance(plainText(text).replace(/⚠️/g, 'Warning.')); u.lang = code; if (voice) u.voice = voice; u.rate = 0.95;
+            u.onend = u.onerror = () => { if (speakingBtn === btn) { btn.textContent = '🔊 Listen'; speakingBtn = null; } };
+            speakingBtn = btn; btn.textContent = '⏹ Stop'; synth.speak(u);
+        }
+        async function shareAnswer(text) {
+            const body = `${plainText(text).slice(0, 3500)}\n\n— Vijay's AI Expert: ${(window.SITE_CONFIG || {}).siteUrl || location.origin}/expert`;
+            if (navigator.share) { try { await navigator.share({ text: body }); return; } catch (e) { if (e.name === 'AbortError') return; } }
+            window.open(`https://wa.me/?text=${encodeURIComponent(body)}`, '_blank', 'noopener');
+        }
+
         // ---------- sending ----------
         async function send(retryText) {
             if (busy) return;
@@ -255,7 +354,7 @@
             const file = selectedFile;
             if (retryText === undefined) {
                 input.value = ''; autosize();
-                addUser(file ? `${text}\n\n📎 ${file.name}` : text);
+                addUser(file ? `${text}\n\n${/^image\//.test(file.type) || IMAGE_MIME[file.name.split('.').pop().toLowerCase()] ? '📷' : '📎'} ${file.name}` : text);
             }
             const history = conversation.slice(-HISTORY_TURNS).map(({ role, text }) => ({ role, text }));
             const typing = addTyping();
@@ -263,7 +362,7 @@
                 const attachment = file ? await fileToAttachment(file) : null;
                 const res = await fetch('/.netlify/functions/chat', {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: text, history, attachment, language: $('answer-language').value, quoteReady: $('quote-ready').checked })
+                    body: JSON.stringify({ message: text, history, attachment, language: langCode(), audience, quoteReady: audience === 'engineer' && $('quote-ready').checked })
                 });
                 let data = {};
                 try { data = await res.json(); } catch {}
@@ -337,14 +436,18 @@
         function addAI(text, lang, { scroll = true, question = '' } = {}) {
             const w = row('ai'); const col = document.createElement('div'); col.className = 'max-w-full w-full sm:w-auto sm:max-w-[95%]';
             const b = document.createElement('div'); b.className = 'bubble px-4 py-3 text-[15px] leading-relaxed shadow-sm break-words';
-            if (RTL_LANGS.has(lang)) b.dir = 'rtl';
+            if (RTL_LANGS.has(lang) || (lang === 'auto' && isMostlyArabicScript(text))) b.dir = 'rtl';
             renderReply(text, b); col.appendChild(b);
             const actions = document.createElement('div'); actions.className = 'mt-1.5 flex flex-wrap gap-1.5';
             const mk = (label, fn, title) => { const btn = document.createElement('button'); btn.type = 'button'; btn.title = title || label; btn.className = 'rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600 hover:border-blue-400 hover:text-blue-700'; btn.textContent = label; btn.onclick = () => fn(btn); actions.appendChild(btn); };
+            if ('speechSynthesis' in window) mk('🔊 Listen', btn => speak(text, lang, btn), 'Read this answer aloud');
+            mk('↗ Share', () => shareAnswer(text), 'Share on WhatsApp or other apps');
             mk('Copy', async btn => { try { await navigator.clipboard.writeText(text); btn.textContent = 'Copied ✓'; setTimeout(() => btn.textContent = 'Copy', 1500); } catch { toast('Copy is not available in this browser.'); } });
             mk('PDF', btn => runExport(btn, downloadPdf, text), 'Download as PDF');
-            mk('Excel', btn => runExport(btn, downloadExcel, text), 'Download as Excel');
-            mk('PowerPoint', btn => runExport(btn, downloadPowerPoint, text), 'Download as PowerPoint');
+            if (text.split('\n').some(isTableRow)) {
+                mk('Excel', btn => runExport(btn, downloadExcel, text), 'Download as Excel');
+                mk('PowerPoint', btn => runExport(btn, downloadPowerPoint, text), 'Download as PowerPoint');
+            }
             feedbackControls(actions, text, question, lang);
             col.appendChild(actions); w.appendChild(col);
             if (scroll) w.scrollIntoView({ behavior: 'smooth', block: 'start' });
