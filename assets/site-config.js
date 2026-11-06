@@ -7,7 +7,7 @@ window.SITE_CONFIG = {
   whatsappNumber: "",
   // The AI expert's WhatsApp Business number (the bot). Leave empty to hide "Ask on WhatsApp".
   whatsappBotNumber: "",
-  siteUrl: "https://civil-expert-vijay.netlify.app"
+  siteUrl: "https://constructionaiexpert.netlify.app"
 };
 
 // Shows "Ask on WhatsApp" links (elements with data-wa-bot) once the bot number is set.

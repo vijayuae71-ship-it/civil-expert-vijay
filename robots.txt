@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://civil-expert-vijay.netlify.app/sitemap.xml
+Sitemap: https://constructionaiexpert.netlify.app/sitemap.xml

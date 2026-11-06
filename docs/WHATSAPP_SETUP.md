@@ -48,7 +48,7 @@ Then **redeploy**: Deploys → Trigger deploy → Deploy site. Functions only pi
 ## 7. Connect the webhook
 1. In the app, open **WhatsApp → Configuration → Webhook → Edit**.
 2. Enter:
-   - Callback URL: `https://civil-expert-vijay.netlify.app/.netlify/functions/whatsapp`
+   - Callback URL: `https://constructionaiexpert.netlify.app/.netlify/functions/whatsapp`
    - Verify token: the same value as `WHATSAPP_VERIFY_TOKEN`
 3. Tap **Verify and save**.
 4. Under **Webhook fields**, tap **Subscribe** next to **messages**.
