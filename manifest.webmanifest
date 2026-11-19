@@ -15,6 +15,7 @@
   ],
   "shortcuts": [
     { "name": "Ask the AI", "url": "/expert?source=app", "icons": [{ "src": "/assets/icon-192.png", "sizes": "192x192" }] },
-    { "name": "Calculators", "url": "/calculators?source=app", "icons": [{ "src": "/assets/icon-192.png", "sizes": "192x192" }] }
+    { "name": "Calculators", "url": "/calculators?source=app", "icons": [{ "src": "/assets/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Quotation", "url": "/quotation?source=app", "icons": [{ "src": "/assets/icon-192.png", "sizes": "192x192" }] }
   ]
 }

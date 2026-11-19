@@ -18,6 +18,7 @@
     <link rel="stylesheet" href="assets/site.css"><link rel="manifest" href="manifest.webmanifest"><script src="assets/app.js" defer></script>
     <script src="assets/site-config.js"></script>
     <script src="assets/i18n.js"></script>
+    <script src="assets/quote.js"></script>
     <style>
         html, body { height: 100%; }
         body { display: flex; flex-direction: column; height: 100dvh; }
@@ -57,6 +58,7 @@
         <div class="flex shrink-0 items-center gap-2 sm:gap-3 text-sm font-medium">
             <button type="button" data-open-consult class="whitespace-nowrap rounded-lg bg-amber-500 px-3 py-1.5 font-semibold text-slate-900 hover:bg-amber-400" title="Request a personal review of your project"><span class="sm:hidden" data-i18n="review">Review</span><span class="hidden sm:inline" data-i18n="reviewLong">Expert review</span></button>
             <button id="new-chat" type="button" class="whitespace-nowrap rounded-lg border border-slate-300 px-3 py-1.5 text-slate-700 hover:bg-slate-50" title="Start a new conversation"><span class="sm:hidden" data-i18n="new">New</span><span class="hidden sm:inline" data-i18n="newLong">New chat</span></button>
+            <a href="quotation.html" class="inline-flex items-center gap-1 whitespace-nowrap rounded-lg border border-slate-300 px-2.5 py-1.5 text-slate-700 hover:bg-slate-50" title="Quotations"><span aria-hidden="true">📄</span><span class="hidden sm:inline" data-i18n="quotation">Quotation</span><span class="sr-only sm:hidden">Quotations</span></a>
             <a href="calculators.html" class="hidden sm:inline text-blue-700 hover:text-blue-900">Calculators</a>
             <a href="construction-faq.html" class="hidden sm:inline text-blue-700 hover:text-blue-900">FAQ</a>
         </div>
@@ -632,6 +634,11 @@
                 mk('Excel', btn => runExport(btn, downloadExcel, text), 'Download as Excel');
                 mk('PowerPoint', btn => runExport(btn, downloadPowerPoint, text), 'Download as PowerPoint');
             }
+            const quoteItems = window.QUOTE ? QUOTE.itemsFromAnswer(text) : [];
+            if (quoteItems.length) mk(`📄 ${t('quotation')}`, () => {
+                try { localStorage.setItem('cae-quote-import', JSON.stringify({ items: quoteItems, currency: QUOTE.detectCurrency(text), subject: String(question || '').replace(/\n\n\[Attached:[^\]]*\]$/, '').slice(0, 300), at: Date.now() })); } catch {}
+                location.href = 'quotation.html?from=answer';
+            }, 'Make a quotation from this BOQ');
             feedbackControls(actions, text, question, lang, cacheKey);
             col.appendChild(actions); w.appendChild(col);
             if (scroll) w.scrollIntoView({ behavior: 'smooth', block: 'start' });
