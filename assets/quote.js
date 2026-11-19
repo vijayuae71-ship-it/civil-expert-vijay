@@ -96,6 +96,7 @@
       let qty = col.qty !== -1 ? toNumber(r[col.qty]) : NaN;
       let rate = col.rate !== -1 ? toNumber(r[col.rate]) : NaN;
       const amount = col.amount !== -1 ? toNumber(r[col.amount]) : NaN;
+      if (!Number.isFinite(rate) && !Number.isFinite(amount)) continue;   // section heading rows
       if (!Number.isFinite(qty)) qty = Number.isFinite(rate) && Number.isFinite(amount) && rate ? round2(amount / rate) : 1;
       if (!Number.isFinite(rate)) rate = Number.isFinite(amount) && qty ? round2(amount / qty) : 0;
       if (!Number.isFinite(rate) && !Number.isFinite(amount)) continue;

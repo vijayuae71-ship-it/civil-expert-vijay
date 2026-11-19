@@ -13,7 +13,7 @@ if (!process.env.ANTHROPIC_API_KEY) {
   process.exit(1);
 }
 process.env.CHAT_LIMIT_PER_IP_HOUR = "1000";
-const { handler } = require("../netlify/functions/chat");
+const { handler, run } = require("../netlify/functions/chat");
 
 const CASES = [
   {
@@ -150,6 +150,22 @@ const CASES = [
   }
 ];
 
+// ---------- full itemised BOQ (group "boq"): runs like the background job ----------
+const ROWS = (n) => ({ toString: () => `at least ${n} item rows (A1, B2 …)`, test: (text) => String(text).split("\n").filter((l) => /^\s*\|\s*[A-L]\d+\s*\|/.test(l)).length >= n });
+CASES.push(
+  {
+    group: "boq", background: true, name: "Complete BOQ for a 1,000 sq ft G+1 house is itemised section by section",
+    body: { message: "give a complete boq for a 1000 square feet plot for complete construction", audience: "engineer", quoteReady: true },
+    must: [ROWS(25), /excavation/i, /reinforcement|steel/i, /shuttering|formwork/i, /plaster/i, /tile|flooring/i, /waterproof/i, /paint/i, /electric|wiring/i, /plumbing|sanitary/i, /Sub-total/i, /Grand Total/i],
+    mustNot: [/no more than 5/i]
+  },
+  {
+    group: "boq", background: true, name: "Detailed (not quote-ready) BOQ for a compound wall is itemised",
+    body: { message: "BOQ with rates for 60 m long, 1.8 m high compound wall in Bengaluru", audience: "engineer" },
+    must: [ROWS(6), /excavation/i, /PCC|footing/i, /masonry|block|brick/i, /plaster/i, /Grand Total/i]
+  }
+);
+
 // ---------- drawing reading (group "drawing"): a small slab drawing in scripts/fixtures ----------
 const drawing = { name: "sample-slab-drawing.png", mimeType: "image/png", data: require("fs").readFileSync(require("path").join(__dirname, "fixtures", "sample-slab-drawing.png")).toString("base64") };
 CASES.push(
@@ -221,7 +237,8 @@ const selected = group ? CASES.filter((c) => c.group === group) : CASES;
   let failed = 0;
   const report = [`# Answer check${group ? ` — ${group}` : ""}`, "", `Model: ${require("../netlify/functions/chat").MODEL} · ${new Date().toISOString()}`, ""];
   for (const c of selected) {
-    const res = await handler({ httpMethod: "POST", headers: { host: "localhost" }, body: JSON.stringify(c.body) });
+    const event = { httpMethod: "POST", headers: { host: "localhost" }, body: JSON.stringify(c.body) };
+    const res = c.background ? await run(event, { background: true }) : await handler(event);
     const reply = JSON.parse(res.body).reply || JSON.parse(res.body).error || "";
     const problems = [];
     if (res.statusCode !== 200) problems.push(`HTTP ${res.statusCode}`);

@@ -13,6 +13,9 @@ const answerCache = require("./answer-cache");
 const MODEL = process.env.EXPERT_MODEL || "claude-opus-5-5";
 const EFFORT = process.env.EXPERT_EFFORT || "low";
 const TIMEOUT_MS = Number(process.env.EXPERT_TIMEOUT_MS) || 25000;
+// Full itemised BOQs run in a background function (chat-background.js, up to 15 minutes),
+// so each Claude call there may take longer and write more.
+const BOQ_TIMEOUT_MS = Number(process.env.BOQ_TIMEOUT_MS) || 300000;
 
 let client = null;
 const getClient = () => (client ||= new Anthropic({ timeout: TIMEOUT_MS, maxRetries: 0 }));
@@ -22,10 +25,10 @@ function setAnswerStoreForTests(store) { answerStoreOverride = store; }
 
 // One Claude call. If a safety classifier declines, the server retries on Anthropic's
 // recommended fallback model ("default" fallbacks; not offered for Haiku).
-async function askClaude({ system, messages, maxTokens }) {
+async function askClaude({ system, messages, maxTokens, timeout }) {
   const params = { model: MODEL, max_tokens: maxTokens, system, messages, output_config: { effort: EFFORT } };
   if (!/haiku/i.test(MODEL)) { params.betas = ["server-side-fallback-2026-07-01"]; params.fallbacks = "default"; }
-  const response = await getClient().beta.messages.create(params);
+  const response = await getClient().beta.messages.create(params, timeout ? { timeout } : undefined);
   const u = response.usage || {};
   console.log(JSON.stringify({ type: "usage", model: response.model, stop: response.stop_reason, input: u.input_tokens, cacheRead: u.cache_read_input_tokens, cacheWrite: u.cache_creation_input_tokens, output: u.output_tokens }));
   if (response.stop_reason === "refusal") return { refused: true, text: "" };
@@ -56,7 +59,7 @@ function sanitizeHistory(history) {
   const turns = (Array.isArray(history) ? history : [])
     .filter((turn) => turn && (turn.role === "user" || turn.role === "model") && typeof turn.text === "string" && turn.text.trim())
     .slice(-8)
-    .map((turn) => ({ role: turn.role === "model" ? "assistant" : "user", content: turn.text.trim().slice(0, 3000) }));
+    .map((turn) => ({ role: turn.role === "model" ? "assistant" : "user", content: turn.text.trim().slice(0, turn.role === "model" ? 12000 : 3000) }));   // a full BOQ answer is long
   while (turns.length && turns[0].role !== "user") turns.shift();
   return turns;
 }
@@ -82,7 +85,12 @@ function isIncompleteQuote(text, language = "en") {
   return ["scope", "assumption", "grand total", "rate basis", "exclusion", "validity"].some((section) => !lower.includes(section));
 }
 
-exports.handler = async (event) => {
+// A complete, itemised BOQ: used for BOQ/estimate questions that run in the background.
+const FULL_BOQ_INSTRUCTION = "\n\nFULL ITEMISED BOQ. This answer is prepared in the background, so length is not a constraint: this overrides every word, row and length limit above. Give the COMPLETE bill of quantities, never a lumped or summarised one. Organise it into the work sections that apply to the request, for example: A Earthwork and site preparation; B PCC and foundations; C RCC work, with separate rows for concrete (m³), reinforcement steel (kg) and shuttering (m²) of footings, columns, plinth beams, beams, slabs, lintels and staircase; D Masonry; E Plastering; F Flooring, skirting and dado; G Waterproofing; H Doors, windows and grills; I Painting; J Electrical (points, wiring, DB, fittings); K Plumbing, sanitary and drainage; L External works and miscellaneous. Every item is its own table row with its own quantity: Sl. No. (A1, A2, B1 …) | Description (with specification) | Unit | Qty | Rate | Amount, where Amount = Qty × Rate, and every quantity is worked out from the stated assumptions. A whole-building BOQ normally has 30 to 60 item rows. Never put several items, quantities or prices inside one description cell. After each section's rows add a row \"Sub-total A\" (and so on) with only its amount. After the BOQ give a short summary table of section totals and then the Grand Total. Label the rate column \"Preliminary Market Rate\" with the currency symbol (₹ for India, AED for the UAE and so on). Do not add a CPWD reference column unless an exact CPWD item and rate are page-verified; instead write one line under the table: \"CPWD DSR item references and rates to be verified against the applicable schedule.\" Keep the text outside the tables short.";
+
+exports.handler = (event) => run(event, {});
+
+async function run(event, { background = false } = {}) {
   const headers = { "Content-Type": "application/json" };
   const maxFileBytes = 4 * 1024 * 1024;
 
@@ -149,8 +157,9 @@ exports.handler = async (event) => {
       ? "\n\nWHATSAPP REPLY. The answer is read in WhatsApp on a phone. Do not use Markdown tables, # headings or links in brackets. Use short lines, *single asterisks* for bold and • for bullets. For BOQ, quantity or ingredient lists, put each item on its own line as 'Item — quantity unit × rate = amount' (or 'Ingredient — kg/m³'). Keep the whole reply under 1,200 characters unless the user asks for more detail; if it must be longer, keep it under 3,000."
       : "";
 
+    const fullBoq = background && !isWorker && !isWhatsApp;
     const quoteModeInstruction = quoteReady === true
-      ? "\n\nQUOTE-READY MODE IS SELECTED. This instruction overrides the normal answer framework for construction materials, BOQs, cost, quote, budget, estimate, and rate-analysis requests. Return only this complete compact quotation, in this exact order: **Scope**, **Assumptions**, one complete itemised Markdown BOQ table, **Grand Total** (or a clear range), **Rate basis**, **Exclusions**, and **Validity / Next Step**. Do not add Recommendation, Calculation / Reasoning, teaching, alternatives, questions, or background. The BOQ table is mandatory and must contain both its header and every priced item before the reply ends. Use no more than 5 priced rows and no more than 350 words. Select the rate-column label strictly by source: if no exact CPWD entry/rate is page-verified, use **Preliminary Market Rate (₹)** as the table header, write “To be verified against applicable CPWD DSR” only in the CPWD reference column, and identify every price as a preliminary market estimate. Never use the heading “DSR Rate (₹)” for an unverified or market price. Use **CPWD DSR Base Rate (₹)** only when the exact cited CPWD entry and rate are page-verified. Never label a preliminary market rate as CPWD. Do not end immediately after a table header, and do not leave any heading, row, subtotal, or sentence unfinished."
+      ? "\n\nQUOTE-READY MODE IS SELECTED. This instruction overrides the normal answer framework for construction materials, BOQs, cost, quote, budget, estimate, and rate-analysis requests. Return only this complete compact quotation, in this exact order: **Scope**, **Assumptions**, one complete itemised Markdown BOQ table, **Grand Total** (or a clear range), **Rate basis**, **Exclusions**, and **Validity / Next Step**. Do not add Recommendation, Calculation / Reasoning, teaching, alternatives, questions, or background. The BOQ table is mandatory and must contain both its header and every priced item before the reply ends." + (fullBoq ? "" : " Use no more than 5 priced rows and no more than 350 words.") + " Select the rate-column label strictly by source: if no exact CPWD entry/rate is page-verified, use **Preliminary Market Rate (₹)** as the table header, write “To be verified against applicable CPWD DSR” only in the CPWD reference column, and identify every price as a preliminary market estimate. Never use the heading “DSR Rate (₹)” for an unverified or market price. Use **CPWD DSR Base Rate (₹)** only when the exact cited CPWD entry and rate are page-verified. Never label a preliminary market rate as CPWD. Do not end immediately after a table header, and do not leave any heading, row, subtotal, or sentence unfinished."
       : "";
 
     const systemInstruction = `You are ${BRAND_NAME}, an AI construction expert built on the practical experience of a senior civil engineer with 25+ years in India and the UAE, serving construction workers and engineers worldwide. Your approved scope is strictly limited to construction and building-project topics: civil engineering; ready-mix concrete (RMC); cement and concrete technology; quantity and construction calculations; rate analysis, BOQs, estimation, and costing guidance; batching plants; quality control; QA/QC documentation, including ITPs, checklists, inspection requests, and test reports; construction logistics; project and site operations; planning and scheduling; procurement and construction materials; electrical works; plumbing works; MEP coordination; fit-out works; waterproofing and finishes; general site safety coordination and risk controls; contracts, variations, payment certification, and claims support as general commercial guidance only; and sustainability, waste reduction, and material efficiency. Electrical, lighting, plumbing, MEP, fit-out, painting, decorating, finishes, and waterproofing questions are explicitly in scope when they relate to a building project. This includes painting/luxury-paint cost, paint quantity and coverage, surface preparation, primer/putty/finish systems, labour productivity, material selection, room/house finish estimates, BOQs, rate analysis, lighting quantities, layouts, fixture selection, lumen and wattage estimates, circuits and switching, installation, coordination, quantity, cost, quality, site-management, and operations. A request such as “600 sft carpet house luxury paint cost” is a construction estimate request: answer it with useful preliminary assumptions and a CPWD-format estimate table, rather than rejecting it. Site shelters, parking sheds, canopies, geotextile/fabric works, temporary works, external works, and their quantities, BOQs, and preliminary cost estimates are also explicitly in scope. A request such as “Give me a quote for 100 ft × 15 ft geotextile shed for car parking” is a construction/site-operations estimate request: answer with an assumptions-based quantity and CPWD-format estimate table, not an out-of-scope rejection. Do not reject any building material, finish, painting, temporary-work, site-logistics, or construction-cost question as outside scope.
@@ -195,7 +204,7 @@ Retain technical units, numbers, equations, and construction terminology accurat
     // repeat requests); the per-request settings go in a second, uncached block after it.
     const system = [
       { type: "text", text: systemInstruction, cache_control: { type: "ephemeral" } },
-      { type: "text", text: `${languageInstruction}${quoteModeInstruction}${workerInstruction}${whatsappInstruction}` }
+      { type: "text", text: `${languageInstruction}${quoteModeInstruction}${fullBoq ? FULL_BOQ_INSTRUCTION : ""}${workerInstruction}${whatsappInstruction}` }
     ];
 
     const isDsrRequest = /\b(boq|bill of quantities|estimate|estimation|quantity schedule|rate analysis|rate\s*analysis|cpwd|dsr)\b/i.test(message);
@@ -230,7 +239,7 @@ Retain technical units, numbers, equations, and construction terminology accurat
       }
     }
 
-    const answer = await askClaude({ system, messages: [...conversationTurns, { role: "user", content: userContent }], maxTokens: 8000 });
+    const answer = await askClaude({ system, messages: [...conversationTurns, { role: "user", content: userContent }], maxTokens: fullBoq ? 16000 : 8000, timeout: fullBoq ? BOQ_TIMEOUT_MS : undefined });
     if (answer.refused) {
       return { statusCode: 200, headers, body: JSON.stringify({ reply: "I can't help with this request. Please ask it as a construction or site-work question." }) };
     }
@@ -245,7 +254,8 @@ Retain technical units, numbers, equations, and construction terminology accurat
           const repaired = await askClaude({
             system: repairInstruction,
             messages: [{ role: "user", content: `Construction request to quote: ${message.trim()}${relevantDubaiRmcCostingContext(message) ? `\n\n${relevantDubaiRmcCostingContext(message)}` : ""}` }],
-            maxTokens: 4000
+            maxTokens: 4000,
+            timeout: fullBoq ? BOQ_TIMEOUT_MS : undefined
           });
           if (!repaired.refused && repaired.text && !isIncompleteQuote(repaired.text, selectedLanguage)) reply = repaired.text;
         } catch (repairError) {
@@ -270,6 +280,6 @@ Retain technical units, numbers, equations, and construction terminology accurat
     if (error instanceof Anthropic.APIConnectionError) return fail(502, "Could not reach the AI service. Please try again.");
     return fail(500, "Failed to connect to the AI expert. Please try again.");
   }
-};
+}
 
-module.exports = Object.assign(module.exports, { sanitizeHistory, hasCompletedQuoteTable, isIncompleteQuote, attachmentBlock, setClientForTests, setAnswerStoreForTests, MODEL });
+module.exports = Object.assign(module.exports, { run, FULL_BOQ_INSTRUCTION, sanitizeHistory, hasCompletedQuoteTable, isIncompleteQuote, attachmentBlock, setClientForTests, setAnswerStoreForTests, MODEL });

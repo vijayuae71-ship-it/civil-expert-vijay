@@ -90,7 +90,7 @@ test("sanitizeHistory keeps the last 8 turns, trims, maps roles, starts with use
   const long = Array.from({ length: 20 }, (_, i) => ({ role: i % 2 ? "model" : "user", text: `t${i} ` + "y".repeat(5000) }));
   const out = chat.sanitizeHistory(long);
   assert.ok(out.length <= 8 && out[0].role === "user");
-  assert.ok(out.every((t) => (t.role === "user" || t.role === "assistant") && t.content.length <= 3000));
+  assert.ok(out.every((t) => (t.role === "user" && t.content.length <= 3000) || (t.role === "assistant" && t.content.length <= 12000)));
   assert.deepEqual(chat.sanitizeHistory("nope"), []);
 });
 

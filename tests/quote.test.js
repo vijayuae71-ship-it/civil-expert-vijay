@@ -79,3 +79,24 @@ test("WhatsApp text lists every item, the tax and the total in words", () => {
 test("quotation numbers carry the date and a 2-digit sequence", () => {
   assert.equal(Q.quoteNumber(new Date("2026-11-19T10:00:00Z"), 3), "Q-20261119-03");
 });
+
+test("a sectioned full BOQ: headings and section sub-totals are skipped, the summary table is ignored", () => {
+  const text = `| Sl. No. | Description | Unit | Qty | Preliminary Market Rate (₹) | Amount (₹) |
+|---|---|---|---|---|---|
+| **A** | **Earthwork** | | | | |
+| A1 | Excavation in ordinary soil | m³ | 95 | 280 | 26,600 |
+| A2 | Backfilling | m³ | 40 | 160 | 6,400 |
+| | **Sub-total A** | | | | **33,000** |
+| **C** | **RCC work** | | | | |
+| C1 | M20 concrete in footings | m³ | 8.5 | 7,200 | 61,200 |
+| | Sub-total C | | | | 61,200 |
+
+| Section | Amount (₹) |
+|---|---|
+| A Earthwork | 33,000 |
+| C RCC | 61,200 |
+| **Grand Total** | **94,200** |`;
+  const items = Q.itemsFromAnswer(text);
+  assert.deepEqual(items.map((i) => i.description), ["Excavation in ordinary soil", "Backfilling", "M20 concrete in footings"]);
+  assert.equal(Q.totals({ items }).subtotal, 94200);
+});

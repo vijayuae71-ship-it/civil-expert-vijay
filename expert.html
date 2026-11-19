@@ -544,13 +544,18 @@
                 let attachment = null;
                 if (file) { attachment = await fileToAttachment(file); pinned = { name: file.name, attachment }; }
                 else if (pinned) attachment = pinned.attachment;   // follow-up about the same drawing/photo
-                const res = await fetch('/.netlify/functions/chat', {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: text, history, attachment, language: answerLang, audience, quoteReady: audience === 'engineer' && $('quote-ready').checked })
-                });
+                const payload = { message: text, history, attachment, language: answerLang, audience, quoteReady: audience === 'engineer' && $('quote-ready').checked };
                 let data = {};
-                try { data = await res.json(); } catch {}
-                if (!res.ok || !data.reply) throw new Error(data.error || 'The AI service could not answer right now. Please try again.');
+                if (wantsFullBoq(text, payload)) {
+                    // A full itemised BOQ takes 1–3 minutes to write: it runs in the background and we check back.
+                    typing.querySelector('.ml-2').textContent = t('preparingBoq');
+                    data = await backgroundAnswer(payload);
+                } else {
+                    const res = await fetch('/.netlify/functions/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                    try { data = await res.json(); } catch {}
+                    if (!res.ok) data = { error: data.error };
+                }
+                if (!data.reply) throw new Error(data.error || 'The AI service could not answer right now. Please try again.');
                 typing.remove();
                 conversation.push({ role: 'user', text: file ? `${text}\n\n[Attached: ${file.name}]` : text }, { role: 'model', text: data.reply, lang: answerLang, cacheKey: data.cacheKey || null });
                 store.set(STORAGE_KEY, conversation.slice(-40));
@@ -564,6 +569,26 @@
                 busy = false; sendBtn.disabled = false; $('send-label').textContent = t('send');
                 if (window.matchMedia('(pointer: fine)').matches) input.focus();
             }
+        }
+
+        // BOQ, estimate and quotation questions in Detailed mode get a complete itemised BOQ.
+        const BOQ_RE = /\b(boq|b\.o\.q|bill of quantit|estimat|quotation|quote|rate analysis|break\s?-?up|itemi[sz]ed|line items?|cost of construction|construction cost|costing|budget)/i;
+        const wantsFullBoq = (text, payload) => payload.audience === 'engineer' && (payload.quoteReady || BOQ_RE.test(text));
+        async function backgroundAnswer(payload) {
+            const jobId = (crypto.randomUUID ? crypto.randomUUID() : Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2, '0')).join(''));
+            const start = await fetch('/.netlify/functions/chat-background', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...payload, jobId }) });
+            if (start.status !== 202 && !start.ok) throw new Error('The AI service could not start the BOQ. Please try again.');
+            const until = Date.now() + 8 * 60 * 1000;
+            let misses = 0;
+            while (Date.now() < until) {
+                await new Promise(r => setTimeout(r, 4000));
+                let job;
+                try { const r = await fetch(`/.netlify/functions/chat-status?id=${encodeURIComponent(jobId)}`, { cache: 'no-store' }); job = await r.json(); misses = 0; }
+                catch { if (++misses > 5) throw new Error('Connection lost while preparing the BOQ. Please try again.'); continue; }
+                if (job.status === 'done') return job;
+                if (job.status === 'error') return { error: job.error };
+            }
+            throw new Error('The BOQ is taking too long. Please try again, or ask for one part of the work at a time.');
         }
 
         // ---------- message rendering ----------
