@@ -7,6 +7,17 @@ const { fakeClaude, systemText, post } = require("./helpers");
 const chat = require("../netlify/functions/chat");
 const background = require("../netlify/functions/chat-background");
 const status = require("../netlify/functions/chat-status");
+const start = require("../netlify/functions/chat-start");
+
+// Page → chat-start (stores the request, starts the job) → chat-background → chat-status.
+async function runJob(store, body, headers = {}) {
+  let triggered = null;
+  start.setForTests({ store, trigger: async (url, init) => { triggered = { url, body: JSON.parse(init.body) }; return { status: 202, ok: true }; } });
+  background.setJobStoreForTests(store); status.setJobStoreForTests(store);
+  const res = await start.handler(post({ jobId: JOB, ...body }, headers));
+  if (res.statusCode === 202) await background.handler({ httpMethod: "POST", headers: {}, body: JSON.stringify(triggered.body) });
+  return { res, triggered };
+}
 
 function memoryStore() {
   const data = new Map();
@@ -22,10 +33,13 @@ const ask = (id) => status.handler({ httpMethod: "GET", headers: {}, queryString
 chat.setAnswerStoreForTests(null);
 
 test("background job writes a full itemised BOQ answer that the page can read once", async () => {
-  const store = memoryStore(); background.setJobStoreForTests(store); status.setJobStoreForTests(store);
+  const store = memoryStore(); status.setJobStoreForTests(store);
   const calls = fakeClaude(chat, "| Sl. No. | Description | Unit | Qty | Rate | Amount |\n|---|---|---|---|---|---|\n| A1 | Excavation | m³ | 95 | 280 | 26,600 |");
   assert.deepEqual(await ask(JOB), { status: "pending" });
-  await background.handler(post({ jobId: JOB, message: "complete BOQ for a 1000 sq ft G+1 house", audience: "engineer", quoteReady: true }));
+  const { res, triggered } = await runJob(store, { message: "complete BOQ for a 1000 sq ft G+1 house", audience: "engineer", quoteReady: true });
+  assert.equal(res.statusCode, 202);
+  assert.equal(triggered.url, "https://constructionaiexpert.netlify.app/.netlify/functions/chat-background");
+  assert.deepEqual(triggered.body, { jobId: JOB }, "only the job id goes to the background function (256 KB limit)");
   const sys = systemText(calls[0]);
   assert.match(sys, /FULL ITEMISED BOQ/);
   assert.doesNotMatch(sys, /no more than 5 priced rows/);
@@ -46,26 +60,42 @@ test("the normal quick answer keeps its limits and never gets the full-BOQ instr
 });
 
 test("site-worker mode stays short even in the background", async () => {
-  const store = memoryStore(); background.setJobStoreForTests(store);
   const calls = fakeClaude(chat, "Use 1 bag.");
-  await background.handler(post({ jobId: JOB, message: "estimate cement for my wall", audience: "worker" }));
+  await runJob(memoryStore(), { message: "estimate cement for my wall", audience: "worker" });
   assert.doesNotMatch(systemText(calls[0]), /FULL ITEMISED BOQ/);
 });
 
 test("errors reach the page; bad job ids are refused", async () => {
-  const store = memoryStore(); background.setJobStoreForTests(store); status.setJobStoreForTests(store);
-  await background.handler(post({ jobId: JOB, message: "" }));
+  const store = memoryStore();
+  fakeClaude(chat, "x");
+  const { res } = await runJob(store, { message: "BOQ", attachments: [{ name: "a.exe", mimeType: "application/x-msdownload", data: "AA==" }] });
+  assert.equal(res.statusCode, 202);
   const job = await ask(JOB);
   assert.equal(job.status, "error");
-  assert.match(job.error, /question/i);
-  assert.equal((await background.handler(post({ jobId: "../x", message: "BOQ" }))).statusCode, 400);
+  assert.match(job.error, /attach a photo/i);
+  assert.equal((await start.handler(post({ jobId: JOB, message: "" }))).statusCode, 400);
+  assert.equal((await start.handler(post({ jobId: "../x", message: "BOQ" }))).statusCode, 400);
+  assert.equal((await background.handler(post({ jobId: "../x" }))).statusCode, 400);
+  assert.equal((await background.handler(post({ jobId: JOB }))).statusCode, 404, "a job id with no stored question does nothing");
   assert.equal((await status.handler({ queryStringParameters: { id: "nope" } })).statusCode, 400);
 });
 
 test("requests from other websites are refused in the background too", async () => {
-  const store = memoryStore(); background.setJobStoreForTests(store); status.setJobStoreForTests(store);
   const calls = fakeClaude(chat, "x");
-  await background.handler(post({ jobId: JOB, message: "BOQ" }, { origin: "https://evil.example" }));
+  const { res } = await runJob(memoryStore(), { message: "BOQ" }, { origin: "https://evil.example" });
+  assert.equal(res.statusCode, 403);
   assert.equal(calls.length, 0);
-  assert.equal((await ask(JOB)).status, "error");
+});
+
+test("a BOQ question with drawings: files go via the store, all reach Claude, the request is removed after use", async () => {
+  const store = memoryStore();
+  const calls = fakeClaude(chat, "BOQ from drawings.");
+  const photo = { name: "plan.jpg", mimeType: "image/jpeg", data: Buffer.alloc(300 * 1024).toString("base64") };   // > 256 KB together
+  const pdf = { name: "sections.pdf", mimeType: "application/pdf", data: Buffer.alloc(200 * 1024).toString("base64") };
+  await runJob(store, { message: "BOQ from these drawings", audience: "engineer", attachments: [photo, pdf] }, { "x-nf-client-connection-ip": "1.2.3.4" });
+  const content = calls[0].messages.at(-1).content;
+  assert.deepEqual(content.map((b) => b.type), ["image", "document", "text"]);
+  assert.match(content.at(-1).text, /2 files are attached, in this order: photo "plan.jpg"; document "sections.pdf"/);
+  assert.equal(store.data.has(`req/${JOB}`), false);
+  assert.equal((await ask(JOB)).status, "done");
 });

@@ -38,6 +38,7 @@ async function askClaude({ system, messages, maxTokens, timeout }) {
 
 // Turns the browser's attachment into a Claude content block. Excel and PowerPoint files are
 // converted to text in the browser before upload, so they arrive here as text/plain.
+const MAX_FILES = 5;
 const IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 const TEXT_TYPES = new Set(["text/plain", "text/csv"]);
 const MAX_TEXT_CHARS = 300000;
@@ -93,12 +94,13 @@ exports.handler = (event) => run(event, {});
 async function run(event, { background = false } = {}) {
   const headers = { "Content-Type": "application/json" };
   const maxFileBytes = 4 * 1024 * 1024;
+  const maxTotalBytes = 4.5 * 1024 * 1024;   // a request may carry at most 6 MB, and files grow by a third as text
 
   if (event.httpMethod !== "POST") return { statusCode: 405, headers, body: JSON.stringify({ error: "Method Not Allowed" }) };
   if (!isAllowedOrigin(event)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Requests are accepted only from this website." }) };
 
   try {
-    const { message, attachment, language, quoteReady, history, audience, channel } = JSON.parse(event.body || "{}");
+    const { message, attachment, attachments, language, quoteReady, history, audience, channel } = JSON.parse(event.body || "{}");
     // "whatsapp": the reply is shown in WhatsApp, which has no tables or headings.
     const isWhatsApp = channel === "whatsapp";
     // "worker": short, simple, step-by-step answers for site trades. "engineer": the detailed format.
@@ -120,17 +122,25 @@ async function run(event, { background = false } = {}) {
       return { statusCode: 400, headers, body: JSON.stringify({ error: "Please choose a supported answer language." }) };
     }
 
-    let attachmentPart = null;
-    if (attachment) {
-      if (!attachment.name || typeof attachment.mimeType !== "string" || typeof attachment.data !== "string" || !attachment.data) {
+    // Up to MAX_FILES photos/documents per question ("attachments"); "attachment" is the older single-file form.
+    const files = Array.isArray(attachments) ? attachments : attachment ? [attachment] : [];
+    if (files.length > MAX_FILES) return { statusCode: 400, headers, body: JSON.stringify({ error: `Please attach at most ${MAX_FILES} files at a time.` }) };
+    const attachmentParts = [];
+    let totalBytes = 0;
+    for (const file of files) {
+      if (!file || !file.name || typeof file.mimeType !== "string" || typeof file.data !== "string" || !file.data) {
         return { statusCode: 400, headers, body: JSON.stringify({ error: "Please attach a photo, PDF, Excel, PowerPoint, CSV, or TXT file." }) };
       }
-      const byteLength = Buffer.byteLength(attachment.data, "base64");
+      const byteLength = Buffer.byteLength(file.data, "base64");
+      totalBytes += byteLength;
       if (byteLength > maxFileBytes) return { statusCode: 413, headers, body: JSON.stringify({ error: "Please choose a document smaller than 4 MB." }) };
-      attachmentPart = attachmentBlock(attachment);
-      if (!attachmentPart) return { statusCode: 400, headers, body: JSON.stringify({ error: "Please attach a photo (JPEG/PNG), PDF, Excel, PowerPoint, CSV, or TXT file. If this keeps happening, refresh the page." }) };
-      if (attachmentPart.tooLong) return { statusCode: 413, headers, body: JSON.stringify({ error: "This document has too much text. Please send only the sheet or pages you need help with." }) };
+      if (totalBytes > maxTotalBytes) return { statusCode: 413, headers, body: JSON.stringify({ error: "These files are too large together. Please send fewer or smaller files (about 4 MB in total)." }) };
+      const part = attachmentBlock(file);
+      if (!part) return { statusCode: 400, headers, body: JSON.stringify({ error: "Please attach a photo (JPEG/PNG), PDF, Excel, PowerPoint, CSV, or TXT file. If this keeps happening, refresh the page." }) };
+      if (part.tooLong) return { statusCode: 413, headers, body: JSON.stringify({ error: "This document has too much text. Please send only the sheet or pages you need help with." }) };
+      attachmentParts.push(part);
     }
+    const attachmentPart = attachmentParts.length > 0;
 
     if (!process.env.ANTHROPIC_API_KEY && !client) {
       console.error("ANTHROPIC_API_KEY is not configured.");
@@ -141,7 +151,7 @@ async function run(event, { background = false } = {}) {
     if (limited) return { statusCode: limited.statusCode, headers, body: JSON.stringify({ error: limited.error }) };
 
     // Anonymous usage log (Netlify → Functions → chat → Logs) to see what people ask.
-    console.log(JSON.stringify({ type: "question", channel: isWhatsApp ? "whatsapp" : "web", language: selectedLanguage, audience: isWorker ? "worker" : "engineer", quoteReady: quoteReady === true, followUp: priorTurns.length > 0, attachment: Boolean(attachmentPart), grade: requestedGrade(message), text: message.trim().slice(0, 300) }));
+    console.log(JSON.stringify({ type: "question", channel: isWhatsApp ? "whatsapp" : "web", language: selectedLanguage, audience: isWorker ? "worker" : "engineer", quoteReady: quoteReady === true, followUp: priorTurns.length > 0, attachment: attachmentParts.length, grade: requestedGrade(message), text: message.trim().slice(0, 300) }));
 
 
     const languageName = selectedLanguage === "auto" ? "the same language as the user's latest message" : supportedLanguages[selectedLanguage];
@@ -211,17 +221,18 @@ Retain technical units, numbers, equations, and construction terminology accurat
     const dsrContext = isDsrRequest ? `\n\n${buildCivilCatalogueContext(message)}` : "";
     const contextualGuidance = [relevantFaqContext(message), relevantDubaiRmcCostingContext(message), relevantMixDesignContext(message), relevantEngineeringReference(message)]
       .filter(Boolean).map((context) => `\n\n${context}`).join("");
-    const attachmentNote = attachmentPart ? `\n\nA ${attachment.mimeType.startsWith("image/") ? "site photo" : "project document"} named "${attachment.name}" is attached. Analyze it only as needed for this request. Today's date is ${new Date().toISOString().slice(0, 10)}; use it to judge expiry, use-by, manufacture and test dates on the attachment.` : "";
+    const described = files.map((f) => `${f.mimeType.startsWith("image/") ? "photo" : "document"} "${f.name}"`);
+    const attachmentNote = attachmentPart ? `\n\n${files.length === 1 ? `A ${files[0].mimeType.startsWith("image/") ? "site photo" : "project document"} named "${files[0].name}" is attached.` : `${files.length} files are attached, in this order: ${described.join("; ")}. Read all of them together and say which file each finding comes from.`} Analyze it only as needed for this request. Today's date is ${new Date().toISOString().slice(0, 10)}; use it to judge expiry, use-by, manufacture and test dates on the attachment.` : "";
     // A drawing, photo or document can stay attached for follow-up questions. With earlier turns,
     // it goes into the FIRST turn and is cached, so each follow-up re-reads it at about a tenth of
     // the price instead of paying for it again. Without earlier turns it goes with this question.
     const questionText = { type: "text", text: `${message.trim()}${dsrContext}${contextualGuidance}${attachmentNote}` };
     let conversationTurns = priorTurns;
-    let userContent = [...(attachmentPart ? [attachmentPart] : []), questionText];
+    let userContent = [...attachmentParts, questionText];
     if (attachmentPart && priorTurns.length) {
       const [first, ...rest] = priorTurns;
       const firstText = typeof first.content === "string" ? first.content : "";
-      conversationTurns = [{ role: "user", content: [{ ...attachmentPart, cache_control: { type: "ephemeral" } }, { type: "text", text: firstText }] }, ...rest];
+      conversationTurns = [{ role: "user", content: [...attachmentParts.slice(0, -1), { ...attachmentParts.at(-1), cache_control: { type: "ephemeral" } }, { type: "text", text: firstText }] }, ...rest];
       userContent = [questionText];
     }
 

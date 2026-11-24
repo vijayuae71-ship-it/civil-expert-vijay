@@ -135,3 +135,21 @@ test("attachments come with today's date so expiry dates can be judged", async (
   await chat.handler(post({ message: "no attachment here" }));
   assert.doesNotMatch(lastUserText(calls[1]), /Today's date is/); // keeps saved answers reusable
 });
+
+test("several files: up to 5, all sent to Claude; the pinned set is cached on the last file for follow-ups", async () => {
+  const calls = fakeClaude(chat, "OK.");
+  const f = (n, t = "image/jpeg") => ({ name: n, mimeType: t, data: "AA==" });
+  await chat.handler(post({ message: "compare these", attachments: [f("a.jpg"), f("b.pdf", "application/pdf"), f("c.png", "image/png")] }));
+  assert.deepEqual(calls[0].messages.at(-1).content.map((b) => b.type), ["image", "document", "image", "text"]);
+  await chat.handler(post({ message: "and the beam size?", attachments: [f("a.jpg"), f("b.pdf", "application/pdf")], history: [{ role: "user", text: "compare these" }, { role: "model", text: "OK." }] }));
+  const first = calls[1].messages[0].content;
+  assert.deepEqual(first.map((b) => b.type), ["image", "document", "text"]);
+  assert.equal(first[0].cache_control, undefined);
+  assert.deepEqual(first[1].cache_control, { type: "ephemeral" });
+  const six = await chat.handler(post({ message: "x", attachments: Array.from({ length: 6 }, (_, i) => f(`${i}.jpg`)) }));
+  assert.equal(six.statusCode, 400);
+  const big = { name: "big.pdf", mimeType: "application/pdf", data: Buffer.alloc(2.5 * 1024 * 1024).toString("base64") };
+  const tooMuch = await chat.handler(post({ message: "x", attachments: [big, big] }));
+  assert.equal(tooMuch.statusCode, 413);
+  assert.match(JSON.parse(tooMuch.body).error, /too large together/);
+});

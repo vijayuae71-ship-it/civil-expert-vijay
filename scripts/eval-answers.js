@@ -190,6 +190,20 @@ CASES.push(
 
 // ---------- unusual product photos (group "product"): fictional labels in scripts/fixtures ----------
 const photo = (file) => ({ name: file, mimeType: "image/jpeg", data: require("fs").readFileSync(require("path").join(__dirname, "fixtures", file)).toString("base64") });
+
+// ---------- several files at once (group "multi") ----------
+CASES.push(
+  {
+    group: "multi", name: "A drawing and a product photo in one question: both are read and named",
+    body: { message: "Using the drawing and the product photo: how much concrete does this slab need, and can I use this waterbar at its construction joint?", attachments: [drawing, photo("product-waterbar.jpg")], audience: "engineer" },
+    must: [/2\.0[0-9]?\s*m(³|3)|2\.025/, /water ?bar|water ?stop/i, /S-101|sample-slab-drawing|drawing/i, /photo|label|product-waterbar/i]
+  },
+  {
+    group: "multi", background: true, name: "Full BOQ from an attached drawing (background job)",
+    body: { message: "Prepare the BOQ with rates for this slab", attachments: [drawing], audience: "engineer", quoteReady: true },
+    must: [ROWS(3), /M30/, /T10|reinforcement|steel/i, /shuttering|formwork/i, /Grand Total/i]
+  }
+);
 CASES.push(
   {
     group: "product", name: "Expired waterbar: notices the use-by date and says not to use it",
