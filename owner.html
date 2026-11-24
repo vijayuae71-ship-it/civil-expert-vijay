@@ -125,12 +125,19 @@
 
   // Column chart: one series, single baseline, ≤24px columns with 4px rounded tops, recessive grid,
   // a hover/focus tooltip per day (hit area = the whole day band), values in the table view below.
-  function columns(box, rows, fmt, axisFmt = fmt) {
+  function columns(box, rows, fmt, axisFmt = fmt, { integer = false, empty = "Nothing yet." } = {}) {
     box.innerHTML = "";
+    const max = Math.max(...rows.map((r) => r.v), 0);
+    if (!max) { box.appendChild(el("p", "muted", empty)); return; }   // no axes to misread while there is no data
     // Drawn at the box's real width, so the 11px text stays 11px on phones.
     const W = Math.max(280, Math.round(box.clientWidth || 520)), H = 190, L = 44, B = 22, T = 10, plotW = W - L - 6, plotH = H - B - T;
-    const max = Math.max(...rows.map((r) => r.v), 0);
-    const nice = (() => { if (!max) return 1; const p = 10 ** Math.floor(Math.log10(max)); for (const m of [1, 2, 2.5, 5, 10]) if (m * p >= max) return m * p; return 10 * p; })();
+    // Top of the axis: a round number; for counts an even whole number, so the middle line is whole too.
+    const nice = (() => {
+      if (integer && max <= 10) return Math.max(2, Math.ceil(max / 2) * 2);
+      const p = 10 ** Math.floor(Math.log10(max));
+      for (const m of integer ? [1, 2, 4, 5, 10] : [1, 2, 2.5, 5, 10]) if (m * p >= max) return m * p;
+      return 10 * p;
+    })();
     const band = plotW / rows.length, bw = Math.min(24, Math.max(3, band - 2));
     const ns = "http://www.w3.org/2000/svg", svg = document.createElementNS(ns, "svg");
     svg.setAttribute("viewBox", `0 0 ${W} ${H}`); svg.setAttribute("role", "img");
@@ -207,8 +214,8 @@
     $("t-fb").textContent = `👍 ${int(tot.up)} · 👎 ${int(tot.down)}`;
     $("t-fb-sub").textContent = tot.up + tot.down ? `${pct(tot.up, tot.up + tot.down)} helpful` : "no votes yet";
     const q = ds.map((d) => ({ d: d.day, v: d.questions + Object.values(d.tasks || {}).reduce((a, b) => a + b, 0) }));
-    columns($("c-q"), q, int);
-    columns($("c-cost"), ds.map((d) => ({ d: d.day, v: d.cost })), usd, (v) => `$${v.toFixed(v > 0 && v < 10 ? 2 : 0)}`);
+    columns($("c-q"), q, int, int, { integer: true, empty: "No questions yet in this period. Ask one on the AI page, then tap ↻." });
+    columns($("c-cost"), ds.map((d) => ({ d: d.day, v: d.cost })), usd, (v) => `$${v.toFixed(v > 0 && v < 10 ? 2 : 0)}`, { empty: "No AI cost yet in this period." });
     table($("tbl-q"), ["Day", "Questions", "Tool tasks", "Saved answers", "👍", "👎"], ds.slice().reverse().map((d) => [d.day, int(d.questions), int(Object.values(d.tasks || {}).reduce((a, b) => a + b, 0)), int(d.cached), int(d.feedback?.up || 0), int(d.feedback?.down || 0)]));
     table($("tbl-cost"), ["Day", "AI cost", "AI calls"], ds.slice().reverse().map((d) => [d.day, usd(d.cost), int(Object.values(d.models || {}).reduce((a, m) => a + m.calls, 0))]));
     hbars($("b-channel"), tot.channels, { names: { web: "Website / app", whatsapp: "WhatsApp" } });
