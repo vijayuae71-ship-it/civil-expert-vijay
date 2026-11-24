@@ -12,6 +12,9 @@ const answerCache = require("./answer-cache");
 // Effort "low" keeps answers fast (Netlify functions have a time limit); try "medium" for deeper answers.
 const MODEL = process.env.EXPERT_MODEL || "claude-opus-5-5";
 const EFFORT = process.env.EXPERT_EFFORT || "low";
+// Copying work (tender BOQs, price lists, plain-language specs) runs on a cheaper model; set
+// EXPERT_CHEAP_MODEL=off to use the main model for everything. A refusal or error there is retried on MODEL.
+const CHEAP_MODEL = process.env.EXPERT_CHEAP_MODEL || "claude-haiku-5-5";
 const TIMEOUT_MS = Number(process.env.EXPERT_TIMEOUT_MS) || 25000;
 // Full itemised BOQs run in a background function (chat-background.js, up to 15 minutes),
 // so each Claude call there may take longer and write more.
@@ -25,9 +28,9 @@ function setAnswerStoreForTests(store) { answerStoreOverride = store; }
 
 // One Claude call. If a safety classifier declines, the server retries on Anthropic's
 // recommended fallback model ("default" fallbacks; not offered for Haiku).
-async function askClaude({ system, messages, maxTokens, timeout }) {
-  const params = { model: MODEL, max_tokens: maxTokens, system, messages, output_config: { effort: EFFORT } };
-  if (!/haiku/i.test(MODEL)) { params.betas = ["server-side-fallback-2026-07-01"]; params.fallbacks = "default"; }
+async function askClaude({ system, messages, maxTokens, timeout, model = MODEL }) {
+  const params = { model, max_tokens: maxTokens, system, messages, output_config: { effort: EFFORT } };
+  if (!/haiku/i.test(model)) { params.betas = ["server-side-fallback-2026-07-01"]; params.fallbacks = "default"; }
   const response = await getClient().beta.messages.create(params, timeout ? { timeout } : undefined);
   const u = response.usage || {};
   console.log(JSON.stringify({ type: "usage", model: response.model, stop: response.stop_reason, input: u.input_tokens, cacheRead: u.cache_read_input_tokens, cacheWrite: u.cache_creation_input_tokens, output: u.output_tokens }));
@@ -93,7 +96,7 @@ const FULL_BOQ_INSTRUCTION = "\n\nFULL ITEMISED BOQ. This answer is prepared in 
 const TASKS = {
   // Copy a tender's schedule of quantities from an attached PDF or photo, word for word.
   "tender-items": {
-    maxTokens: 16000, maxChars: 4000,
+    cheap: true, maxTokens: 16000, maxChars: 4000,
     system: "You copy the bill of quantities (schedule of quantities / BOQ / price schedule) from an attached tender document. Output ONLY one Markdown table with the header | Item No | Description | Unit | Qty | and one row per BOQ line, in document order. Copy item numbers, descriptions, units and quantities EXACTLY as printed: never summarise, shorten, translate, correct, round or merge them; keep specifications, grades, thicknesses and notes that belong to the item. Put a parent item whose quantity is given in its sub-items as its own row with Unit and Qty left empty. Leave out rates, amounts, totals, page headers and footers, and text that is not a BOQ line. Do not write anything before or after the table. If the user says to continue after an item, start with the row that comes right after it. If the document has no BOQ, reply with exactly: NO BOQ FOUND"
   },
   // Preliminary market rates for tender items the user has not priced yet.
@@ -103,12 +106,12 @@ const TASKS = {
   },
   // A supplier's catalogue or price list (PDF or photos), copied word for word.
   "price-list": {
-    maxTokens: 16000, maxChars: 4000,
+    cheap: true, maxTokens: 16000, maxChars: 4000,
     system: "You copy a supplier's price list or product catalogue for a building contractor. First write exactly two lines: 'Supplier: <supplier or brand name as printed, or unknown>' and 'List date: <effective date as YYYY-MM-DD, or unknown>'. Then ONE Markdown table with the header | Item | Make | Size / Model | Unit | Price | Price basis | and one row per priced product or size, in document order. Copy product names, makes/brands, sizes, model or code numbers and units EXACTLY as printed; never invent, round or merge. Price is a plain number without currency sign or commas: the price the buyer pays (net/dealer price if shown, otherwise list price/MRP). Price basis says in at most 4 words which price it is and whether GST is included (e.g. 'MRP incl GST', 'dealer excl GST'). Leave out products without a price, page headers and footers. If the user says to continue after a product, start right after it. If there is no price list, reply with exactly: NO PRICES FOUND"
   },
   // Long tender specifications in short, plain words, so a small contractor can price them.
   "tender-simplify": {
-    maxTokens: 8000, maxChars: 30000,
+    cheap: true, maxTokens: 8000, maxChars: 30000,
     system: "You explain tender BOQ items to a small building contractor who must price them quickly. For each numbered item write ONE short line (at most 25 words) in very simple English that keeps only what affects the price: the work and material, grade/mix/size/thickness/make, what is INCLUDED (e.g. pumping, lead, lift, curing, testing, materials) and what is EXCLUDED or paid separately (e.g. centering, shuttering, reinforcement), and the unit it is measured in. Use the item's own facts; do not invent anything. Output ONLY one Markdown table with the header | No | In short | and one row per item in the same order. No text before or after the table."
   },
   // The important conditions of a tender document, in plain words.
@@ -127,7 +130,20 @@ const TASKS = {
 async function runTask(task, { message, attachmentParts, background, headers }) {
   const spec = TASKS[task];
   const content = [...attachmentParts.slice(0, -1), ...(attachmentParts.length ? [{ ...attachmentParts.at(-1), cache_control: { type: "ephemeral" } }] : []), { type: "text", text: message.trim() }];
-  const answer = await askClaude({ system: [{ type: "text", text: spec.system, cache_control: { type: "ephemeral" } }], messages: [{ role: "user", content }], maxTokens: spec.maxTokens, timeout: background ? BOQ_TIMEOUT_MS : undefined });
+  const request = { system: [{ type: "text", text: spec.system, cache_control: { type: "ephemeral" } }], messages: [{ role: "user", content }], maxTokens: spec.maxTokens, timeout: background ? BOQ_TIMEOUT_MS : undefined };
+  const cheap = spec.cheap && CHEAP_MODEL && CHEAP_MODEL !== "off" && CHEAP_MODEL !== MODEL ? CHEAP_MODEL : null;
+  let answer = null;
+  if (cheap) {
+    try {
+      answer = await askClaude({ ...request, model: cheap });
+      if (answer.refused || !answer.text) { console.log(JSON.stringify({ type: "cheap_model_retry", task, reason: answer.refused ? "refusal" : "empty" })); answer = null; }
+    } catch (error) {
+      // An overloaded or unavailable cheaper model must not fail the user's job: use the main model.
+      if (error instanceof Anthropic.AuthenticationError || error instanceof Anthropic.PermissionDeniedError) throw error;
+      console.log(JSON.stringify({ type: "cheap_model_retry", task, reason: error?.status || error?.name || "error" }));
+    }
+  }
+  if (!answer) answer = await askClaude(request);
   if (answer.refused || !answer.text) return { statusCode: 502, headers, body: JSON.stringify({ error: "The AI could not read this document. Please try again or send a clearer file." }) };
   return { statusCode: 200, headers, body: JSON.stringify({ reply: answer.text, truncated: answer.stopReason === "max_tokens" }) };
 }

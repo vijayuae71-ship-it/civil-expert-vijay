@@ -256,6 +256,22 @@ CASES.push({
   })]
 });
 
+const longTender = { name: "sample-tender-boq-long.pdf", mimeType: "application/pdf", data: require("fs").readFileSync(require("path").join(__dirname, "fixtures", "sample-tender-boq-long.pdf")).toString("base64") };
+const LONG_EXPECTED = JSON.parse(require("fs").readFileSync(require("path").join(__dirname, "fixtures", "sample-tender-boq-long.json"), "utf8"));
+CASES.push({
+  group: "tender", background: true, name: "Copies a 3-page, 61-line tender BOQ exactly (item numbers, headings, quantities)",
+  body: { task: "tender-items", message: "Copy the complete BOQ from the attached tender document.", attachments: [longTender] },
+  must: [
+    check("all 61 lines: same item numbers, headings and quantities in order", (t) => {
+      const got = Q.tenderItemsFromText(t).map((i) => [i.ref, i.heading ? null : i.qty]);
+      const ok = JSON.stringify(got) === JSON.stringify(LONG_EXPECTED);
+      if (!ok) console.log("    mismatch:", JSON.stringify(got.filter((g, k) => JSON.stringify(g) !== JSON.stringify(LONG_EXPECTED[k])).slice(0, 5)), "got", got.length, "lines");
+      return ok;
+    }),
+    /including admixtures in recommended proportions as per IS : 9103 to accelerate, retard setting of concrete, improve workability without impairing strength and durability/,
+    /with extruded built up standard tubular sections\/ ?appropriate Z sections/
+  ]
+});
 const priceListPdf = { name: "sample-price-list.pdf", mimeType: "application/pdf", data: require("fs").readFileSync(require("path").join(__dirname, "fixtures", "sample-price-list.pdf")).toString("base64") };
 const sampleMaterials = Q.addMaterials([], Q.materialsFromText("Supplier: Sri Ganesh Building Materials\nList date: 2026-11-01\n\n| Item | Make | Size / Model | Unit | Price | Price basis |\n|---|---|---|---|---|---|\n| OPC 43 grade cement | UltraTech | 50 kg bag | Bag | 385 | dealer excl GST |\n| River sand, washed | | Zone II | Cum | 2850 | dealer excl GST |\n| TMT bar Fe-500D | TATA Tiscon | 12 mm | Kg | 68.75 | dealer excl GST |").list, "2026-11-24").materials;
 CASES.push(
