@@ -137,3 +137,35 @@ test("price lists have their own copy instruction; tender rates know about mater
   await runJob(memoryStore(), { task: "tender-rates", message: "Items:\n1. Plaster" });
   assert.match(systemText(rate[0]), /OWN MATERIAL PRICES/);
 });
+
+test("copying tasks run on the cheaper model; rates, terms, checks and answers stay on the main model", async () => {
+  const pdf = { name: "t.pdf", mimeType: "application/pdf", data: "AA==" };
+  for (const [task, cheap] of [["tender-items", true], ["price-list", true], ["tender-simplify", true], ["tender-rates", false], ["tender-terms", false], ["tender-check", false]]) {
+    const calls = fakeClaude(chat, "| No | In short |\n|---|---|\n| 1 | x |");
+    await runJob(memoryStore(), { task, message: "Items:\n1. x", attachments: /items|price|terms/.test(task) ? [pdf] : undefined });
+    assert.equal(calls[0].model, cheap ? "claude-haiku-5-5" : chat.MODEL, task);
+    if (cheap) { assert.equal(calls[0].fallbacks, undefined, "no server-side fallback on Haiku"); assert.equal(calls[0].betas, undefined); }
+    else assert.equal(calls[0].fallbacks, "default");
+  }
+  const calls = fakeClaude(chat, "OK.");
+  await chat.handler(post({ message: "M25 mix design" }));
+  assert.equal(calls[0].model, chat.MODEL, "expert answers stay on the main model");
+});
+
+test("a refusal, empty reply or error from the cheaper model is retried on the main model", async () => {
+  const table = "| Item No | Description | Unit | Qty |\n|---|---|---|---|\n| 1 | Soil | cum | 5 |";
+  const refused = fakeClaude(chat, (n) => (n === 1 ? { stop_reason: "refusal", text: "" } : table));
+  await runJob(memoryStore(), { task: "tender-items", message: "Copy", attachments: [{ name: "t.pdf", mimeType: "application/pdf", data: "AA==" }] });
+  assert.deepEqual(refused.map((c) => c.model), ["claude-haiku-5-5", chat.MODEL]);
+  assert.equal((await ask(JOB)).status, "done");
+
+  const calls = [];
+  chat.setClientForTests({ beta: { messages: { create: async (params) => {
+    calls.push(params.model);
+    if (params.model === "claude-haiku-5-5") { const e = new Error("overloaded"); e.status = 529; throw e; }
+    return { model: params.model, stop_reason: "end_turn", content: [{ type: "text", text: table }], usage: {} };
+  } } } });
+  await runJob(memoryStore(), { task: "tender-items", message: "Copy", attachments: [{ name: "t.pdf", mimeType: "application/pdf", data: "AA==" }] });
+  assert.deepEqual(calls, ["claude-haiku-5-5", chat.MODEL]);
+  assert.equal((await ask(JOB)).status, "done");
+});

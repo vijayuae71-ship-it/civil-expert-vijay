@@ -11,6 +11,10 @@ on:
         description: "Question group to run (mep, rates, drawing, product, language, boq, multi, tender), or leave empty for all"
         required: false
         default: "mep"
+      cheap_model:
+        description: "Model for copying tasks (tender BOQ, price lists, simplify). Empty = default (claude-haiku-5-5); 'off' = use the main model"
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -30,6 +34,7 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GROUP: ${{ inputs.group }}
+          EXPERT_CHEAP_MODEL: ${{ inputs.cheap_model }}
         run: |
           set +e
           if [ -n "$GROUP" ]; then npm run -s eval -- --group "$GROUP" --report answer-report.md --print-all; else npm run -s eval -- --report answer-report.md --print-all; fi
