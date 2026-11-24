@@ -21,3 +21,15 @@ test("the microphone is allowed on the site (voice typing) — Permissions-Polic
   assert.doesNotMatch(policy, /microphone=\(\)/);
   assert.match(policy, /microphone=\(self\)/);
 });
+
+test("the old site address forwards to the main site, and only that host is forwarded", () => {
+  const toml = fs.readFileSync(path.join(root, "netlify.toml"), "utf8");
+  const rules = [...toml.matchAll(/\[\[redirects\]\]([\s\S]*?)(?=\n\[|$)/g)].map((m) => m[1]);
+  const fwd = rules.find((r) => /civilengineervijay/.test(r));
+  assert.ok(fwd, "forward rule exists");
+  assert.match(fwd, /from = "https:\/\/civilengineervijay\.netlify\.app\/\*"/);
+  assert.match(fwd, /to = "https:\/\/constructionaiexpert\.netlify\.app\/:splat"/);
+  assert.match(fwd, /status = 301/);
+  assert.match(fwd, /force = true/);
+  assert.ok(rules.every((r) => !/from = "\/\*"/.test(r)), "no catch-all rule that would also hit the main site");
+});
