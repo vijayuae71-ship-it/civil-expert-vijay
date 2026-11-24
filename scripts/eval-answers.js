@@ -214,6 +214,31 @@ CASES.push(
   }
 );
 
+const conditionsPdf = { name: "sample-tender-conditions.pdf", mimeType: "application/pdf", data: require("fs").readFileSync(require("path").join(__dirname, "fixtures", "sample-tender-conditions.pdf")).toString("base64") };
+const TERMS = "**Work & time**\n- Complete in 6 months.\n- Offer must stay valid for 120 days from opening.\n**Money**\n- EMD Rs. 97,200.\n- Rates must include ALL taxes including GST; no separate GST is paid.\n- Monthly running bills; no advance.\n**Materials & quality**\n- Steel: Fe-500D TMT from SAIL, TATA or JSW only.";
+const sampleItems = Q.tenderItems([["Item No", "Description", "Unit", "Qty"],
+  ["4.1.8", "Providing and laying in position cement concrete 1:4:8 up to plinth level, excluding centering and shuttering", "cum", 9.75],
+  ["5.33.1", "Machine batched M-25 RCC up to plinth level including pumping, excluding centering, shuttering, finishing and reinforcement", "cum", 24.6],
+  ["5.22A.6", "Steel reinforcement Fe-500D TMT for R.C.C. work up to plinth level, straightening, cutting, bending, placing and binding", "kg", 2850],
+  ["13.1.1", "12 mm cement plaster of mix 1:6", "sqm", 412]]).map((it) => ({ ...it, rate: { "4.1.8": 6200, "5.33.1": 7900, "5.22A.6": 32, "13.1.1": 330 }[it.ref] }));
+CASES.push(
+  {
+    group: "tender", background: true, name: "Key tender terms in plain words, with the exact numbers",
+    body: { task: "tender-terms", message: "List the important tender terms in plain words.", attachments: [conditionsPdf] },
+    must: [/6 months|six months/i, /120 days/, /97,200/, /0\.5\s?%/, /10\s?%/, /GST/, /SAIL|TATA|JSW/, /advance/i]
+  },
+  {
+    group: "tender", background: true, name: "Simplifies long tender specs and keeps what is included or excluded",
+    body: { task: "tender-simplify", message: Q.simplifyRequests(sampleItems)[0].message },
+    must: [check("4 short lines, each under 30 words", (t) => { const s = Q.shortsFromText(t, 4); return s.every((x) => x && x.split(/\s+/).length <= 30); }), /pump/i, /shutter|centering/i, /reinforcement|steel/i]
+  },
+  {
+    group: "tender", background: true, name: "Check flags GST added against an all-inclusive tender, short validity, advance terms and a too-low steel rate",
+    body: { task: "tender-check", message: Q.reviewMessage({ currency: "INR", taxLabel: "GST", taxRate: 18, date: "2026-11-24", validUntil: "2026-12-24", terms: "1. 50% advance with the order.", tenderTerms: TERMS, client: { site: "Mysuru, Karnataka" }, items: sampleItems }, []) },
+    must: [/^🔴/m, /GST/, /120/, /advance/i, /5\.22A\.6|steel/i]
+  }
+);
+
 // ---------- several files at once (group "multi") ----------
 CASES.push(
   {

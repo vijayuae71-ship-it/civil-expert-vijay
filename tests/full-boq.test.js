@@ -119,3 +119,12 @@ test("tender tasks use their own short instruction, keep the document cached, an
   assert.match(systemText(rateCalls[0]), /experienced construction estimator/);
   assert.equal((await chat.handler(post({ task: "hack", message: "x" }))).statusCode, 400);
 });
+
+test("simplify, key terms and check tasks have their own instructions", async () => {
+  for (const [task, re] of [["tender-simplify", /explain tender BOQ items/], ["tender-terms", /list only what matters before quoting/], ["tender-check", /check a small contractor's quotation/]]) {
+    const calls = fakeClaude(chat, "✅ fine");
+    const { res } = await runJob(memoryStore(), { task, message: "x".repeat(task === "tender-check" ? 40000 : 100) });
+    assert.equal(res.statusCode, 202);
+    assert.match(systemText(calls[0]), re, task);
+  }
+});

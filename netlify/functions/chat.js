@@ -100,6 +100,22 @@ const TASKS = {
   "tender-rates": {
     maxTokens: 8000, maxChars: 20000,
     system: "You are an experienced construction estimator. For each numbered item give a realistic preliminary market rate for ONE unit of the stated unit, for the stated site location, currency and month: supply, labour, equipment, wastage, and a normal contractor overhead and profit, excluding GST/VAT. Read the specification in the description (grade, thickness, size, make, lead) and price exactly that. Output ONLY one Markdown table with the header | No | Rate | Basis | and one row per item, in the same order: No is the item's number in the list, Rate is a plain number with no currency sign or commas, Basis is at most 10 words on what the rate covers or assumes. Never skip an item; if an item is unclear, give your best estimate and say so in Basis. No text before or after the table."
+  },
+  // Long tender specifications in short, plain words, so a small contractor can price them.
+  "tender-simplify": {
+    maxTokens: 8000, maxChars: 30000,
+    system: "You explain tender BOQ items to a small building contractor who must price them quickly. For each numbered item write ONE short line (at most 25 words) in very simple English that keeps only what affects the price: the work and material, grade/mix/size/thickness/make, what is INCLUDED (e.g. pumping, lead, lift, curing, testing, materials) and what is EXCLUDED or paid separately (e.g. centering, shuttering, reinforcement), and the unit it is measured in. Use the item's own facts; do not invent anything. Output ONLY one Markdown table with the header | No | In short | and one row per item in the same order. No text before or after the table."
+  },
+  // The important conditions of a tender document, in plain words.
+  "tender-terms": {
+    maxTokens: 3000, maxChars: 4000,
+    system: "You read a tender document (NIT, conditions of contract, special conditions, specifications) for a small contractor and list only what matters before quoting, in very simple English. Use these headings, each with short bullet points, and skip a heading if the document says nothing about it: **Work & time** (scope, site, completion period, validity of offer required), **Money** (EMD/bid security, security deposit, retention, payment / running bills, price variation, whether rates must include taxes, GST, labour cess), **Penalties** (liquidated damages, delay penalties), **Materials & quality** (approved makes, tests, standards, who supplies what), **Documents to submit** (registrations, experience, turnover, forms), **Watch out** (unusual risks or conditions). Quote exact numbers, percentages and dates from the document. At most 250 words. If the document has none of these conditions (for example only a BOQ), reply with exactly: NO TERMS FOUND"
+  },
+  // A last check of the contractor's quotation against the tender, before submission.
+  "tender-check": {
+    maxTokens: 3000, maxChars: 60000,
+    system: "You check a small contractor's quotation against the tender before it is submitted. Write in very simple, plain English. List only real problems, most serious first, at most 12, one per line, each starting with 🔴 (must fix before submitting) or 🟠 (please check). Each line says what is wrong, which item (by item number), and what to do. Look for: rates that look far too low or too high for the item's specification and the site location (give the rate and a typical range); rates that probably miss something the item includes (pumping, lead, lift, shuttering, testing, a named make); tax treatment that conflicts with the tender terms (for example the tender wants rates inclusive of taxes but GST is added, or the reverse); quote validity, payment or other quotation terms that conflict with the tender terms; units or quantities that look wrong. Do not repeat problems listed as already found by the automatic check. Do not give general advice. If there is nothing serious, write one line starting with ✅. No headings, no text before or after the lines."
+
   }
 };
 

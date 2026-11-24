@@ -153,3 +153,46 @@ test("WhatsApp text uses the tender item numbers and shows headings", () => {
   assert.match(text, /\*1 Earth work in excavation/);
   assert.match(text, /\n1\.1\. All kinds of soil\n {3}125\.5 cum × ₹ 100\.00/);
 });
+
+// ---------- check before submitting ----------
+function tenderQuote() {
+  const items = Q.tenderItems(GEPNIC).map((it) => ({ ...it, orig: { qty: it.qty, unit: it.unit, description: it.description } }));
+  return { fromTender: true, tenderRefs: items.map((i) => i.ref), date: "2026-11-24", validUntil: "2027-02-22", company: { name: "SV Smart Building", phone: "90000" }, client: { name: "EE, PWD" }, items };
+}
+test("check: a complete, untouched tender quote has no issues", () => {
+  const q = tenderQuote(); q.items.forEach((it) => { if (!it.heading) it.rate = 100; });
+  assert.deepEqual(Q.checkQuote(q), []);
+});
+test("check: missing rates, changed quantity, dropped item, AI rates, extra item, short validity — red first", () => {
+  const q = tenderQuote();
+  q.items[1].rate = 285; q.items[1].aiRate = true;       // 1.1
+  q.items[3].rate = 6480; q.items[3].qty = 15;           // 2: qty changed
+  q.items.splice(2, 1);                                  // 1.2 dropped
+  q.items.push({ ref: "X1", description: "Extra cleaning", unit: "LS", qty: 1, rate: 500 });
+  q.validUntil = "2026-12-10";
+  const issues = Q.checkQuote(q), text = issues.map((i) => `${i.level}: ${i.text}`).join("\n");
+  assert.match(text, /^red: .*Quantity changed from the tender for 2 \(18\.2 → 15\)/m);
+  assert.match(text, /^red: Tender item missing from your quote: 1\.2\./m);
+  assert.match(text, /^amber: 1 item is not in the tender: X1/m);
+  assert.match(text, /^amber: 1 rate is still the AI suggestion \(1\.1\)/m);
+  assert.match(text, /^amber: The quote is valid for less than 30 days/m);
+  assert.equal(issues[0].level, "red");
+  assert.ok(issues.findIndex((i) => i.level === "amber") > issues.findLastIndex((i) => i.level === "red"));
+  const empty = tenderQuote();
+  assert.match(Q.checkQuote(empty)[0].text, /^3 items have no rate: 1\.1, 1\.2, 2\./);
+});
+test("review message for the AI carries terms, tax, validity, items and the automatic findings", () => {
+  const q = { ...tenderQuote(), currency: "INR", taxLabel: "GST", taxRate: 18, terms: "50% advance", tenderTerms: "**Money**\n- Rates must include all taxes except GST" };
+  q.items.forEach((it) => { if (!it.heading) it.rate = 100; });
+  q.items[1].short = "Dig any soil by machine, lead 50 m, lift 1.5 m; per cum.";
+  const m = Q.reviewMessage(q, [{ level: "amber", text: "Your phone is missing." }]);
+  assert.match(m, /Rates must include all taxes except GST/);
+  assert.match(m, /GST 18% added on top; discount 0; quote valid 90 days/);
+  assert.match(m, /\n1\.1 \| Dig any soil by machine, lead 50 m, lift 1\.5 m; per cum\. \| cum \| 125\.5 \| 100 \| 12550/);
+  assert.match(m, /do not repeat\): Your phone is missing\./);
+});
+test("simplify requests and short lines", () => {
+  const [r] = Q.simplifyRequests(Q.tenderItems(GEPNIC));
+  assert.match(r.message, /^Explain each tender item in short, simple words\.\nItems:\n1\. \[1\.1\]/);
+  assert.deepEqual(Q.shortsFromText("| No | In short |\n|---|---|\n| 2 | Rock digging, per cum |", 3), [undefined, "Rock digging, per cum", undefined]);
+});

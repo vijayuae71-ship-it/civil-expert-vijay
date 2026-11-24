@@ -141,30 +141,91 @@
   }
   const tenderItemsFromText = (text) => tables(text).flatMap((rows) => tenderItems(rows));
 
-  // The AI's rate table ("No | Rate | Basis") → rates in item order (NaN where missing).
-  function ratesFromText(text, count) {
-    const out = Array(count).fill(NaN);
-    for (const rows of tables(text)) for (const r of rows.slice(1)) {
-      const n = parseInt(r[0], 10), rate = toNumber(r[1]);
-      if (n >= 1 && n <= count && Number.isFinite(rate) && rate >= 0) out[n - 1] = rate;
-    }
-    return out;
-  }
-  // Requests for "Suggest rates": numbered item lists of at most `size` items and ~9,000 characters.
-  // `want` picks the items to price (default: every non-heading item); indexes refer to `items`.
-  function rateRequests(items, { location = "", currency = "INR", month = "", want = (it) => !it.heading } = {}, size = 40) {
+  // Numbered item lists for the AI (rates, plain-language summaries): at most `size` items each.
+  // `want` picks the items (default: every non-heading item); indexes refer to `items`.
+  function itemRequests(items, header, want = () => true, size = 40) {
     const priced = items.map((it, i) => ({ it, i })).filter(({ it }) => !it.heading && want(it));
     const out = [];
     for (let k = 0; k < priced.length; k += size) {
       const chunk = priced.slice(k, k + size);
-      const lines = chunk.map(({ it }, n) => {
-        const parent = (() => { for (let j = items.indexOf(it) - 1; j >= 0; j--) if (items[j].heading) return items[j].description; return ""; })();
-        const desc = `${parent && it.description.length < 80 ? parent.slice(0, 300) + " — " : ""}${it.description}`.slice(0, 600);
+      const lines = chunk.map(({ it, i }, n) => {
+        let parent = "";
+        for (let j = i - 1; j >= 0; j--) if (items[j].heading) { parent = items[j].description; break; }
+        const desc = `${parent && String(it.description).length < 80 ? parent.slice(0, 300) + " — " : ""}${it.description}`.slice(0, 600);
         return `${n + 1}. ${it.ref ? `[${it.ref}] ` : ""}${desc} (unit: ${it.unit || "-"}, qty: ${it.qty})`;
       });
-      out.push({ indexes: chunk.map(({ i }) => i), message: `Site location: ${location || "not stated"}. Currency: ${currency}. Month: ${month}.\nItems:\n${lines.join("\n")}` });
+      out.push({ indexes: chunk.map(({ i }) => i), message: `${header}\nItems:\n${lines.join("\n")}` });
     }
     return out;
+  }
+  const rateRequests = (items, { location = "", currency = "INR", month = "", want } = {}, size = 40) =>
+    itemRequests(items, `Site location: ${location || "not stated"}. Currency: ${currency}. Month: ${month}.`, want, size);
+  const simplifyRequests = (items, { want } = {}, size = 40) => itemRequests(items, "Explain each tender item in short, simple words.", want, size);
+
+  // The AI's numbered table ("No | Rate | …" or "No | In short") → values in item order.
+  function columnFromText(text, count, parse) {
+    const out = Array(count).fill(undefined);
+    for (const rows of tables(text)) for (const r of rows.slice(1)) {
+      const n = parseInt(r[0], 10), v = parse(r[1]);
+      if (n >= 1 && n <= count && v !== undefined) out[n - 1] = v;
+    }
+    return out;
+  }
+  const ratesFromText = (text, count) => columnFromText(text, count, (c) => { const v = toNumber(c); return Number.isFinite(v) && v >= 0 ? v : undefined; }).map((v) => (v === undefined ? NaN : v));
+  const shortsFromText = (text, count) => columnFromText(text, count, (c) => (String(c || "").trim() ? String(c).trim() : undefined));
+
+  // ---------- checks before submitting (no AI) ----------
+  // Items imported from a tender keep `orig` (the tender's qty, unit, description); q.tenderRefs lists
+  // the tender's item numbers. Returns [{ level: "red" | "amber", text }], most serious first.
+  function checkQuote(q) {
+    const issues = [], items = q.items || [], priced = items.filter((it) => !it.heading && String(it.description || "").trim());
+    const name = (it) => it.ref || `"${String(it.description).slice(0, 30)}"`;
+    const list = (arr, max = 6) => arr.slice(0, max).join(", ") + (arr.length > max ? ` and ${arr.length - max} more` : "");
+    const noRate = priced.filter((it) => !(Number(it.rate) > 0));
+    if (noRate.length) issues.push({ level: "red", text: `${noRate.length} item${noRate.length === 1 ? " has" : "s have"} no rate: ${list(noRate.map(name))}. Fill every rate before submitting.` });
+    const noQty = priced.filter((it) => !(Number(it.qty) > 0));
+    if (noQty.length) issues.push({ level: "red", text: `Quantity is zero or empty for ${list(noQty.map(name))}.` });
+    const qtyChanged = priced.filter((it) => it.orig && Number(it.orig.qty) !== Number(it.qty));
+    if (qtyChanged.length) issues.push({ level: "red", text: `Quantity changed from the tender for ${list(qtyChanged.map((it) => `${name(it)} (${it.orig.qty} → ${it.qty})`), 4)}. Tender quantities must normally be kept as given.` });
+    if (Array.isArray(q.tenderRefs) && q.tenderRefs.length) {
+      const have = new Set(items.map((it) => it.ref));
+      const missing = q.tenderRefs.filter((r) => r && !have.has(r));
+      if (missing.length) issues.push({ level: "red", text: `Tender item${missing.length === 1 ? "" : "s"} missing from your quote: ${list(missing)}. Every tender item must be quoted.` });
+    }
+    const unitChanged = priced.filter((it) => it.orig && String(it.orig.unit || "") !== String(it.unit || ""));
+    if (unitChanged.length) issues.push({ level: "amber", text: `Unit changed from the tender for ${list(unitChanged.map((it) => `${name(it)} (${it.orig.unit} → ${it.unit})`), 4)}.` });
+    const descChanged = items.filter((it) => it.orig && String(it.orig.description) !== String(it.description));
+    if (descChanged.length) issues.push({ level: "amber", text: `Description edited for ${list(descChanged.map(name))}. Keep the tender wording exactly unless the tender allows changes.` });
+    if (q.fromTender) {
+      const added = priced.filter((it) => !it.orig);
+      if (added.length) issues.push({ level: "amber", text: `${added.length} item${added.length === 1 ? " is" : "s are"} not in the tender: ${list(added.map(name))}. Extra items are usually not allowed in a tender quote.` });
+    }
+    const ai = priced.filter((it) => it.aiRate);
+    if (ai.length) issues.push({ level: "amber", text: `${ai.length} rate${ai.length === 1 ? " is" : "s are"} still the AI suggestion (${list(ai.map(name))}). Check each against your own costs and supplier prices.` });
+    const seen = new Map(); items.forEach((it) => { if (it.ref) seen.set(it.ref, (seen.get(it.ref) || 0) + 1); });
+    const dup = [...seen].filter(([, n]) => n > 1).map(([r]) => r);
+    if (dup.length) issues.push({ level: "amber", text: `Item number used twice: ${list(dup)}.` });
+    const c = q.company || {};
+    const missingCo = [!c.name && "company name", !c.phone && !c.email && "phone or email"].filter(Boolean);
+    if (missingCo.length) issues.push({ level: "amber", text: `Your ${missingCo.join(" and ")} ${missingCo.length === 1 ? "is" : "are"} missing on the quotation.` });
+    if (!(q.client && q.client.name)) issues.push({ level: "amber", text: "The client / department name is empty." });
+    if (q.validUntil && q.date && (Date.parse(q.validUntil) - Date.parse(q.date)) / 864e5 < 30) issues.push({ level: "amber", text: "The quote is valid for less than 30 days. Tenders often ask for 90 days or more — check the tender." });
+    return issues.sort((a, b) => (a.level === b.level ? 0 : a.level === "red" ? -1 : 1));
+  }
+
+  // A compact text of the quotation for the AI review.
+  function reviewMessage(q, autoIssues = []) {
+    const t = totals(q), cur = q.currency || "INR";
+    const days = q.validUntil && q.date ? Math.round((Date.parse(q.validUntil) - Date.parse(q.date)) / 864e5) : "";
+    const lines = t.items.filter((it) => !it.heading).slice(0, 400).map((it) => `${it.ref || "-"} | ${(it.short || String(it.description)).replace(/\s+/g, " ").slice(0, 160)} | ${it.unit || ""} | ${it.qty} | ${it.rate} | ${it.amount}${it.aiRate ? " | AI rate" : ""}`);
+    return [
+      `Tender key terms (plain summary):\n${q.tenderTerms ? String(q.tenderTerms).slice(0, 6000) : "Not available."}`,
+      `Quotation: currency ${cur}; ${Number(q.taxRate) ? `${q.taxLabel || "tax"} ${q.taxRate}% added on top` : "no tax added"}; discount ${t.discount}; quote valid ${days} days; total ${t.total}.`,
+      `Quotation terms:\n${String(q.terms || "").slice(0, 2000)}`,
+      `Site / project: ${(q.client && q.client.site) || "not stated"}. Subject: ${q.subject || ""}`,
+      `Items (Item No | description | unit | qty | rate | amount):\n${lines.join("\n")}`,
+      `Already found by the automatic check (do not repeat): ${autoIssues.map((i) => i.text).join(" / ") || "nothing"}`
+    ].join("\n\n");
   }
 
   // ---------- quotation maths ----------
@@ -232,7 +293,7 @@
     return `${major} ${words(whole, currency === "INR")}${frac ? ` and ${words(frac, false)} ${minor}` : ""} Only`;
   }
 
-  const api = { CURRENCIES, toNumber, money, detectCurrency, itemsFromAnswer, tenderItems, tenderItemsFromText, ratesFromText, rateRequests, totals, quoteNumber, shareText, amountInWords, isTotalRow };
+  const api = { CURRENCIES, toNumber, money, detectCurrency, itemsFromAnswer, tenderItems, tenderItemsFromText, ratesFromText, shortsFromText, rateRequests, simplifyRequests, checkQuote, reviewMessage, totals, quoteNumber, shareText, amountInWords, isTotalRow };
   if (typeof module === "object" && module.exports) module.exports = api;
   else root.QUOTE = api;
 })(typeof self !== "undefined" ? self : this);

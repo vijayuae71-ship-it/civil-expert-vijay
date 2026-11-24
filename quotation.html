@@ -78,11 +78,26 @@
       <div class="mt-2 flex flex-wrap gap-2">
         <label class="cursor-pointer rounded-lg bg-blue-700 px-3 py-1.5 text-sm font-semibold text-white hover:bg-blue-800">📄 Import tender BOQ<input id="tender-file" type="file" class="hidden" multiple accept=".xlsx,.xlsm,.xls,.csv,.pdf,image/*"></label>
         <button type="button" id="btn-rates" class="rounded-lg border border-amber-400 bg-white px-3 py-1.5 text-sm font-semibold text-amber-800 hover:bg-amber-50">🤖 Suggest rates</button>
+        <button type="button" id="btn-simplify" class="rounded-lg border border-emerald-500 bg-white px-3 py-1.5 text-sm font-semibold text-emerald-800 hover:bg-emerald-50">📝 Simplify specs</button>
+        <label class="cursor-pointer rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50" id="btn-terms">📑 Key tender terms<input id="terms-file" type="file" class="hidden" multiple accept=".pdf,image/*"></label>
+        <button type="button" id="btn-check" class="rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-emerald-700">✅ Check before submitting</button>
         <button type="button" id="btn-excel" class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">⬇ Excel</button>
       </div>
       <label class="mt-2 flex items-center gap-2 text-xs font-semibold text-slate-600">Site location for rates <input id="rate-location" class="min-w-0 flex-1 rounded-md border border-slate-300 bg-white px-2 py-1 text-sm font-normal" placeholder="e.g. Whitefield, Bengaluru" maxlength="120"></label>
       <p id="tender-status" class="hidden mt-2 rounded-lg bg-white px-3 py-2 text-sm text-slate-700" role="status"></p>
     </section>
+    <section id="review" class="no-print hidden mt-3 rounded-xl border border-slate-300 bg-white p-3 shadow-sm" aria-live="polite">
+      <div class="flex items-center justify-between gap-2"><p class="text-sm font-bold text-slate-800">✅ Check before submitting</p><button type="button" id="review-close" class="rounded px-2 text-slate-400 hover:bg-slate-100" aria-label="Close the check">✕</button></div>
+      <p id="review-summary" class="mt-1 text-sm font-semibold"></p>
+      <ul id="review-auto" class="mt-2 space-y-1.5 text-sm"></ul>
+      <p id="review-ai-status" class="mt-3 text-xs text-slate-500"></p>
+      <ul id="review-ai" class="mt-1 space-y-1.5 text-sm"></ul>
+      <p class="mt-3 text-xs text-slate-500">The check helps you spot mistakes; it does not replace reading the tender yourself.</p>
+    </section>
+    <details id="terms-box" class="no-print hidden mt-3 rounded-xl border border-slate-300 bg-white p-3 shadow-sm">
+      <summary class="cursor-pointer text-sm font-bold text-slate-800">📑 Key tender terms (plain words)</summary>
+      <div id="terms-text" class="mt-2 space-y-1 text-sm text-slate-700"></div>
+    </details>
     <p id="from-tender" class="no-print hidden mt-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950">Items were copied from the tender. Check every item number, description, unit and quantity against the tender document before you submit. Rates marked <span class="ai-tag">AI</span> are AI suggestions — check them; the tag goes when you change a rate.</p>
     <p class="no-print mt-2 text-xs text-slate-500">Tap any text to edit it. Your quotations and company details are saved only on this phone or computer.</p>
 
@@ -225,7 +240,7 @@
       q.items.forEach((it, i) => {
         const r = document.createElement("div"); r.className = `q-row${it.heading ? " q-heading" : ""}`;
         r.innerHTML = `<div class="c-n"><input class="q-in" data-f="ref" aria-label="Item number" maxlength="20"></div>
-          <div class="c-d"><textarea class="q-in" rows="1" data-f="description" placeholder="Item description" aria-label="Item description"></textarea></div>
+          <div class="c-d"><textarea class="q-in" rows="1" data-f="description" placeholder="Item description" aria-label="Item description"></textarea><p class="short no-print hidden mt-0.5 rounded bg-emerald-50 px-1.5 py-0.5 text-xs text-emerald-900"></p></div>
           <div class="c-u"><span class="lbl">Unit</span><input class="q-in" data-f="unit" placeholder="m³" aria-label="Unit"></div>
           <div class="c-q"><span class="lbl">Qty</span><input class="q-in q-num" data-f="qty" type="number" step="any" min="0" inputmode="decimal" aria-label="Quantity"></div>
           <div class="c-r"><span class="lbl">Rate<span class="ai-tag hidden">AI</span></span><input class="q-in q-num" data-f="rate" type="number" step="any" min="0" inputmode="decimal" aria-label="Rate"></div>
@@ -234,6 +249,7 @@
         const refInput = r.querySelector('[data-f="ref"]');
         refInput.placeholder = it.heading ? "" : String(q.items.slice(0, i + 1).filter((x) => !x.heading).length);
         const tag = r.querySelector(".ai-tag"); tag.classList.toggle("hidden", !it.aiRate);
+        const short = r.querySelector(".short"); if (it.short) { short.textContent = `In short: ${it.short}`; short.classList.remove("hidden"); }
         r.querySelectorAll("[data-f]").forEach((el) => {
           el.value = it[el.dataset.f] ?? "";
           el.addEventListener("input", () => {
@@ -290,7 +306,7 @@
         const [open, dup, del] = row.querySelectorAll("button");
         open.children[0].textContent = `${x.number} · ${x.client?.name || "No client"}`;
         open.children[1].textContent = `${nice(x.date)} · ${Q.money(Q.totals(x).total, x.currency)}${x.subject ? ` · ${x.subject}` : ""}`;
-        open.onclick = () => { q = x; fill(); $("from-tender").classList.toggle("hidden", !x.fromTender); toggleList(false); window.scrollTo({ top: 0, behavior: "smooth" }); };
+        open.onclick = () => { q = x; fill(); hideReview(); showTerms(x.tenderTerms); $("from-tender").classList.toggle("hidden", !x.fromTender); toggleList(false); window.scrollTo({ top: 0, behavior: "smooth" }); };
         dup.onclick = () => { const fresh = blank({ currency: x.currency }); q = { ...JSON.parse(JSON.stringify(x)), id: fresh.id, number: fresh.number, date: fresh.date, validUntil: fresh.validUntil }; save(); fill(); toggleList(false); toast("Copied as a new quotation"); };
         del.onclick = () => { if (!confirm(`Delete quotation ${x.number}?`)) return; quotes = quotes.filter((y) => y.id !== x.id); store.set(KEY, quotes); if (x.id === q.id) { q = quotes[0] || blank(); fill(); } renderSaved(); };
         box.appendChild(row);
@@ -313,7 +329,7 @@
     $("tax-rate").addEventListener("input", (e) => { q.taxRate = e.target.value === "" ? 0 : Number(e.target.value); renderTotals(); save(); });
     $("discount").addEventListener("input", (e) => { q.discount = e.target.value === "" ? 0 : Number(e.target.value); renderTotals(); save(); });
     $("add-item").onclick = () => { q.items.push({ description: "", unit: "", qty: 1, rate: 0 }); renderItems(); renderTotals(); save(); $("items").lastElementChild.querySelector("textarea").focus(); };
-    $("btn-new").onclick = () => { q = blank(); save(); fill(); $("from-answer").classList.add("hidden"); $("from-tender").classList.add("hidden"); toast("New quotation"); };
+    $("btn-new").onclick = () => { q = blank(); save(); fill(); hideReview(); showTerms(""); $("from-answer").classList.add("hidden"); $("from-tender").classList.add("hidden"); toast("New quotation"); };
     $("btn-list").onclick = () => toggleList();
     $("logo-file").addEventListener("change", (e) => {
       const f = e.target.files[0]; if (!f) return;
@@ -468,6 +484,7 @@
       }
       if (!attachments.length) throw new Error("Please choose an Excel, CSV or PDF file, or photos of the BOQ pages.");
       if (attachments.reduce((n, a) => n + a.data.length * 0.75, 0) > 4.5 * 1024 * 1024) throw new Error("These files are too large together (about 4 MB in total). Send only the BOQ pages.");
+      tenderDocs = attachments;   // kept in this tab for "Key tender terms"
       const items = [];
       for (let part = 1; part <= 12; part++) {
         tStatus(`Reading the tender BOQ${part > 1 ? ` — part ${part} (${items.filter((x) => !x.heading).length} items so far)` : ""}… about 1–3 minutes per part. Keep this page open.`);
@@ -489,7 +506,7 @@
       if (!sheets.length) throw new Error("No BOQ table was found. The sheet needs columns such as Description, Unit and Quantity.");
       return sheets.length === 1 ? sheets[0].items : sheets.flatMap((sh) => [{ ref: "", description: sh.name, heading: true }, ...sh.items]);
     }
-    let tenderBusy = false;
+    let tenderBusy = false, tenderDocs = null;
     $("tender-file").addEventListener("change", async (e) => {
       const files = Array.from(e.target.files || []).slice(0, 5); e.target.value = "";
       if (!files.length) return;
@@ -502,8 +519,11 @@
         else items = await readTenderWithAi(files);
         const count = items.filter((x) => !x.heading).length;
         if (!count) throw new Error("No BOQ lines with a quantity were found.");
-        q = blank({ subject: `Tender: ${files[0].name.replace(/\.[^.]+$/, "")}`, fromTender: true });
-        q.items = items.slice(0, 2000); save(); fill();
+        q = blank({ subject: `Tender: ${files[0].name.replace(/\.[^.]+$/, "")}`, fromTender: true, validUntil: today(90),
+          terms: "1. All terms and conditions as per the tender document.\n2. Quantities as per the tender BOQ; billing on actual measured quantities.\n3. Rates are valid for 90 days from the date of opening of the tender, or as required by the tender." });
+        q.items = items.slice(0, 2000).map((it) => ({ ...it, orig: { qty: it.qty, unit: it.unit, description: it.description } }));
+        q.tenderRefs = q.items.map((it) => it.ref).filter(Boolean);
+        save(); fill(); hideReview();
         $("from-tender").classList.remove("hidden"); $("from-answer").classList.add("hidden");
         tStatus(`✓ ${count} items imported${items.length > count ? ` with ${items.length - count} heading${items.length - count === 1 ? "" : "s"}` : ""}. Enter your rates, or add the site location and tap 🤖 Suggest rates.`);
       } catch (err) { tStatus(`⚠️ ${err.message || "Could not import this file."}`); }
@@ -533,6 +553,96 @@
       } catch (err) { tStatus(`⚠️ ${err.message}${filled ? ` (${filled} rates were filled before this.)` : ""}`); }
       finally { tenderBusy = false; }
     };
+    // ---------- simplify, key terms, check ----------
+    $("btn-simplify").onclick = async () => {
+      if (tenderBusy) { toast("Please wait for the current step to finish."); return; }
+      const want = (it) => String(it.description || "").trim().length > 0 && !it.short;
+      const reqs = Q.simplifyRequests(q.items, { want });
+      if (!reqs.length) { toast(q.items.some((it) => it.short) ? "Every item already has a short version." : "Add or import items first."); return; }
+      tenderBusy = true; const target = q; let done = 0;
+      try {
+        for (const [k, r] of reqs.entries()) {
+          tStatus(`Writing the specs in simple words — part ${k + 1} of ${reqs.length}… about a minute per part.`);
+          const job = await aiJob({ task: "tender-simplify", message: r.message });
+          const shorts = Q.shortsFromText(job.reply, r.indexes.length);
+          r.indexes.forEach((idx, n) => { if (shorts[n]) { target.items[idx].short = shorts[n]; done++; } });
+          if (q === target) renderItems(); save();
+        }
+        tStatus(`✓ ${done} items now have an “In short” line (green). It is only for you; the quotation keeps the tender wording.`);
+      } catch (err) { tStatus(`⚠️ ${err.message}`); }
+      finally { tenderBusy = false; }
+    };
+    function showTerms(text) {
+      const box = $("terms-text"); box.innerHTML = "";
+      String(text || "").split("\n").map((l) => l.trim()).filter(Boolean).forEach((l) => {
+        const el = document.createElement(/^[-*•]\s/.test(l) ? "li" : "p");
+        const clean = l.replace(/^[-*•]\s+/, "").replace(/^#+\s*/, "");
+        if (el.tagName === "LI") el.className = "ml-5 list-disc";
+        const bold = clean.match(/^\*\*(.+?)\*\*:?\s*(.*)$/);
+        if (bold) { const b = document.createElement("strong"); b.textContent = bold[1]; el.append(b, bold[2] ? ` ${bold[2].replace(/\*\*/g, "")}` : ""); if (el.tagName === "P") el.className = "mt-2 text-slate-900"; }
+        else el.textContent = clean.replace(/\*\*/g, "");
+        box.appendChild(el);
+      });
+      $("terms-box").classList.toggle("hidden", !text); if (text) $("terms-box").open = true;
+    }
+    async function fetchTerms(attachments) {
+      tenderBusy = true;
+      try {
+        tStatus("Reading the tender conditions… about 1–2 minutes.");
+        const job = await aiJob({ task: "tender-terms", message: "List the important tender terms in plain words.", attachments });
+        if (/NO TERMS FOUND/.test(job.reply)) { tStatus("⚠️ No tender conditions were found in this file — it may contain only the BOQ. Choose the NIT / conditions of contract PDF."); return; }
+        q.tenderTerms = job.reply.trim(); save(); showTerms(q.tenderTerms);
+        tStatus("✓ Key tender terms are shown below. They are also used by ✅ Check before submitting.");
+      } catch (err) { tStatus(`⚠️ ${err.message}`); }
+      finally { tenderBusy = false; }
+    }
+    $("btn-terms").addEventListener("click", (e) => {
+      if (e.target.id === "terms-file") return;
+      if (tenderBusy) { e.preventDefault(); toast("Please wait for the current step to finish."); return; }
+      if (tenderDocs) { e.preventDefault(); fetchTerms(tenderDocs); }   // the tender PDF read in this tab
+      else toast("Choose the tender PDF (NIT / conditions), or photos of those pages.");
+    });
+    $("terms-file").addEventListener("change", async (e) => {
+      const files = Array.from(e.target.files || []).slice(0, 5); e.target.value = "";
+      if (!files.length || tenderBusy) return;
+      try {
+        const attachments = [];
+        for (const f of files) {
+          if (/^image\//.test(f.type)) attachments.push({ name: f.name.replace(/\.[^.]+$/, "") + ".jpg", mimeType: "image/jpeg", data: await imageData(f) });
+          else if (/\.pdf$/i.test(f.name)) { if (f.size > 4 * 1024 * 1024) throw new Error(`${f.name} is larger than 4 MB. Send only the conditions pages.`); attachments.push({ name: f.name, mimeType: "application/pdf", data: await fileData(f) }); }
+        }
+        if (!attachments.length) throw new Error("Please choose a PDF or photos.");
+        tenderDocs = attachments; await fetchTerms(attachments);
+      } catch (err) { tStatus(`⚠️ ${err.message}`); }
+    });
+    const ICON = { red: "🔴", amber: "🟠" };
+    const hideReview = () => $("review").classList.add("hidden");
+    $("review-close").onclick = hideReview;
+    function li(text, cls = "") { const el = document.createElement("li"); el.className = `flex gap-2 ${cls}`; const [icon, ...rest] = Array.from(text); el.innerHTML = "<span class='shrink-0'></span><span></span>"; el.children[0].textContent = icon; el.children[1].textContent = rest.join("").trim(); return el; }
+    $("btn-check").onclick = async () => {
+      if (tenderBusy) { toast("Please wait for the current step to finish."); return; }
+      if (!checkReady()) return;
+      const auto = Q.checkQuote({ ...q, company });
+      const box = $("review"), list = $("review-auto"), aiList = $("review-ai");
+      list.innerHTML = ""; aiList.innerHTML = ""; box.classList.remove("hidden");
+      auto.forEach((i) => list.appendChild(li(`${ICON[i.level]} ${i.text}`)));
+      const reds = auto.filter((i) => i.level === "red").length, ambers = auto.length - reds;
+      const summary = () => { const r = reds + aiList.querySelectorAll("[data-red]").length, a = ambers + aiList.querySelectorAll("[data-amber]").length; $("review-summary").textContent = r ? `🔴 ${r} must fix · 🟠 ${a} to check` : a ? `🟠 ${a} to check — no blocking problems found` : "✅ No problems found"; };
+      summary(); box.scrollIntoView({ behavior: "smooth", block: "start" });
+      if (!q.tenderTerms) $("review-ai-status").textContent = "Tip: tap 📑 Key tender terms first, so the AI can also check your terms against the tender.";
+      tenderBusy = true;
+      try {
+        $("review-ai-status").textContent = `AI review of rates and terms${q.tenderTerms ? "" : " (without tender terms)"}… about a minute.`;
+        const job = await aiJob({ task: "tender-check", message: Q.reviewMessage({ ...q, company }, auto) });
+        job.reply.split("\n").map((l) => l.trim()).filter((l) => /^(🔴|🟠|✅)/u.test(l)).slice(0, 15).forEach((l) => {
+          const el = li(l); if (l.startsWith("🔴")) el.dataset.red = "1"; else if (l.startsWith("🟠")) el.dataset.amber = "1"; aiList.appendChild(el);
+        });
+        $("review-ai-status").textContent = aiList.children.length ? "AI review (rates, inclusions, tax and terms):" : "AI review: nothing to add.";
+        summary();
+      } catch (err) { $("review-ai-status").textContent = `AI review could not run: ${err.message}`; }
+      finally { tenderBusy = false; }
+    };
+
     $("btn-excel").onclick = (e) => {
       if (!checkReady()) return;
       withBusy(e.currentTarget, async () => {
@@ -569,7 +679,7 @@
       q = blank({ currency: Q.CURRENCIES[imported.currency] ? imported.currency : undefined, subject: String(imported.subject || "").slice(0, 300) });
       q.items = imported.items.slice(0, 200).map((it) => ({ description: String(it.description || ""), unit: String(it.unit || ""), qty: Number(it.qty) || 0, rate: Number(it.rate) || 0 }));
       $("from-answer").classList.remove("hidden"); save();
-    } else { q = quotes[0] || blank(); $("from-tender").classList.toggle("hidden", !q.fromTender); }
+    } else { q = quotes[0] || blank(); $("from-tender").classList.toggle("hidden", !q.fromTender); showTerms(q.tenderTerms); }
     store.del(IMPORT_KEY);
     if (location.search) history.replaceState(null, "", location.pathname);
     fill(); renderSaved();
