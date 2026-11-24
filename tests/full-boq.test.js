@@ -1,0 +1,71 @@
+"use strict";
+process.env.CHAT_LIMIT_PER_IP_HOUR = "1000";
+process.env.ANSWER_CACHE = "off";
+const test = require("node:test");
+const assert = require("node:assert/strict");
+const { fakeClaude, systemText, post } = require("./helpers");
+const chat = require("../netlify/functions/chat");
+const background = require("../netlify/functions/chat-background");
+const status = require("../netlify/functions/chat-status");
+
+function memoryStore() {
+  const data = new Map();
+  return {
+    data,
+    get: async (k, opts) => (data.has(k) ? (opts?.type === "json" ? JSON.parse(data.get(k)) : data.get(k)) : null),
+    setJSON: async (k, v) => { data.set(k, JSON.stringify(v)); },
+    delete: async (k) => { data.delete(k); }
+  };
+}
+const JOB = "0f8c2b1e-4a6d-4c3b-9e2f-1a2b3c4d5e6f";
+const ask = (id) => status.handler({ httpMethod: "GET", headers: {}, queryStringParameters: { id } }).then((r) => JSON.parse(r.body));
+chat.setAnswerStoreForTests(null);
+
+test("background job writes a full itemised BOQ answer that the page can read once", async () => {
+  const store = memoryStore(); background.setJobStoreForTests(store); status.setJobStoreForTests(store);
+  const calls = fakeClaude(chat, "| Sl. No. | Description | Unit | Qty | Rate | Amount |\n|---|---|---|---|---|---|\n| A1 | Excavation | m³ | 95 | 280 | 26,600 |");
+  assert.deepEqual(await ask(JOB), { status: "pending" });
+  await background.handler(post({ jobId: JOB, message: "complete BOQ for a 1000 sq ft G+1 house", audience: "engineer", quoteReady: true }));
+  const sys = systemText(calls[0]);
+  assert.match(sys, /FULL ITEMISED BOQ/);
+  assert.doesNotMatch(sys, /no more than 5 priced rows/);
+  assert.equal(calls[0].max_tokens, 16000);
+  const job = await ask(JOB);
+  assert.equal(job.status, "done");
+  assert.match(job.reply, /Excavation/);
+  assert.deepEqual(await ask(JOB), { status: "pending" }, "read once, then removed");
+});
+
+test("the normal quick answer keeps its limits and never gets the full-BOQ instruction", async () => {
+  const calls = fakeClaude(chat, "OK.");
+  await chat.handler(post({ message: "BOQ for 100 sq ft plaster", audience: "engineer", quoteReady: true }));
+  const sys = systemText(calls[0]);
+  assert.doesNotMatch(sys, /FULL ITEMISED BOQ/);
+  assert.match(sys, /no more than 5 priced rows/);
+  assert.equal(calls[0].max_tokens, 8000);
+});
+
+test("site-worker mode stays short even in the background", async () => {
+  const store = memoryStore(); background.setJobStoreForTests(store);
+  const calls = fakeClaude(chat, "Use 1 bag.");
+  await background.handler(post({ jobId: JOB, message: "estimate cement for my wall", audience: "worker" }));
+  assert.doesNotMatch(systemText(calls[0]), /FULL ITEMISED BOQ/);
+});
+
+test("errors reach the page; bad job ids are refused", async () => {
+  const store = memoryStore(); background.setJobStoreForTests(store); status.setJobStoreForTests(store);
+  await background.handler(post({ jobId: JOB, message: "" }));
+  const job = await ask(JOB);
+  assert.equal(job.status, "error");
+  assert.match(job.error, /question/i);
+  assert.equal((await background.handler(post({ jobId: "../x", message: "BOQ" }))).statusCode, 400);
+  assert.equal((await status.handler({ queryStringParameters: { id: "nope" } })).statusCode, 400);
+});
+
+test("requests from other websites are refused in the background too", async () => {
+  const store = memoryStore(); background.setJobStoreForTests(store); status.setJobStoreForTests(store);
+  const calls = fakeClaude(chat, "x");
+  await background.handler(post({ jobId: JOB, message: "BOQ" }, { origin: "https://evil.example" }));
+  assert.equal(calls.length, 0);
+  assert.equal((await ask(JOB)).status, "error");
+});
