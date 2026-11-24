@@ -22,14 +22,20 @@ test("the microphone is allowed on the site (voice typing) — Permissions-Polic
   assert.match(policy, /microphone=\(self\)/);
 });
 
-test("the old site address forwards to the main site, and only that host is forwarded", () => {
+test("the second site address forwards to the main site (civilengineervijay), and only that host is forwarded", () => {
   const toml = fs.readFileSync(path.join(root, "netlify.toml"), "utf8");
   const rules = [...toml.matchAll(/\[\[redirects\]\]([\s\S]*?)(?=\n\[|$)/g)].map((m) => m[1]);
-  const fwd = rules.find((r) => /civilengineervijay/.test(r));
+  const fwd = rules.find((r) => /from = "https:\/\/constructionaiexpert/.test(r));
   assert.ok(fwd, "forward rule exists");
-  assert.match(fwd, /from = "https:\/\/civilengineervijay\.netlify\.app\/\*"/);
-  assert.match(fwd, /to = "https:\/\/constructionaiexpert\.netlify\.app\/:splat"/);
+  assert.match(fwd, /from = "https:\/\/constructionaiexpert\.netlify\.app\/\*"/);
+  assert.match(fwd, /to = "https:\/\/civilengineervijay\.netlify\.app\/:splat"/);
   assert.match(fwd, /status = 301/);
   assert.match(fwd, /force = true/);
   assert.ok(rules.every((r) => !/from = "\/\*"/.test(r)), "no catch-all rule that would also hit the main site");
+});
+
+test("pages, sitemap and share links name the main address only", () => {
+  for (const f of fs.readdirSync(root).filter((x) => /\.(html|xml|txt)$/.test(x)).concat(["assets/site-config.js", "netlify/functions/whatsapp.js"])) {
+    assert.doesNotMatch(fs.readFileSync(path.join(root, f), "utf8"), /constructionaiexpert\.netlify\.app/, f);
+  }
 });
