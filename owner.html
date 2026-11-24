@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Owner Dashboard | Construction AI Expert</title>
+  <link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+  <style>
+    :root {
+      --surface-0: #f4f4f2; --surface-1: #fcfcfb; --border: #e2e1dc; --grid: #ecebe7;
+      --text-primary: #0b0b0b; --text-secondary: #52514e; --text-muted: #77766f;
+      --series-1: #2a78d6; --accent: #1d4ed8; --good: #0f7a0f; --bad: #c0362c;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root { --surface-0: #121211; --surface-1: #1a1a19; --border: #33332f; --grid: #2a2a27;
+        --text-primary: #f0efec; --text-secondary: #c3c2b7; --text-muted: #9a998f;
+        --series-1: #3987e5; --accent: #86b6ef; --good: #5fc35f; --bad: #e66767; }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--surface-0); color: var(--text-primary); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    main { max-width: 1040px; margin: 0 auto; padding: 16px; }
+    h1 { font-size: 22px; margin: 0; } h2 { font-size: 15px; margin: 0 0 10px; }
+    .muted { color: var(--text-muted); font-size: 12px; } .sec { color: var(--text-secondary); }
+    .card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 14px; padding: 14px; }
+    .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .grid { display: grid; gap: 12px; }
+    .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    @media (min-width: 720px) { .tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); } .two { grid-template-columns: 1fr 1fr; } }
+    .tile .label { font-size: 12px; color: var(--text-secondary); }
+    .tile .value { font-size: 26px; font-weight: 750; font-variant-numeric: tabular-nums; margin-top: 2px; }
+    .tile .sub { font-size: 12px; color: var(--text-muted); }
+    button, .btn { font: inherit; border: 1px solid var(--border); background: var(--surface-1); color: var(--text-primary); border-radius: 9px; padding: 6px 12px; cursor: pointer; text-decoration: none; }
+    button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--surface-1); font-weight: 650; }
+    input { font: inherit; padding: 7px 10px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface-1); color: var(--text-primary); min-width: 0; }
+    .chart { position: relative; }
+    .chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+    .chart .axis { fill: var(--text-muted); font-size: 11px; }
+    .chart .gridline { stroke: var(--grid); stroke-width: 1; }
+    .chart .bar { fill: var(--series-1); pointer-events: none; }
+    .chart .hit { fill: transparent; cursor: default; }
+    .chart .hit:hover + .bar, .chart .hit:focus + .bar { opacity: .8; }
+    .tip { position: absolute; pointer-events: none; background: var(--text-primary); color: var(--surface-1); font-size: 12px; padding: 6px 8px; border-radius: 8px; white-space: nowrap; transform: translate(-50%, -110%); display: none; }
+    .hbar { display: grid; grid-template-columns: minmax(84px, 34%) 1fr auto; gap: 8px; align-items: center; font-size: 13px; margin: 6px 0; }
+    .hbar .track { height: 10px; } .hbar .fill { height: 10px; background: var(--series-1); border-radius: 0 4px 4px 0; min-width: 2px; }
+    .hbar .num { font-variant-numeric: tabular-nums; color: var(--text-secondary); }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+    th, td { text-align: right; padding: 4px 6px; border-bottom: 1px solid var(--grid); } th:first-child, td:first-child { text-align: left; }
+    details summary { cursor: pointer; color: var(--text-secondary); font-size: 13px; }
+    ul.list { list-style: none; padding: 0; margin: 0; } ul.list li { padding: 8px 0; border-bottom: 1px solid var(--grid); font-size: 14px; }
+    .pill { display: inline-block; font-size: 11px; padding: 0 6px; border-radius: 999px; border: 1px solid var(--border); color: var(--text-secondary); margin-left: 4px; }
+    .err { color: var(--bad); }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+<main>
+  <div class="row" style="justify-content: space-between">
+    <div><h1>Owner dashboard</h1><p class="muted" style="margin:2px 0 0">Construction AI Expert · private · days are UTC · AI cost is an estimate from list prices</p></div>
+    <div class="row" id="ranges" role="group" aria-label="Date range">
+      <button type="button" data-days="7" aria-pressed="true">7 days</button><button type="button" data-days="30" aria-pressed="false">30 days</button><button type="button" data-days="90" aria-pressed="false">90 days</button>
+      <button type="button" id="refresh" title="Reload">↻</button>
+    </div>
+  </div>
+
+  <form id="key-form" class="card row" style="margin-top:12px" hidden>
+    <label for="owner-key" class="sec">Owner key</label>
+    <input id="owner-key" type="password" autocomplete="current-password" style="flex:1" placeholder="The OWNER_KEY you set in Netlify">
+    <button type="submit">Open</button>
+    <p class="muted" style="width:100%;margin:0">The key is kept only in this browser. Set it in Netlify → Site configuration → Environment variables as <b>OWNER_KEY</b> (12+ characters), then redeploy.</p>
+  </form>
+  <p id="status" class="sec" role="status" style="margin:12px 0"></p>
+
+  <div id="dash" hidden>
+    <section class="grid tiles" aria-label="Totals">
+      <div class="card tile"><div class="label">Questions</div><div class="value" id="t-q"></div><div class="sub" id="t-q-sub"></div></div>
+      <div class="card tile"><div class="label">AI cost (estimate)</div><div class="value" id="t-cost"></div><div class="sub" id="t-cost-sub"></div></div>
+      <div class="card tile"><div class="label">Saved answers (no AI cost)</div><div class="value" id="t-cache"></div><div class="sub" id="t-cache-sub"></div></div>
+      <div class="card tile"><div class="label">Feedback</div><div class="value" id="t-fb"></div><div class="sub" id="t-fb-sub"></div></div>
+    </section>
+
+    <section class="grid two" style="margin-top:12px">
+      <div class="card"><h2>Questions per day</h2><div class="chart" id="c-q"></div>
+        <details><summary>Table</summary><div id="tbl-q"></div></details></div>
+      <div class="card"><h2>AI cost per day (US$, estimate)</h2><div class="chart" id="c-cost"></div>
+        <details><summary>Table</summary><div id="tbl-cost"></div></details></div>
+    </section>
+
+    <section class="grid two" style="margin-top:12px">
+      <div class="card"><h2>Where people ask</h2><div id="b-channel"></div>
+        <h2 style="margin-top:14px">Answer style</h2><div id="b-audience"></div>
+        <h2 style="margin-top:14px">Languages</h2><div id="b-lang"></div></div>
+      <div class="card"><h2>Tender &amp; quotation tools</h2><div id="b-tasks"></div>
+        <h2 style="margin-top:14px">WhatsApp files forwarded</h2><div id="b-wa"></div>
+        <h2 style="margin-top:14px">AI cost by model</h2><div id="b-models"></div>
+        <p class="muted" id="health"></p></div>
+    </section>
+
+    <section class="grid two" style="margin-top:12px">
+      <div class="card"><h2>👎 Recent “not helpful” answers</h2><ul class="list" id="downs"></ul></div>
+      <div class="card"><h2>Today's questions</h2><ul class="list" id="recent"></ul></div>
+    </section>
+
+    <section class="card" style="margin-top:12px">
+      <h2>Elsewhere</h2>
+      <div class="row">
+        <a class="btn" href="https://app.netlify.com/" target="_blank" rel="noopener">Netlify → Forms (expert-review requests)</a>
+        <a class="btn" href="https://console.anthropic.com/" target="_blank" rel="noopener">Anthropic console (exact bill, spending limit)</a>
+      </div>
+    </section>
+  </div>
+</main>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const KEY = "cae-owner-key";
+  const store = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch {} }, del(k) { try { localStorage.removeItem(k); } catch {} } };
+  let days = 7;
+  const usd = (n) => n >= 1 ? `$${n.toFixed(2)}` : n >= 0.01 ? `$${n.toFixed(3)}` : n > 0 ? `$${n.toFixed(4)}` : "$0";
+  const int = (n) => Math.round(n).toLocaleString("en-IN");
+  const pct = (a, b) => (b ? `${Math.round((a / b) * 100)}%` : "–");
+  const short = (d) => { const [, m, day] = d.split("-"); return `${Number(day)} ${["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][Number(m) - 1]}`; };
+  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; };
+  const add = (into, obj) => { for (const [k, v] of Object.entries(obj || {})) into[k] = (into[k] || 0) + v; return into; };
+
+  // Column chart: one series, single baseline, ≤24px columns with 4px rounded tops, recessive grid,
+  // a hover/focus tooltip per day (hit area = the whole day band), values in the table view below.
+  function columns(box, rows, fmt, axisFmt = fmt) {
+    box.innerHTML = "";
+    // Drawn at the box's real width, so the 11px text stays 11px on phones.
+    const W = Math.max(280, Math.round(box.clientWidth || 520)), H = 190, L = 44, B = 22, T = 10, plotW = W - L - 6, plotH = H - B - T;
+    const max = Math.max(...rows.map((r) => r.v), 0);
+    const nice = (() => { if (!max) return 1; const p = 10 ** Math.floor(Math.log10(max)); for (const m of [1, 2, 2.5, 5, 10]) if (m * p >= max) return m * p; return 10 * p; })();
+    const band = plotW / rows.length, bw = Math.min(24, Math.max(3, band - 2));
+    const ns = "http://www.w3.org/2000/svg", svg = document.createElementNS(ns, "svg");
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`); svg.setAttribute("role", "img");
+    svg.setAttribute("aria-label", `${box.closest(".card").querySelector("h2").textContent}: ${rows.map((r) => `${short(r.d)} ${fmt(r.v)}`).join(", ")}`);
+    const mk = (tag, attrs, text) => { const e = document.createElementNS(ns, tag); for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); if (text !== undefined) e.textContent = text; svg.appendChild(e); return e; };
+    for (let i = 0; i <= 2; i++) {
+      const v = (nice * i) / 2, y = T + plotH - (v / nice) * plotH;
+      mk("line", { x1: L, x2: W - 4, y1: y, y2: y, class: "gridline" });
+      mk("text", { x: L - 6, y: y + 4, "text-anchor": "end", class: "axis" }, axisFmt(v));
+    }
+    const every = Math.ceil(rows.length / Math.max(3, Math.floor(plotW / 64)));   // about one date per 64px
+    const tip = el("div", "tip"); box.appendChild(tip);
+    rows.forEach((r, i) => {
+      const x = L + i * band + (band - bw) / 2, h = (r.v / nice) * plotH, y = T + plotH - h, rr = Math.min(4, h, bw / 2);
+      const hit = mk("rect", { x: L + i * band, y: T, width: band, height: plotH, class: "hit", tabindex: 0, "aria-label": `${short(r.d)}: ${fmt(r.v)}` });
+      if (h > 0) mk("path", { class: "bar", d: `M${x},${T + plotH} V${y + rr} Q${x},${y} ${x + rr},${y} H${x + bw - rr} Q${x + bw},${y} ${x + bw},${y + rr} V${T + plotH} Z` });
+      else mk("rect", { class: "bar", x, y: T + plotH - 1, width: bw, height: 1, opacity: 0.35 });
+      if ((rows.length - 1 - i) % every === 0) {   // edge labels anchor inward so they are never cut off
+        const cx = x + bw / 2, anchor = cx > W - 30 ? "end" : cx < L + 20 ? "start" : "middle";
+        mk("text", { x: anchor === "end" ? Math.min(cx + bw / 2, W - 2) : anchor === "start" ? x : cx, y: H - 6, "text-anchor": anchor, class: "axis" }, short(r.d));
+      }
+      const show = () => { const rect = svg.getBoundingClientRect(), s = rect.width / W; tip.textContent = `${short(r.d)} · ${fmt(r.v)}`; tip.style.left = `${(x + bw / 2) * s}px`; tip.style.top = `${y * s}px`; tip.style.display = "block";
+        const shift = (x + bw / 2) / W > 0.75 ? "-100%" : (x + bw / 2) / W < 0.25 ? "0%" : "-50%";
+        tip.style.transform = `translate(${shift}, -110%)`; };
+      hit.addEventListener("mouseenter", show); hit.addEventListener("focus", show);
+      hit.addEventListener("mouseleave", () => (tip.style.display = "none")); hit.addEventListener("blur", () => (tip.style.display = "none"));
+    });
+    box.insertBefore(svg, tip);
+  }
+  function table(box, head, rows) {
+    const t = el("table"), tr = t.insertRow();
+    head.forEach((h) => tr.appendChild(el("th", "", h)));
+    rows.forEach((r) => { const row = t.insertRow(); r.forEach((c) => row.insertCell().textContent = c); });
+    box.innerHTML = ""; box.appendChild(t);
+  }
+  // Horizontal bars for a breakdown: one hue, sorted, value at the end.
+  function hbars(box, obj, { fmt = int, top = 8, names = {} } = {}) {
+    box.innerHTML = "";
+    const entries = Object.entries(obj || {}).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
+    if (!entries.length) { box.appendChild(el("p", "muted", "Nothing yet.")); return; }
+    const shown = entries.slice(0, top), rest = entries.slice(top).reduce((a, [, v]) => a + v, 0);
+    if (rest) shown.push(["Other", rest]);
+    const max = shown[0][1];
+    shown.forEach(([k, v]) => {
+      const row = el("div", "hbar"), track = el("div", "track"), fill = el("div", "fill");
+      fill.style.width = `${Math.max(1, (v / max) * 100)}%`; track.appendChild(fill);
+      row.append(el("span", "", names[k] || k), track, el("span", "num", fmt(v)));
+      box.appendChild(row);
+    });
+  }
+  const LANGS = { auto: "Auto (same as question)", en: "English", hi: "Hindi", ur: "Urdu", ar: "Arabic", ml: "Malayalam", ta: "Tamil", te: "Telugu", kn: "Kannada", mr: "Marathi", bn: "Bengali", pa: "Punjabi" };
+  const TASKS = { "tender-items": "Tender read (PDF/photos)", "price-list": "Price list read", "tender-simplify": "Simplify specs", "tender-rates": "Suggest rates", "tender-terms": "Key tender terms", "tender-check": "Check before submitting" };
+
+  let last = null, resizeTimer;
+  window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => last && render(last), 150); });
+  function render(data) {
+    last = data;
+    const ds = data.days, tot = { questions: 0, cost: 0, cached: 0, errors: 0, limited: 0, background: 0, withFiles: 0, followUps: 0, channels: {}, audiences: {}, languages: {}, tasks: {}, waImports: {}, up: 0, down: 0 };
+    const modelCost = {};
+    let downs = [];
+    for (const d of ds) {
+      tot.questions += d.questions; tot.cost += d.cost; tot.cached += d.cached; tot.errors += d.errors; tot.limited += d.limited; tot.withFiles += d.withFiles; tot.followUps += d.followUps;
+      add(tot.channels, d.channels); add(tot.audiences, d.audiences); add(tot.languages, d.languages); add(tot.tasks, d.tasks); add(tot.waImports, d.waImports);
+      for (const [m, v] of Object.entries(d.models || {})) modelCost[m] = (modelCost[m] || 0) + v.cost;
+      tot.up += d.feedback?.up || 0; tot.down += d.feedback?.down || 0; downs = downs.concat(d.feedback?.downs || []);
+    }
+    const taskCount = Object.values(tot.tasks).reduce((a, b) => a + b, 0), today = ds[ds.length - 1];
+    $("t-q").textContent = int(tot.questions);
+    $("t-q-sub").textContent = `today ${int(today.questions)} · ${int(taskCount)} tool tasks · ${int(tot.withFiles)} with files`;
+    $("t-cost").textContent = usd(tot.cost);
+    $("t-cost-sub").textContent = `${usd(tot.questions + taskCount ? tot.cost / (tot.questions + taskCount) : 0)} per request · today ${usd(today.cost)}`;
+    $("t-cache").textContent = pct(tot.cached, tot.questions);
+    $("t-cache-sub").textContent = `${int(tot.cached)} answered from saved answers`;
+    $("t-fb").textContent = `👍 ${int(tot.up)} · 👎 ${int(tot.down)}`;
+    $("t-fb-sub").textContent = tot.up + tot.down ? `${pct(tot.up, tot.up + tot.down)} helpful` : "no votes yet";
+    const q = ds.map((d) => ({ d: d.day, v: d.questions + Object.values(d.tasks || {}).reduce((a, b) => a + b, 0) }));
+    columns($("c-q"), q, int);
+    columns($("c-cost"), ds.map((d) => ({ d: d.day, v: d.cost })), usd, (v) => `$${v.toFixed(v > 0 && v < 10 ? 2 : 0)}`);
+    table($("tbl-q"), ["Day", "Questions", "Tool tasks", "Saved answers", "👍", "👎"], ds.slice().reverse().map((d) => [d.day, int(d.questions), int(Object.values(d.tasks || {}).reduce((a, b) => a + b, 0)), int(d.cached), int(d.feedback?.up || 0), int(d.feedback?.down || 0)]));
+    table($("tbl-cost"), ["Day", "AI cost", "AI calls"], ds.slice().reverse().map((d) => [d.day, usd(d.cost), int(Object.values(d.models || {}).reduce((a, m) => a + m.calls, 0))]));
+    hbars($("b-channel"), tot.channels, { names: { web: "Website / app", whatsapp: "WhatsApp" } });
+    hbars($("b-audience"), tot.audiences, { names: { worker: "🛠️ Simple steps", engineer: "📐 Detailed" } });
+    hbars($("b-lang"), tot.languages, { names: LANGS });
+    hbars($("b-tasks"), tot.tasks, { names: TASKS });
+    hbars($("b-wa"), tot.waImports, { names: { tender: "Tenders / BOQs", prices: "Price lists" } });
+    hbars($("b-models"), modelCost, { fmt: usd });
+    $("health").textContent = `Errors: ${int(tot.errors)} · Hit the hourly limit: ${int(tot.limited)} · Follow-up questions: ${int(tot.followUps)}`;
+    const dl = $("downs"); dl.innerHTML = "";
+    downs.sort((a, b) => String(b.at).localeCompare(String(a.at))).slice(0, 20).forEach((x) => {
+      const li = el("li"); li.append(el("div", "", x.question || "(no question text)"));
+      li.append(el("div", "sec", x.reason ? `“${x.reason}”` : "No reason given"));
+      li.append(el("div", "muted", `${String(x.at).slice(0, 16).replace("T", " ")}${x.language ? ` · ${x.language}` : ""}`));
+      dl.appendChild(li);
+    });
+    if (!dl.children.length) dl.appendChild(el("li", "muted", "No 👎 in this period."));
+    const rl = $("recent"); rl.innerHTML = "";
+    (today.recent || []).forEach((x) => {
+      const li = el("li", "", x.q);
+      li.appendChild(el("span", "pill", x.channel === "whatsapp" ? "WhatsApp" : "web"));
+      li.appendChild(el("span", "pill", x.audience === "engineer" ? "detailed" : "simple"));
+      if (x.cached) li.appendChild(el("span", "pill", "saved answer"));
+      rl.appendChild(li);
+    });
+    if (!rl.children.length) rl.appendChild(el("li", "muted", "No questions yet today."));
+  }
+
+  async function load() {
+    const key = store.get(KEY);
+    if (!key) { $("key-form").hidden = false; $("dash").hidden = true; $("status").textContent = ""; return; }
+    $("status").textContent = "Loading…";
+    try {
+      const res = await fetch(`/.netlify/functions/owner-stats?days=${days}`, { headers: { "x-owner-key": key }, cache: "no-store" });
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 401) { store.del(KEY); $("key-form").hidden = false; $("dash").hidden = true; $("status").innerHTML = ""; $("status").appendChild(el("span", "err", "Wrong owner key — enter it again.")); return; }
+      if (!res.ok) throw new Error(data.error || "Could not load the dashboard.");
+      $("key-form").hidden = true; $("dash").hidden = false;
+      render(data);
+      $("status").textContent = `Updated ${new Date().toLocaleTimeString()} · last ${days} days`;
+    } catch (err) { $("status").innerHTML = ""; $("status").appendChild(el("span", "err", err.message)); }
+  }
+  $("key-form").addEventListener("submit", (e) => { e.preventDefault(); const v = $("owner-key").value.trim(); if (v) { store.set(KEY, v); $("owner-key").value = ""; load(); } });
+  document.querySelectorAll("[data-days]").forEach((b) => b.addEventListener("click", () => { days = Number(b.dataset.days); document.querySelectorAll("[data-days]").forEach((x) => x.setAttribute("aria-pressed", x === b)); load(); }));
+  $("refresh").addEventListener("click", load);
+  load();
+})();
+</script>
+</body>
+</html>

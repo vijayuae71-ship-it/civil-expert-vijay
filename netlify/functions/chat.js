@@ -7,6 +7,7 @@ const { checkRateLimit, isAllowedOrigin } = require("./rate-limit");
 const Anthropic = require("@anthropic-ai/sdk").default;
 const { BRAND_NAME } = require("./brand");
 const answerCache = require("./answer-cache");
+const usage = require("./usage-stats");
 
 // Model and effort can be changed in Netlify env vars without a code change.
 // Effort "low" keeps answers fast (Netlify functions have a time limit); try "medium" for deeper answers.
@@ -32,6 +33,7 @@ async function askClaude({ system, messages, maxTokens, timeout, model = MODEL }
   const params = { model, max_tokens: maxTokens, system, messages, output_config: { effort: EFFORT } };
   if (!/haiku/i.test(model)) { params.betas = ["server-side-fallback-2026-07-01"]; params.fallbacks = "default"; }
   const response = await getClient().beta.messages.create(params, timeout ? { timeout } : undefined);
+  usage.meterCall(response.model || model, response.usage);
   const u = response.usage || {};
   console.log(JSON.stringify({ type: "usage", model: response.model, stop: response.stop_reason, input: u.input_tokens, cacheRead: u.cache_read_input_tokens, cacheWrite: u.cache_creation_input_tokens, output: u.output_tokens }));
   if (response.stop_reason === "refusal") return { refused: true, text: "" };
@@ -150,7 +152,20 @@ async function runTask(task, { message, attachmentParts, background, headers }) 
 
 exports.handler = (event) => run(event, {});
 
-async function run(event, { background = false } = {}) {
+// Every request runs inside a usage meter; real questions and tasks leave one anonymous record
+// for the owner dashboard (see usage-stats.js). Rejected requests (wrong method/site, bad input) don't.
+async function run(event, opts = {}) {
+  const meter = { calls: [], info: null };
+  const res = await usage.withMeter(meter, () => runRequest(event, opts, meter));
+  if (meter.info) {
+    let body = {};
+    try { body = JSON.parse(res.body || "{}"); } catch {}
+    await usage.record(event, { ...meter.info, status: res.statusCode, cached: body.cached === true, calls: meter.calls });
+  }
+  return res;
+}
+
+async function runRequest(event, { background = false } = {}, meter = { calls: [] }) {
   const headers = { "Content-Type": "application/json" };
   const maxFileBytes = 4 * 1024 * 1024;
   const maxTotalBytes = 4.5 * 1024 * 1024;   // a request may carry at most 6 MB, and files grow by a third as text
@@ -207,6 +222,7 @@ async function run(event, { background = false } = {}) {
       return { statusCode: 500, headers, body: JSON.stringify({ error: "The AI service has not been configured yet. Add ANTHROPIC_API_KEY in Netlify environment variables." }) };
     }
 
+    meter.info = { kind: "chat", channel: channel === "whatsapp" ? "whatsapp" : "web", audience: audience === "worker" ? "worker" : "engineer", language: language || "en", task: task || undefined, quoteReady: quoteReady === true || undefined, followUp: Array.isArray(history) && history.length > 0 || undefined, files: (Array.isArray(attachments) ? attachments.length : attachment ? 1 : 0) || undefined, background: background || undefined, q: task ? undefined : String(message).trim().slice(0, 100) };
     const limited = await checkRateLimit(event);
     if (limited) return { statusCode: limited.statusCode, headers, body: JSON.stringify({ error: limited.error }) };
     if (task) {

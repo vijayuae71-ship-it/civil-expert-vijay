@@ -1,4 +1,5 @@
 User-agent: *
+Disallow: /owner
 Allow: /
 
 Sitemap: https://constructionaiexpert.netlify.app/sitemap.xml

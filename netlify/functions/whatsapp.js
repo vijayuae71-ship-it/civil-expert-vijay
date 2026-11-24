@@ -15,6 +15,7 @@ const crypto = require("crypto");
 const chat = require("./chat");
 const { toWhatsApp, splitMessages } = require("./whatsapp-format");
 const { BRAND_NAME } = require("./brand");
+const usage = require("./usage-stats");
 
 const API_VERSION = process.env.WHATSAPP_API_VERSION || "v23.0";
 const SITE_URL = process.env.URL || "https://constructionaiexpert.netlify.app";
@@ -146,8 +147,9 @@ async function saveImport(store, file) {
   return id;
 }
 const importLink = (id) => `${SITE_URL}/quotation?wa=${id}`;
-async function sendImport(stores, from, replyTo, kind, file) {
+async function sendImport(event, stores, from, replyTo, kind, file) {
   const id = await saveImport(stores.imports, { kind, name: file.name, mimeType: file.mimeType, data: file.data });
+  await usage.record(event, { kind: "wa-import", importKind: kind });
   const what = kind === "prices" ? "price list" : "tender / BOQ";
   const next = kind === "prices" ? "It opens in 📦 Material prices, so your rates can be built from these prices." : "It opens in the Quotation tools: fill rates, simplify specs, check before submitting.";
   return sendText(from, `📄 Got your ${what}: *${file.name}*\n\nTap to open it:\n${importLink(id)}\n\n${next} Reading a PDF or photos takes 1–3 minutes on the page. The link works for ${IMPORT_DAYS} days and only for whoever has it.`, replyTo);
@@ -205,7 +207,7 @@ async function handleMessage(event, stores, msg) {
     await saveConversation(stores.conversations, key, { ...conversation, lastFile });
     conversation.lastFile = lastFile;
     // A tender or price list: hand it to the Quotation page instead of answering.
-    if (intent && (isSheet || IMAGE_TYPES.has(file.mimeType) || file.mimeType === "application/pdf")) return sendImport(stores, from, msg.id, intent, { name, mimeType: isSheet && !file.mimeType ? "application/vnd.ms-excel" : file.mimeType, data: file.data });
+    if (intent && (isSheet || IMAGE_TYPES.has(file.mimeType) || file.mimeType === "application/pdf")) return sendImport(event, stores, from, msg.id, intent, { name, mimeType: isSheet && !file.mimeType ? "application/vnd.ms-excel" : file.mimeType, data: file.data });
     if (isSheet) return sendText(from, "📊 Got your spreadsheet. Is it a tender BOQ or a supplier price list? Reply *tender* or *prices* and I'll send a link to open it in the Quotation tools.", msg.id);
     const ok = IMAGE_TYPES.has(file.mimeType) || file.mimeType === "application/pdf" || file.mimeType === "text/plain";
     if (!ok) return sendText(from, "I can read photos (JPEG/PNG), PDF, Excel, CSV and TXT files. For PowerPoint, please send a PDF or a screenshot.", msg.id);
@@ -229,7 +231,7 @@ async function handleMessage(event, stores, msg) {
       await markReadAndTyping(msg.id);
       const file = await downloadMedia(last.id).catch((e) => { console.error("WhatsApp media error:", e.message); return null; });
       if (!file || file.tooLarge) return sendText(from, file?.tooLarge ? "That file is larger than 4 MB. Please send only the BOQ or price pages." : "Sorry, I could not open that file again. Please forward it once more with the word *" + kind + "*.", msg.id);
-      return sendImport(stores, from, msg.id, kind, { name: last.name, mimeType: file.mimeType, data: file.data });
+      return sendImport(event, stores, from, msg.id, kind, { name: last.name, mimeType: file.mimeType, data: file.data });
     }
     default: break;
   }
