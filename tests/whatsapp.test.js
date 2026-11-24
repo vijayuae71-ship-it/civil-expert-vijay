@@ -129,3 +129,88 @@ test("formatting and splitting", () => {
   assert.ok(parts.length > 1 && parts.every((p) => p.length <= 3800));
   assert.equal(parts.join("\n"), long);
 });
+
+// ---------- tenders and price lists → Quotation page ----------
+const waImport = require("../netlify/functions/wa-import");
+function setupImports(mime = "application/pdf") {
+  const env = setup();
+  const imports = memoryStore();
+  imports.list = async ({ prefix }) => ({ blobs: [...imports.data.keys()].filter((k) => k.startsWith(prefix)).map((key) => ({ key })) });
+  env.stores.imports = imports;
+  const base = env.fetches; // keep the original fake, add a document media id
+  wa.setForTests({
+    stores: env.stores,
+    fetch: async (url, opts = {}) => {
+      base.push({ url, opts });
+      if (url.endsWith("/12345/messages")) { const body = JSON.parse(opts.body); if (body.type === "text") env.sent.push(body); return { ok: true, text: async () => "" }; }
+      if (url.endsWith("/media-doc")) return { ok: true, json: async () => ({ url: "https://lookaside.example/doc", mime_type: mime, file_size: 2000 }) };
+      if (url === "https://lookaside.example/doc") return { ok: true, arrayBuffer: async () => Buffer.from("%PDF-1.4 tender") };
+      return { ok: false, status: 404, text: async () => "" };
+    }
+  });
+  return { ...env, imports };
+}
+const linkId = (text) => (text.match(/quotation\?wa=([\w-]+)/) || [])[1];
+
+test("which captions mean a tender or a price list (and which are just questions)", () => {
+  assert.equal(wa.importIntent("PWD tender BOQ"), "tender");
+  assert.equal(wa.importIntent("tender"), "tender");
+  assert.equal(wa.importIntent("Supplier price list Nov"), "prices");
+  assert.equal(wa.importIntent("prices"), "prices");
+  assert.equal(wa.importIntent("price of this tile?"), null);
+  assert.equal(wa.importIntent("make a quote for this drawing"), null);
+  assert.equal(wa.importIntent(""), null);
+});
+
+test("a tender forwarded with 'tender': no AI call, a secret link, and the page can fetch the file once linked", async () => {
+  const { sent, imports } = setupImports();
+  const calls = fakeClaude(chat, "should not be called");
+  await wa.handler(signed(incoming({ type: "document", document: { id: "media-doc", filename: "NIT_14_BOQ.pdf", caption: "tender", mime_type: "application/pdf" } })));
+  assert.equal(calls.length, 0);
+  const reply = sent.map((m) => m.text.body).join("\n");
+  assert.match(reply, /Got your tender \/ BOQ: \*NIT_14_BOQ\.pdf\*/);
+  const id = linkId(reply);
+  assert.match(id, /^\d{13}-[\w-]{24}$/);
+  assert.ok(imports.data.has(`f/${id}`));
+  waImport.setStoreForTests(imports);
+  const res = await waImport.handler({ httpMethod: "GET", queryStringParameters: { id } });
+  const file = JSON.parse(res.body);
+  assert.equal(res.statusCode, 200);
+  assert.deepEqual([file.kind, file.name, file.mimeType, Buffer.from(file.data, "base64").toString()], ["tender", "NIT_14_BOQ.pdf", "application/pdf", "%PDF-1.4 tender"]);
+  assert.equal((await waImport.handler({ httpMethod: "GET", queryStringParameters: { id: "nope" } })).statusCode, 400);
+  assert.equal((await waImport.handler({ httpMethod: "GET", queryStringParameters: { id: `${Date.now() - 8 * 864e5}-${"a".repeat(24)}` } })).statusCode, 410);
+  assert.equal((await waImport.handler({ httpMethod: "GET", queryStringParameters: { id: `${Date.now()}-${"b".repeat(24)}` } })).statusCode, 404);
+});
+
+test("an Excel sheet without a caption: the bot asks; replying 'prices' sends a price-list link", async () => {
+  const { sent } = setupImports("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+  const calls = fakeClaude(chat, "x");
+  await wa.handler(signed(incoming({ type: "document", document: { id: "media-doc", filename: "ganesh-rates.xlsx" } })));
+  assert.match(sent.at(-1).text.body, /Is it a tender BOQ or a supplier price list\? Reply \*tender\* or \*prices\*/);
+  await wa.handler(signed(incoming({ type: "text", text: { body: "Prices" } })));
+  assert.match(sent.at(-1).text.body, /Got your price list: \*ganesh-rates\.xlsx\*[\s\S]*Material prices/);
+  assert.ok(linkId(sent.at(-1).text.body));
+  assert.equal(calls.length, 0);
+});
+
+test("a PDF without a caption is answered as usual, then the bot offers the Quotation tools", async () => {
+  const { sent } = setupImports();
+  const calls = fakeClaude(chat, "This is a BOQ for a school building.");
+  await wa.handler(signed(incoming({ type: "document", document: { id: "media-doc", filename: "doc.pdf" } })));
+  assert.equal(calls.length, 1);
+  assert.match(sent.at(-2).text.body, /BOQ for a school/);
+  assert.match(sent.at(-1).text.body, /Reply \*tender\* or \*prices\*/);
+  await wa.handler(signed(incoming({ type: "text", text: { body: "tender" } })));
+  assert.match(sent.at(-1).text.body, /Got your tender \/ BOQ: \*doc\.pdf\*/);
+});
+
+test("'tender' with no file sent yet explains what to do; old files are cleaned up", async () => {
+  const { sent, imports } = setupImports();
+  await wa.handler(signed(incoming({ type: "text", text: { body: "tender" } })));
+  assert.match(sent.at(-1).text.body, /Forward the tender BOQ here/);
+  imports.data.set(`f/${Date.now() - 9 * 864e5}-${"c".repeat(24)}`, "{}");
+  fakeClaude(chat, "x");
+  await wa.handler(signed(incoming({ type: "document", document: { id: "media-doc", filename: "a.pdf", caption: "BOQ" } })));
+  assert.equal([...imports.data.keys()].filter((k) => k.includes("c".repeat(24))).length, 0);
+  assert.equal([...imports.data.keys()].length, 1);
+});
