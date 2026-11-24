@@ -560,8 +560,8 @@
       return sheets.length === 1 ? sheets[0].items : sheets.flatMap((sh) => [{ ref: "", description: sh.name, heading: true }, ...sh.items]);
     }
     let tenderBusy = false, tenderDocs = null;
-    $("tender-file").addEventListener("change", async (e) => {
-      const files = Array.from(e.target.files || []).slice(0, 5); e.target.value = "";
+    $("tender-file").addEventListener("change", (e) => { const files = Array.from(e.target.files || []).slice(0, 5); e.target.value = ""; importTender(files); });
+    async function importTender(files) {
       if (!files.length) return;
       if (tenderBusy) { toast("Please wait for the current step to finish."); return; }
       tenderBusy = true;
@@ -581,7 +581,7 @@
         tStatus(`✓ ${count} items imported${items.length > count ? ` with ${items.length - count} heading${items.length - count === 1 ? "" : "s"}` : ""}. Enter your rates, or add the site location and tap 🤖 Suggest rates.`);
       } catch (err) { tStatus(`⚠️ ${err.message || "Could not import this file."}`); }
       finally { tenderBusy = false; }
-    });
+    }
     $("btn-rates").onclick = async () => {
       if (tenderBusy) { toast("Please wait for the current step to finish."); return; }
       const want = (it) => String(it.description || "").trim() && !(Number(it.rate) > 0);
@@ -712,8 +712,8 @@
     }
     $("btn-mats").onclick = () => { if (togglePanel("materials")) renderMats(); };
     $("mat-search").addEventListener("input", renderMats);
-    $("mat-import").addEventListener("change", async (e) => {
-      const files = Array.from(e.target.files || []).slice(0, 5); e.target.value = "";
+    $("mat-import").addEventListener("change", (e) => { const files = Array.from(e.target.files || []).slice(0, 5); e.target.value = ""; importPrices(files); });
+    async function importPrices(files) {
       if (!files.length) return;
       if (tenderBusy) { toast("Please wait for the current step to finish."); return; }
       tenderBusy = true;
@@ -753,7 +753,7 @@
         mStatus(`✓ ${added} new and ${updated} updated prices from ${list[0].supplier || "the list"}${date ? ` (dated ${date})` : ""}.${Q.priceAgeDays({ listDate: date }) > 90 ? " 🟠 This list is more than 3 months old — check today's prices." : ""} Check a few against the list.`);
       } catch (err) { mStatus(`⚠️ ${err.message || "Could not read this file."}`); }
       finally { tenderBusy = false; }
-    });
+    }
     $("mat-export").onclick = (e) => withBusy(e.currentTarget, async () => {
       const list = loadMats(); if (!list.length) { toast("No material prices yet."); return; }
       await loadXlsx();
@@ -924,8 +924,24 @@
       $("from-answer").classList.remove("hidden"); save();
     } else { q = quotes[0] || blank(); $("from-tender").classList.toggle("hidden", !q.fromTender); showTerms(q.tenderTerms); }
     store.del(IMPORT_KEY);
+    const waId = new URLSearchParams(location.search).get("wa");
     if (location.search) history.replaceState(null, "", location.pathname);
+    // A tender or price list forwarded to the WhatsApp bot: fetch it and import it like an upload.
+    async function openFromWhatsApp(id) {
+      tStatus("Opening the file you sent on WhatsApp…");
+      try {
+        const res = await fetch(`/.netlify/functions/wa-import?id=${encodeURIComponent(id)}`, { cache: "no-store" });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.data) throw new Error(data.error || "Could not open the file from WhatsApp.");
+        const bytes = Uint8Array.from(atob(data.data), (c) => c.charCodeAt(0));
+        const file = new File([bytes], data.name || "whatsapp-file", { type: data.mimeType || "" });
+        tStatus("");
+        if (data.kind === "prices") { togglePanel("materials", true); renderMats(); await importPrices([file]); }
+        else await importTender([file]);
+      } catch (err) { tStatus(`⚠️ ${err.message}`); }
+    }
     fill(); renderSaved(); $("book-count").textContent = loadBook().length; $("mat-count").textContent = loadMats().length;
+    if (waId) openFromWhatsApp(waId);
     window.addEventListener("beforeprint", autosizeAll);
   })();
   </script>

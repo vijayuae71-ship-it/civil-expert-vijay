@@ -59,6 +59,7 @@ Send **hi** to the bot number. You should get the welcome guide. Then try:
 - a photo of a crack
 - `detailed`, then `M25 rate analysis`
 - `new`
+- forward a tender PDF with the caption `tender`: you should get a link that opens it in the Quotation page
 
 If nothing comes back, open **Netlify → Logs → Functions → whatsapp**:
 - `Invalid signature`: `WHATSAPP_APP_SECRET` is wrong.
@@ -71,13 +72,15 @@ If nothing comes back, open **Netlify → Logs → Functions → whatsapp**:
 
 ## How it behaves
 - **Answers:** simple steps by default, in the language the user writes in.
-- **Photos and files:** photos (JPEG/PNG/WebP) and PDFs, up to 4 MB. Excel and PowerPoint aren't supported on WhatsApp; ask for a PDF or a screenshot instead.
+- **Photos and files:** photos (JPEG/PNG/WebP) and PDFs, up to 4 MB, are answered like questions. PowerPoint isn't supported; ask for a PDF or a screenshot instead.
+- **Tenders and price lists:** a tender/BOQ or supplier price list (PDF, Excel or photos) sent with the caption `tender` or `prices` (or `BOQ`, `price list`, `rate list`, `catalogue`) isn't answered in chat. The bot replies with a link that opens it in the Quotation page: a tender goes into the Quotation tools, a price list into 📦 Material prices. A file sent without a caption can be linked afterwards by replying `tender` or `prices`. Excel files without a caption get that question straight away. The file is kept in the Netlify Blobs store `wa-imports` for 7 days under a secret link (served by the `wa-import` function), then deleted.
 - **Voice notes:** not supported yet. Users get a tip to use the phone keyboard's mic to type.
 - **Commands:**
   - `hi` – the welcome guide
   - `new` – start fresh
   - `detailed` / `simple` – change the answer style
   - `consult` – a link to the expert-review form
+  - `tender` / `prices` – open the last file sent in the Quotation tools
 - **Memory:** the last 8 messages per user, for 24 hours. Numbers are stored only as a keyed hash.
 - **Limits:** the same as the website (30 questions per hour per user and the site-wide daily cap). Saved answers apply too.
 
