@@ -270,3 +270,52 @@ test("a heading is only a parent for its own sub-items (by item number)", () => 
   assert.equal(Q.fullDescription(items, 2), "Machine batched M-30 RCC in slabs");
   assert.equal(Q.fullDescription(items, 3), "Brick work");
 });
+
+// ---------- my material prices ----------
+const PRICE_REPLY = "Supplier: Sri Ganesh Traders, Mysuru\nList date: 2026-10-15\n\n| Item | Make | Size / Model | Unit | Price | Price basis |\n|---|---|---|---|---|---|\n| OPC 43 grade cement | UltraTech | 50 kg | bag | 380 | net excl GST |\n| Coarse sand (river) | - | zone II | cum | 2,800 | delivered |\n| TMT bar Fe-500D | TATA Tiscon | 12 mm | kg | 68.50 | net excl GST |\n| Wall putty | Birla White | 40 kg | bag | 950 | MRP incl GST |";
+
+test("a catalogue copied by the AI: supplier, date and every priced product", () => {
+  const r = Q.materialsFromText(PRICE_REPLY);
+  assert.equal(r.supplier, "Sri Ganesh Traders, Mysuru"); assert.equal(r.listDate, "2026-10-15");
+  assert.deepEqual(r.list.map((m) => [Q.matLabel(m), m.unit, m.price, m.priceBasis]), [
+    ["UltraTech OPC 43 grade cement 50 kg", "bag", 380, "net excl GST"], ["Coarse sand (river) zone II", "cum", 2800, "delivered"],
+    ["TATA Tiscon TMT bar Fe-500D 12 mm", "kg", 68.5, "net excl GST"], ["Birla White Wall putty 40 kg", "bag", 950, "MRP incl GST"]]);
+});
+
+test("an Excel price sheet with its own column names", () => {
+  const list = Q.materialsFromRows([["PRICE LIST w.e.f. 01-11-2026"], ["Sr", "Product Description", "Brand", "Size", "UOM", "Dealer Price (Rs)", "MRP"], [1, "PPR pipe PN16", "Supreme", "25 mm", "m", "142.00", 210], [2, "Total", "", "", "", 142, ""]], { supplier: "Supreme dealer", listDate: "2026-11-01" });
+  assert.deepEqual(list.map((m) => [m.name, m.make, m.spec, m.unit, m.price, m.supplier]), [["PPR pipe PN16", "Supreme", "25 mm", "m", 142, "Supreme dealer"]]);
+});
+
+test("saving prices: new ones get M ids; the same product from the same supplier is updated", () => {
+  const first = Q.addMaterials([], Q.materialsFromText(PRICE_REPLY).list, "2026-11-24");
+  assert.equal(first.added, 4); assert.deepEqual(first.materials.map((m) => m.id), ["M1", "M2", "M3", "M4"]);
+  const newer = Q.materialsFromText(PRICE_REPLY.replace("| 380 |", "| 395 |").replace("2026-10-15", "2026-11-20")).list;
+  const second = Q.addMaterials(first.materials, newer, "2026-11-25");
+  assert.equal(second.added, 0); assert.equal(second.updated, 4);
+  assert.equal(second.materials[0].price, 395); assert.equal(second.materials[0].listDate, "2026-11-20");
+});
+
+test("rate requests carry the material prices the items need (not unrelated ones)", () => {
+  const { materials } = Q.addMaterials([], Q.materialsFromText(PRICE_REPLY).list, "2026-11-24");
+  const [req] = Q.rateRequests([
+    { ref: "13.1.1", description: "12 mm cement plaster of mix 1:6 (1 cement : 6 coarse sand)", unit: "sqm", qty: 412, rate: 0 },
+    { ref: "5.22A.6", description: "Steel reinforcement, Thermo-Mechanically Treated bars of grade Fe-500D", unit: "kg", qty: 2850, rate: 0 }], { location: "Mysuru", materials });
+  assert.match(req.message, /Your material prices \(use the ones each item needs\):/);
+  assert.match(req.message, /- M1 UltraTech OPC 43 grade cement 50 kg = 380 per bag \(net excl GST\), Sri Ganesh Traders, Mysuru, 2026-10-15/);
+  assert.match(req.message, /M2 Coarse sand/); assert.match(req.message, /M3 TATA Tiscon TMT bar Fe-500D/);
+  assert.doesNotMatch(req.message, /putty/);
+  assert.deepEqual(Q.basisFromText("| No | Rate | Source | Basis |\n|---|---|---|---|\n| 1 | 248 | built M1+M2 | cement 0.21 bag×380 + sand |", 1), ["cement 0.21 bag×380 + sand"]);
+});
+
+test("check flags rates built on old material prices; the AI review sees the makes used", () => {
+  const { materials } = Q.addMaterials([], Q.materialsFromText(PRICE_REPLY).list, "2026-11-24");
+  const q = { date: "2027-03-01", validUntil: "2027-06-01", company: { name: "A", phone: "1" }, client: { name: "B" },
+    items: [{ ref: "5.22A.6", description: "Steel Fe-500D", unit: "kg", qty: 100, rate: 85, materials: ["M3"], rateBasis: "TMT 1.05 kg×68.5 + labour 9" }] };
+  const issues = Q.checkQuote(q, { materials, today: new Date("2027-03-01") });
+  assert.match(issues.map((i) => i.text).join(" "), /older than 3 months: TATA Tiscon TMT bar Fe-500D 12 mm \(2026-10-15\)/);
+  assert.deepEqual(Q.checkQuote(q, { materials, today: new Date("2026-11-30") }), []);
+  const m = Q.reviewMessage(q, [], { materials });
+  assert.match(m, /\| built up: TMT 1\.05 kg×68\.5 \+ labour 9/);
+  assert.match(m, /Material prices used in the rates \(make, size, supplier, date\): M3 TATA Tiscon TMT bar Fe-500D 12 mm = 68\.5 per kg/);
+});

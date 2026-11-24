@@ -84,6 +84,7 @@
         <button type="button" id="btn-check" class="rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-emerald-700">✅ Check before submitting</button>
         <button type="button" id="btn-excel" class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">⬇ Excel</button>
         <button type="button" id="btn-book" class="rounded-lg border border-emerald-500 bg-white px-3 py-1.5 text-sm font-semibold text-emerald-800 hover:bg-emerald-50" aria-controls="ratebook">📒 My rates (<span id="book-count">0</span>)</button>
+        <button type="button" id="btn-mats" class="rounded-lg border border-orange-400 bg-white px-3 py-1.5 text-sm font-semibold text-orange-800 hover:bg-orange-50" aria-controls="materials">📦 Material prices (<span id="mat-count">0</span>)</button>
         <button type="button" id="btn-bid" class="rounded-lg border border-blue-500 bg-white px-3 py-1.5 text-sm font-semibold text-blue-800 hover:bg-blue-50" aria-controls="bid">📊 Bid summary</button>
       </div>
       <label class="mt-2 flex items-center gap-2 text-xs font-semibold text-slate-600">Site location for rates <input id="rate-location" class="min-w-0 flex-1 rounded-md border border-slate-300 bg-white px-2 py-1 text-sm font-normal" placeholder="e.g. Whitefield, Bengaluru" maxlength="120"></label>
@@ -100,6 +101,22 @@
       <input id="rb-search" type="search" class="mt-2 w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm" placeholder="Search my rates (e.g. M25, plaster, steel)">
       <div id="rb-list" class="mt-2 divide-y divide-slate-100"></div>
       <p id="rb-more" class="mt-1 text-xs text-slate-500"></p>
+    </section>
+    <section id="materials" class="no-print hidden mt-3 rounded-xl border border-orange-300 bg-white p-3 shadow-sm">
+      <div class="flex items-center justify-between gap-2"><p class="text-sm font-bold text-orange-900">📦 My material prices</p><button type="button" data-close="materials" class="rounded px-2 text-slate-400 hover:bg-slate-100" aria-label="Close material prices">✕</button></div>
+      <p class="mt-0.5 text-xs text-slate-600">Prices from your suppliers' catalogues and price lists (cement, sand, steel, tiles, pipes, cables…), saved on this phone. 🤖 Suggest rates builds item rates from them plus labour and overheads, and shows the breakup. Prices older than 3 months are marked 🟠.</p>
+      <div class="mt-2 flex flex-wrap gap-2">
+        <label class="cursor-pointer rounded-lg bg-orange-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-orange-700">⬆ Import price list (PDF, photo or Excel)<input id="mat-import" type="file" class="hidden" multiple accept=".pdf,.xlsx,.xls,.csv,image/*"></label>
+        <button type="button" id="mat-export" class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">⬇ Export</button>
+      </div>
+      <div class="mt-2 grid grid-cols-2 gap-2 text-xs font-semibold text-slate-600">
+        <label class="grid min-w-0 gap-0.5">Supplier (for Excel lists)<input id="mat-supplier" class="w-full min-w-0 rounded-md border border-slate-300 px-2 py-1 text-sm font-normal" maxlength="80" placeholder="e.g. Sri Ganesh Traders"></label>
+        <label class="grid min-w-0 gap-0.5">Price list date<input id="mat-date" type="date" class="w-full min-w-0 rounded-md border border-slate-300 px-2 py-1 text-sm font-normal"></label>
+      </div>
+      <p id="mat-status" class="hidden mt-2 rounded-lg bg-orange-50 px-3 py-2 text-sm text-slate-700" role="status"></p>
+      <input id="mat-search" type="search" class="mt-2 w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm" placeholder="Search (e.g. cement, TMT 12 mm, Finolex)">
+      <div id="mat-list" class="mt-2 divide-y divide-slate-100"></div>
+      <p id="mat-more" class="mt-1 text-xs text-slate-500"></p>
     </section>
     <section id="bid" class="no-print hidden mt-3 rounded-xl border border-blue-300 bg-white p-3 shadow-sm">
       <div class="flex items-center justify-between gap-2"><p class="text-sm font-bold text-blue-900">📊 Bid summary — only for you</p><button type="button" data-close="bid" class="rounded px-2 text-slate-400 hover:bg-slate-100" aria-label="Close bid summary">✕</button></div>
@@ -273,7 +290,7 @@
       q.items.forEach((it, i) => {
         const r = document.createElement("div"); r.className = `q-row${it.heading ? " q-heading" : ""}`;
         r.innerHTML = `<div class="c-n"><input class="q-in" data-f="ref" aria-label="Item number" maxlength="20"></div>
-          <div class="c-d"><textarea class="q-in" rows="1" data-f="description" placeholder="Item description" aria-label="Item description"></textarea><p class="short no-print hidden mt-0.5 rounded bg-emerald-50 px-1.5 py-0.5 text-xs text-emerald-900"></p></div>
+          <div class="c-d"><textarea class="q-in" rows="1" data-f="description" placeholder="Item description" aria-label="Item description"></textarea><p class="short no-print hidden mt-0.5 rounded bg-emerald-50 px-1.5 py-0.5 text-xs text-emerald-900"></p><p class="basis no-print hidden mt-0.5 rounded bg-orange-50 px-1.5 py-0.5 text-xs text-orange-900"></p></div>
           <div class="c-u"><span class="lbl">Unit</span><input class="q-in" data-f="unit" placeholder="m³" aria-label="Unit"></div>
           <div class="c-q"><span class="lbl">Qty</span><input class="q-in q-num" data-f="qty" type="number" step="any" min="0" inputmode="decimal" aria-label="Quantity"></div>
           <div class="c-r"><span class="lbl">Rate<span class="ai-tag hidden">AI</span><span class="my-tag hidden">Mine</span></span><input class="q-in q-num" data-f="rate" type="number" step="any" min="0" inputmode="decimal" aria-label="Rate"></div>
@@ -284,11 +301,12 @@
         const tag = r.querySelector(".ai-tag"); tag.classList.toggle("hidden", !it.aiRate);
         const mine = r.querySelector(".my-tag"); mine.classList.toggle("hidden", !(it.rateFrom && !it.aiRate)); if (it.rateFrom) mine.title = `From My rates (${it.rateFrom})`;
         const short = r.querySelector(".short"); if (it.short) { short.textContent = `In short: ${it.short}`; short.classList.remove("hidden"); }
+        const basis = r.querySelector(".basis"); if (it.rateBasis) { basis.textContent = `How the rate is built: ${it.rateBasis}`; basis.classList.remove("hidden"); }
         r.querySelectorAll("[data-f]").forEach((el) => {
           el.value = it[el.dataset.f] ?? "";
           el.addEventListener("input", () => {
             it[el.dataset.f] = el.type === "number" ? (el.value === "" ? "" : Number(el.value)) : el.value;
-            if (el.dataset.f === "rate") { delete it.aiRate; delete it.rateFrom; tag.classList.add("hidden"); mine.classList.add("hidden"); }
+            if (el.dataset.f === "rate") { delete it.aiRate; delete it.rateFrom; delete it.rateBasis; delete it.materials; tag.classList.add("hidden"); mine.classList.add("hidden"); basis.classList.add("hidden"); }
             if (el.tagName === "TEXTAREA") autosize(el); renderTotals(); save();
           });
         });
@@ -584,17 +602,19 @@
       if (!loc) { tStatus(mine ? `✓ ${mine} rates filled from My rates. For the other ${todo}, enter the site location and tap 🤖 Suggest rates again.` : ""); toast("Enter the site location first, so the rates suit the place."); $("rate-location").focus(); return; }
       tenderBusy = true;
       const month = new Date().toLocaleString("en-GB", { month: "long", year: "numeric" });
-      const reqs = Q.rateRequests(target.items, { location: loc, currency: target.currency, month, want, book });
+      const reqs = Q.rateRequests(target.items, { location: loc, currency: target.currency, month, want, book, materials: loadMats() });
       try {
         for (const [k, r] of reqs.entries()) {
           tStatus(`Suggesting rates — part ${k + 1} of ${reqs.length} (${todo} items${mine ? `; ${mine} already from My rates` : ""})… about a minute per part. Keep this page open.`);
           const job = await aiJob({ task: "tender-rates", message: r.message });
-          const rates = Q.ratesFromText(job.reply, r.indexes.length), sources = Q.sourcesFromText(job.reply, r.indexes.length);
+          const rates = Q.ratesFromText(job.reply, r.indexes.length), sources = Q.sourcesFromText(job.reply, r.indexes.length), bases = Q.basisFromText(job.reply, r.indexes.length);
           r.indexes.forEach((idx, n) => {
             const it = target.items[idx];
             if (!it || !Number.isFinite(rates[n]) || Number(it.rate) > 0) return;
             const id = (String(sources[n] || "").match(/^R\d+/i) || [])[0], entry = id && book.find((e) => e.id.toUpperCase() === id.toUpperCase());
             it.rate = rates[n];
+            const mats = (String(sources[n] || "").match(/M\d+/gi) || []).map((x) => x.toUpperCase());
+            if (mats.length) { it.materials = [...new Set(mats)]; it.rateBasis = bases[n] || ""; } else { delete it.materials; delete it.rateBasis; }
             if (entry && Number(entry.rate) === rates[n] && !/adjust/i.test(sources[n])) { it.rateFrom = entry.id; delete it.aiRate; mine++; }
             else { it.aiRate = true; if (entry) it.rateFrom = entry.id; else delete it.rateFrom; ai++; }
           });
@@ -664,6 +684,82 @@
       const rows = [["Id", "Description", "Unit", "Rate", "Currency", "Updated", "From"], ...book.map((x) => [x.id, x.description, x.unit, Number(x.rate), x.currency, x.updated, x.from])];
       const ws = XLSX.utils.aoa_to_sheet(rows); ws["!cols"] = [{ wch: 6 }, { wch: 70 }, { wch: 8 }, { wch: 12 }, { wch: 8 }, { wch: 11 }, { wch: 18 }];
       const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "My rates"); XLSX.writeFile(wb, `my-rates-${today()}.xlsx`);
+    });
+
+    // ---------- my material prices ----------
+    const MAT_KEY = "cae-materials-v1";
+    const loadMats = () => store.get(MAT_KEY, []);
+    const saveMats = (list) => { if (!store.set(MAT_KEY, list)) toast("Could not save — the phone storage is full."); $("mat-count").textContent = list.length; };
+    const mStatus = (msg) => { const el = $("mat-status"); el.textContent = msg || ""; el.classList.toggle("hidden", !msg); };
+    function renderMats() {
+      const all = loadMats(), words = $("mat-search").value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+      $("mat-count").textContent = all.length;
+      const shown = all.filter((m) => words.every((w) => `${m.id} ${Q.matLabel(m)} ${m.unit} ${m.supplier}`.toLowerCase().includes(w)));
+      const list = $("mat-list"); list.innerHTML = "";
+      if (!all.length) list.innerHTML = "<p class='py-2 text-sm text-slate-500'>No prices yet. Import a supplier's price list or catalogue (PDF, photo or Excel).</p>";
+      shown.slice(0, 150).forEach((m) => {
+        const old = Q.priceAgeDays(m) > 90;
+        const row = document.createElement("div"); row.className = "flex items-start gap-2 py-2";
+        row.innerHTML = "<div class='min-w-0 flex-1'><p class='text-sm text-slate-800'></p><p class='text-[11px] text-slate-500'></p></div><input type='number' step='any' min='0' inputmode='decimal' class='w-24 rounded-md border border-slate-300 px-2 py-1 text-right text-sm' aria-label='Price'><button type='button' class='rounded px-1.5 text-lg leading-none text-slate-400 hover:bg-red-50 hover:text-red-600' aria-label='Delete price'>×</button>";
+        row.querySelector("p").textContent = Q.matLabel(m);
+        row.querySelectorAll("p")[1].textContent = `${old ? "🟠 old · " : ""}${m.id} · per ${m.unit || "unit"} · ${m.currency}${m.priceBasis ? ` · ${m.priceBasis}` : ""}${m.supplier ? ` · ${m.supplier}` : ""} · ${m.listDate || m.updated || ""}`;
+        const input = row.querySelector("input"); input.value = m.price;
+        input.addEventListener("change", () => { const v = Number(input.value); if (!(v > 0)) { input.value = m.price; return; } const l = loadMats(), x = l.find((y) => y.id === m.id); if (x) { x.price = v; x.listDate = today(); x.updated = today(); saveMats(l); renderMats(); } });
+        row.querySelector("button").onclick = () => { if (!confirm(`Delete ${Q.matLabel(m)}?`)) return; saveMats(loadMats().filter((y) => y.id !== m.id)); renderMats(); };
+        list.appendChild(row);
+      });
+      $("mat-more").textContent = shown.length > 150 ? `Showing 150 of ${shown.length}. Search to find others.` : "";
+    }
+    $("btn-mats").onclick = () => { if (togglePanel("materials")) renderMats(); };
+    $("mat-search").addEventListener("input", renderMats);
+    $("mat-import").addEventListener("change", async (e) => {
+      const files = Array.from(e.target.files || []).slice(0, 5); e.target.value = "";
+      if (!files.length) return;
+      if (tenderBusy) { toast("Please wait for the current step to finish."); return; }
+      tenderBusy = true;
+      try {
+        let list = [], supplier = $("mat-supplier").value.trim(), listDate = $("mat-date").value;
+        const sheet = files.find((f) => /\.(xlsx|xlsm|xls|csv)$/i.test(f.name));
+        if (sheet) {
+          mStatus("Reading the price sheet…"); await loadXlsx();
+          const wb = XLSX.read(await sheet.arrayBuffer(), { type: "array" });
+          list = wb.SheetNames.flatMap((n) => Q.materialsFromRows(XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, raw: true, defval: "" }), { currency: q.currency, supplier: supplier || sheet.name.replace(/\.[^.]+$/, ""), listDate: listDate || today() }));
+        } else {
+          const attachments = [];
+          for (const f of files) {
+            if (/^image\//.test(f.type)) attachments.push({ name: f.name.replace(/\.[^.]+$/, "") + ".jpg", mimeType: "image/jpeg", data: await imageData(f) });
+            else if (/\.pdf$/i.test(f.name)) { if (f.size > 4 * 1024 * 1024) throw new Error(`${f.name} is larger than 4 MB. Send only the price pages, or photos of them.`); attachments.push({ name: f.name, mimeType: "application/pdf", data: await fileData(f) }); }
+          }
+          if (!attachments.length) throw new Error("Please choose a PDF, photos or an Excel/CSV price list.");
+          if (attachments.reduce((n, a) => n + a.data.length * 0.75, 0) > 4.5 * 1024 * 1024) throw new Error("These files are too large together (about 4 MB in total).");
+          for (let part = 1; part <= 10; part++) {
+            mStatus(`Reading the price list${part > 1 ? ` — part ${part} (${list.length} prices so far)` : ""}… about 1–2 minutes per part. Keep this page open.`);
+            const last = list[list.length - 1];
+            const job = await aiJob({ task: "price-list", message: last ? `Continue: copy the products that come after "${Q.matLabel(last).slice(0, 120)}" (${last.price}). Use the same two lines and table header.` : "Copy this price list.", attachments });
+            if (/NO PRICES FOUND/.test(job.reply) && !list.length) throw new Error("No prices were found in this file.");
+            const got = Q.materialsFromText(job.reply, { currency: q.currency });
+            if (got.supplier && !supplier) supplier = got.supplier;
+            if (got.listDate && !listDate) listDate = got.listDate;
+            const fresh = got.list.filter((m) => !list.some((x) => Q.matLabel(x) === Q.matLabel(m) && x.unit === m.unit && Number(x.price) === Number(m.price)));
+            list.push(...fresh);
+            if (!job.truncated || !fresh.length) break;
+          }
+          list = list.map((m) => ({ ...m, supplier: supplier || m.supplier || files[0].name.replace(/\.[^.]+$/, ""), listDate: listDate || m.listDate || today() }));
+        }
+        if (!list.length) throw new Error("No prices were found. A price sheet needs item and price columns.");
+        const { materials, added, updated } = Q.addMaterials(loadMats(), list, today());
+        saveMats(materials); renderMats();
+        const date = list[0].listDate;
+        mStatus(`✓ ${added} new and ${updated} updated prices from ${list[0].supplier || "the list"}${date ? ` (dated ${date})` : ""}.${Q.priceAgeDays({ listDate: date }) > 90 ? " 🟠 This list is more than 3 months old — check today's prices." : ""} Check a few against the list.`);
+      } catch (err) { mStatus(`⚠️ ${err.message || "Could not read this file."}`); }
+      finally { tenderBusy = false; }
+    });
+    $("mat-export").onclick = (e) => withBusy(e.currentTarget, async () => {
+      const list = loadMats(); if (!list.length) { toast("No material prices yet."); return; }
+      await loadXlsx();
+      const rows = [["Id", "Item", "Make", "Size / Model", "Unit", "Price", "Price basis", "Currency", "Supplier", "List date"], ...list.map((m) => [m.id, m.name, m.make, m.spec, m.unit, Number(m.price), m.priceBasis, m.currency, m.supplier, m.listDate])];
+      const ws = XLSX.utils.aoa_to_sheet(rows); ws["!cols"] = [{ wch: 6 }, { wch: 40 }, { wch: 16 }, { wch: 16 }, { wch: 8 }, { wch: 10 }, { wch: 16 }, { wch: 8 }, { wch: 24 }, { wch: 11 }];
+      const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Material prices"); XLSX.writeFile(wb, `material-prices-${today()}.xlsx`);
     });
 
     // ---------- bid summary ----------
@@ -769,7 +865,7 @@
     $("btn-check").onclick = async () => {
       if (tenderBusy) { toast("Please wait for the current step to finish."); return; }
       if (!checkReady()) return;
-      const auto = Q.checkQuote({ ...q, company });
+      const auto = Q.checkQuote({ ...q, company }, { materials: loadMats() });
       const box = $("review"), list = $("review-auto"), aiList = $("review-ai");
       list.innerHTML = ""; aiList.innerHTML = ""; box.classList.remove("hidden");
       auto.forEach((i) => list.appendChild(li(`${ICON[i.level]} ${i.text}`)));
@@ -780,7 +876,7 @@
       tenderBusy = true;
       try {
         $("review-ai-status").textContent = `AI review of rates and terms${q.tenderTerms ? "" : " (without tender terms)"}… about a minute.`;
-        const job = await aiJob({ task: "tender-check", message: Q.reviewMessage({ ...q, company }, auto) });
+        const job = await aiJob({ task: "tender-check", message: Q.reviewMessage({ ...q, company }, auto, { materials: loadMats() }) });
         job.reply.split("\n").map((l) => l.trim()).filter((l) => /^(🔴|🟠|✅)/u.test(l)).slice(0, 15).forEach((l) => {
           const el = li(l); if (l.startsWith("🔴")) el.dataset.red = "1"; else if (l.startsWith("🟠")) el.dataset.amber = "1"; aiList.appendChild(el);
         });
@@ -829,7 +925,7 @@
     } else { q = quotes[0] || blank(); $("from-tender").classList.toggle("hidden", !q.fromTender); showTerms(q.tenderTerms); }
     store.del(IMPORT_KEY);
     if (location.search) history.replaceState(null, "", location.pathname);
-    fill(); renderSaved(); $("book-count").textContent = loadBook().length;
+    fill(); renderSaved(); $("book-count").textContent = loadBook().length; $("mat-count").textContent = loadMats().length;
     window.addEventListener("beforeprint", autosizeAll);
   })();
   </script>
