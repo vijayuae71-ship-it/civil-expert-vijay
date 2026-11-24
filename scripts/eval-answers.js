@@ -190,6 +190,85 @@ CASES.push(
 
 // ---------- unusual product photos (group "product"): fictional labels in scripts/fixtures ----------
 const photo = (file) => ({ name: file, mimeType: "image/jpeg", data: require("fs").readFileSync(require("path").join(__dirname, "fixtures", file)).toString("base64") });
+
+// ---------- tenders (group "tender"): copy a BOQ word for word, then price it ----------
+const Q = require("../assets/quote.js");
+const tenderPdf = { name: "sample-tender-boq.pdf", mimeType: "application/pdf", data: require("fs").readFileSync(require("path").join(__dirname, "fixtures", "sample-tender-boq.pdf")).toString("base64") };
+const check = (label, fn) => ({ toString: () => label, test: (text) => { try { return fn(text); } catch { return false; } } });
+const EXPECTED = [["2.8", null], ["2.8.1", 86.4], ["4.1.8", 9.75], ["5.33", null], ["5.33.1", 24.6], ["5.22A", null], ["5.22A.6", 2850], ["6.1.2", 31.2], ["13.1.1", 412]];
+CASES.push(
+  {
+    group: "tender", background: true, name: "Copies every tender BOQ line exactly: item numbers, headings, units and quantities",
+    body: { task: "tender-items", message: "Copy the complete BOQ from the attached tender document.", attachments: [tenderPdf] },
+    must: [
+      check("all 9 lines with the right item numbers and quantities", (t) => JSON.stringify(Q.tenderItemsFromText(t).map((i) => [i.ref, i.heading ? null : i.qty])) === JSON.stringify(EXPECTED)),
+      /including pumping of concrete to site of laying but excluding the cost of centering, shuttering, finishing and reinforcement/,
+      /Thermo-Mechanically Treated bars of grade Fe-500D or more/
+    ],
+    mustNot: [/Total/, /Rate \(Rs/]
+  },
+  {
+    group: "tender", background: true, name: "Suggests a sensible rate for every tender item",
+    body: { task: "tender-rates", message: Q.rateRequests(Q.tenderItems([["Item No", "Description", "Unit", "Qty"], ["2.8", "Earth work in excavation by mechanical means in foundation trenches, lift upto 1.5 m, lead 50 m", "", ""], ["2.8.1", "All kinds of soil", "cum", 86.4], ["5.22A.6", "Steel reinforcement for R.C.C. work, Thermo-Mechanically Treated bars of grade Fe-500D, upto plinth level", "kg", 2850], ["13.1.1", "12 mm cement plaster of mix 1:6 (1 cement : 6 coarse sand)", "sqm", 412]]), { location: "Mysuru, Karnataka", currency: "INR", month: "November 2026" })[0].message },
+    must: [check("3 rates in sensible ranges (earthwork 150–600/cum, steel 60–120/kg, plaster 200–600/sqm)", (t) => { const [a, b, c] = Q.ratesFromText(t, 3); return a >= 150 && a <= 600 && b >= 60 && b <= 120 && c >= 200 && c <= 600; })]
+  }
+);
+
+const conditionsPdf = { name: "sample-tender-conditions.pdf", mimeType: "application/pdf", data: require("fs").readFileSync(require("path").join(__dirname, "fixtures", "sample-tender-conditions.pdf")).toString("base64") };
+const TERMS = "**Work & time**\n- Complete in 6 months.\n- Offer must stay valid for 120 days from opening.\n**Money**\n- EMD Rs. 97,200.\n- Rates must include ALL taxes including GST; no separate GST is paid.\n- Monthly running bills; no advance.\n**Materials & quality**\n- Steel: Fe-500D TMT from SAIL, TATA or JSW only.";
+const sampleItems = Q.tenderItems([["Item No", "Description", "Unit", "Qty"],
+  ["4.1.8", "Providing and laying in position cement concrete 1:4:8 up to plinth level, excluding centering and shuttering", "cum", 9.75],
+  ["5.33.1", "Machine batched M-25 RCC up to plinth level including pumping, excluding centering, shuttering, finishing and reinforcement", "cum", 24.6],
+  ["5.22A.6", "Steel reinforcement Fe-500D TMT for R.C.C. work up to plinth level, straightening, cutting, bending, placing and binding", "kg", 2850],
+  ["13.1.1", "12 mm cement plaster of mix 1:6", "sqm", 412]]).map((it) => ({ ...it, rate: { "4.1.8": 6200, "5.33.1": 7900, "5.22A.6": 32, "13.1.1": 330 }[it.ref] }));
+CASES.push(
+  {
+    group: "tender", background: true, name: "Key tender terms in plain words, with the exact numbers",
+    body: { task: "tender-terms", message: "List the important tender terms in plain words.", attachments: [conditionsPdf] },
+    must: [/6 months|six months/i, /120 days/, /97,200/, /0\.5\s?%/, /10\s?%/, /GST/, /SAIL|TATA|JSW/, /advance/i]
+  },
+  {
+    group: "tender", background: true, name: "Simplifies long tender specs and keeps what is included or excluded",
+    body: { task: "tender-simplify", message: Q.simplifyRequests(sampleItems)[0].message },
+    must: [check("4 short lines, each under 30 words", (t) => { const s = Q.shortsFromText(t, 4); return s.every((x) => x && x.split(/\s+/).length <= 30); }), /pump/i, /shutter|centering/i, /reinforcement|steel/i]
+  },
+  {
+    group: "tender", background: true, name: "Check flags GST added against an all-inclusive tender, short validity, advance terms and a too-low steel rate",
+    body: { task: "tender-check", message: Q.reviewMessage({ currency: "INR", taxLabel: "GST", taxRate: 18, date: "2026-11-24", validUntil: "2026-12-24", terms: "1. 50% advance with the order.", tenderTerms: TERMS, client: { site: "Mysuru, Karnataka" }, items: sampleItems }, []) },
+    must: [/^🔴/m, /GST/, /120/, /advance/i, /5\.22A\.6|steel/i]
+  }
+);
+
+const myBook = Q.addToRateBook([], { currency: "INR", items: [
+  { description: "Machine batched M-25 RCC up to plinth level including pumping, excluding centering, shuttering and reinforcement", unit: "cum", qty: 1, rate: 7900 },
+  { description: "12 mm cement plaster of mix 1:6 on brick walls", unit: "sqm", qty: 1, rate: 265 }] }).book;
+const myRatesMessage = Q.rateRequests([
+  { ref: "5.33.1", description: "Machine batched machine mixed M-25 grade RCC, all works up to plinth level, including pumping, excluding centering, shuttering, finishing and reinforcement", unit: "cum", qty: 24.6, rate: 0 },
+  { ref: "5.33.2", description: "Machine batched M-30 grade RCC in suspended slabs and beams from plinth to floor five level, including pumping, excluding centering, shuttering and reinforcement", unit: "cum", qty: 40, rate: 0 },
+  { ref: "13.1.1", description: "12 mm cement plaster of mix 1:6 (1 cement : 6 coarse sand)", unit: "sqm", qty: 412, rate: 0 }
+], { location: "Mysuru, Karnataka", currency: "INR", month: "November 2026", book: myBook })[0].message;
+CASES.push({
+  group: "tender", background: true, name: "Uses my own rates first: same work as is, different grade adjusted",
+  body: { task: "tender-rates", message: myRatesMessage },
+  must: [check("5.33.1 = my 7900 (R1); 5.33.2 = R1 adjusted upward; plaster = my 265 (R2)", (t) => {
+    const r = Q.ratesFromText(t, 3), src = Q.sourcesFromText(t, 3);
+    return r[0] === 7900 && /^R1$/i.test(src[0]) && /^R1/i.test(src[1]) && /adjust/i.test(src[1]) && r[1] > 7900 && r[2] === 265 && /^R2$/i.test(src[2]);
+  })]
+});
+
+// ---------- several files at once (group "multi") ----------
+CASES.push(
+  {
+    group: "multi", name: "A drawing and a product photo in one question: both are read and named",
+    body: { message: "Using the drawing and the product photo: how much concrete does this slab need, and can I use this waterbar at its construction joint?", attachments: [drawing, photo("product-waterbar.jpg")], audience: "engineer" },
+    must: [/2\.0[0-9]?\s*m(³|3)|2\.025/, /water ?bar|water ?stop/i, /S-101|sample-slab-drawing|drawing/i, /photo|label|product-waterbar/i]
+  },
+  {
+    group: "multi", background: true, name: "Full BOQ from an attached drawing (background job)",
+    body: { message: "Prepare the BOQ with rates for this slab", attachments: [drawing], audience: "engineer", quoteReady: true },
+    must: [ROWS(3), /M30/, /T10|reinforcement|steel/i, /shuttering|formwork/i, /Grand Total/i]
+  }
+);
 CASES.push(
   {
     group: "product", name: "Expired waterbar: notices the use-by date and says not to use it",

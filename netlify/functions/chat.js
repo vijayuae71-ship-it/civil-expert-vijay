@@ -38,6 +38,7 @@ async function askClaude({ system, messages, maxTokens, timeout }) {
 
 // Turns the browser's attachment into a Claude content block. Excel and PowerPoint files are
 // converted to text in the browser before upload, so they arrive here as text/plain.
+const MAX_FILES = 5;
 const IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 const TEXT_TYPES = new Set(["text/plain", "text/csv"]);
 const MAX_TEXT_CHARS = 300000;
@@ -88,23 +89,63 @@ function isIncompleteQuote(text, language = "en") {
 // A complete, itemised BOQ: used for BOQ/estimate questions that run in the background.
 const FULL_BOQ_INSTRUCTION = "\n\nFULL ITEMISED BOQ. This answer is prepared in the background, so length is not a constraint: this overrides every word, row and length limit above. Give the COMPLETE bill of quantities, never a lumped or summarised one. Organise it into the work sections that apply to the request, for example: A Earthwork and site preparation; B PCC and foundations; C RCC work, with separate rows for concrete (m³), reinforcement steel (kg) and shuttering (m²) of footings, columns, plinth beams, beams, slabs, lintels and staircase; D Masonry; E Plastering; F Flooring, skirting and dado; G Waterproofing; H Doors, windows and grills; I Painting; J Electrical (points, wiring, DB, fittings); K Plumbing, sanitary and drainage; L External works and miscellaneous. Every item is its own table row with its own quantity: Sl. No. (A1, A2, B1 …) | Description (with specification) | Unit | Qty | Rate | Amount, where Amount = Qty × Rate, and every quantity is worked out from the stated assumptions. A whole-building BOQ normally has 30 to 60 item rows. Never put several items, quantities or prices inside one description cell. After each section's rows add a row \"Sub-total A\" (and so on) with only its amount. After the BOQ give a short summary table of section totals and then the Grand Total. Label the rate column \"Preliminary Market Rate\" with the currency symbol (₹ for India, AED for the UAE and so on). Do not add a CPWD reference column unless an exact CPWD item and rate are page-verified; instead write one line under the table: \"CPWD DSR item references and rates to be verified against the applicable schedule.\" Keep the text outside the tables short.";
 
+// Tender tools on the Quotation page. Each has its own short instruction instead of the expert prompt.
+const TASKS = {
+  // Copy a tender's schedule of quantities from an attached PDF or photo, word for word.
+  "tender-items": {
+    maxTokens: 16000, maxChars: 4000,
+    system: "You copy the bill of quantities (schedule of quantities / BOQ / price schedule) from an attached tender document. Output ONLY one Markdown table with the header | Item No | Description | Unit | Qty | and one row per BOQ line, in document order. Copy item numbers, descriptions, units and quantities EXACTLY as printed: never summarise, shorten, translate, correct, round or merge them; keep specifications, grades, thicknesses and notes that belong to the item. Put a parent item whose quantity is given in its sub-items as its own row with Unit and Qty left empty. Leave out rates, amounts, totals, page headers and footers, and text that is not a BOQ line. Do not write anything before or after the table. If the user says to continue after an item, start with the row that comes right after it. If the document has no BOQ, reply with exactly: NO BOQ FOUND"
+  },
+  // Preliminary market rates for tender items the user has not priced yet.
+  "tender-rates": {
+    maxTokens: 8000, maxChars: 20000,
+    system: "You are an experienced construction estimator. For each numbered item give a realistic preliminary market rate for ONE unit of the stated unit, for the stated site location, currency and month: supply, labour, equipment, wastage, and a normal contractor overhead and profit, excluding GST/VAT. Read the specification in the description (grade, thickness, size, make, lead) and price exactly that. Some items list the contractor's OWN rates for similar work (ids such as R12): these are the contractor's real prices and come first. If one is for the same work and unit, use that rate exactly and write the id (e.g. R12) as Source. If one is close but the specification differs (grade, thickness, size, lead, make), adjust it for the difference and write e.g. \"R12 adjusted\" as Source, saying the adjustment in Basis. Otherwise give a market rate with Source \"market\". Output ONLY one Markdown table with the header | No | Rate | Source | Basis | and one row per item, in the same order: No is the item's number in the list, Rate is a plain number with no currency sign or commas, Basis is at most 10 words on what the rate covers or assumes. Never skip an item; if an item is unclear, give your best estimate and say so in Basis. No text before or after the table."
+  },
+  // Long tender specifications in short, plain words, so a small contractor can price them.
+  "tender-simplify": {
+    maxTokens: 8000, maxChars: 30000,
+    system: "You explain tender BOQ items to a small building contractor who must price them quickly. For each numbered item write ONE short line (at most 25 words) in very simple English that keeps only what affects the price: the work and material, grade/mix/size/thickness/make, what is INCLUDED (e.g. pumping, lead, lift, curing, testing, materials) and what is EXCLUDED or paid separately (e.g. centering, shuttering, reinforcement), and the unit it is measured in. Use the item's own facts; do not invent anything. Output ONLY one Markdown table with the header | No | In short | and one row per item in the same order. No text before or after the table."
+  },
+  // The important conditions of a tender document, in plain words.
+  "tender-terms": {
+    maxTokens: 3000, maxChars: 4000,
+    system: "You read a tender document (NIT, conditions of contract, special conditions, specifications) for a small contractor and list only what matters before quoting, in very simple English. Use these headings, each with short bullet points, and skip a heading if the document says nothing about it: **Work & time** (scope, site, completion period, validity of offer required), **Money** (estimated cost put to tender, EMD/bid security, security deposit, retention, payment / running bills, price variation, whether rates must include taxes, GST, labour cess), **Penalties** (liquidated damages, delay penalties), **Materials & quality** (approved makes, tests, standards, who supplies what), **Documents to submit** (registrations, experience, turnover, forms), **Watch out** (unusual risks or conditions). Quote exact numbers, percentages and dates from the document. At most 250 words. If the document has none of these conditions (for example only a BOQ), reply with exactly: NO TERMS FOUND"
+  },
+  // A last check of the contractor's quotation against the tender, before submission.
+  "tender-check": {
+    maxTokens: 3000, maxChars: 60000,
+    system: "You check a small contractor's quotation against the tender before it is submitted. Write in very simple, plain English. List only real problems, most serious first, at most 12, one per line, each starting with 🔴 (must fix before submitting) or 🟠 (please check). Each line says what is wrong, which item (by item number), and what to do. Look for: rates that look far too low or too high for the item's specification and the site location (give the rate and a typical range); rates that probably miss something the item includes (pumping, lead, lift, shuttering, testing, a named make); tax treatment that conflicts with the tender terms (for example the tender wants rates inclusive of taxes but GST is added, or the reverse); quote validity, payment or other quotation terms that conflict with the tender terms; units or quantities that look wrong. Do not repeat problems listed as already found by the automatic check. Do not give general advice. If there is nothing serious, write one line starting with ✅. No headings, no text before or after the lines."
+
+  }
+};
+
+async function runTask(task, { message, attachmentParts, background, headers }) {
+  const spec = TASKS[task];
+  const content = [...attachmentParts.slice(0, -1), ...(attachmentParts.length ? [{ ...attachmentParts.at(-1), cache_control: { type: "ephemeral" } }] : []), { type: "text", text: message.trim() }];
+  const answer = await askClaude({ system: [{ type: "text", text: spec.system, cache_control: { type: "ephemeral" } }], messages: [{ role: "user", content }], maxTokens: spec.maxTokens, timeout: background ? BOQ_TIMEOUT_MS : undefined });
+  if (answer.refused || !answer.text) return { statusCode: 502, headers, body: JSON.stringify({ error: "The AI could not read this document. Please try again or send a clearer file." }) };
+  return { statusCode: 200, headers, body: JSON.stringify({ reply: answer.text, truncated: answer.stopReason === "max_tokens" }) };
+}
+
 exports.handler = (event) => run(event, {});
 
 async function run(event, { background = false } = {}) {
   const headers = { "Content-Type": "application/json" };
   const maxFileBytes = 4 * 1024 * 1024;
+  const maxTotalBytes = 4.5 * 1024 * 1024;   // a request may carry at most 6 MB, and files grow by a third as text
 
   if (event.httpMethod !== "POST") return { statusCode: 405, headers, body: JSON.stringify({ error: "Method Not Allowed" }) };
   if (!isAllowedOrigin(event)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Requests are accepted only from this website." }) };
 
   try {
-    const { message, attachment, language, quoteReady, history, audience, channel } = JSON.parse(event.body || "{}");
+    const { message, attachment, attachments, language, quoteReady, history, audience, channel, task } = JSON.parse(event.body || "{}");
+    if (task !== undefined && !Object.hasOwn(TASKS, task)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Unknown request." }) };
     // "whatsapp": the reply is shown in WhatsApp, which has no tables or headings.
     const isWhatsApp = channel === "whatsapp";
     // "worker": short, simple, step-by-step answers for site trades. "engineer": the detailed format.
     const isWorker = audience === "worker";
     if (typeof message !== "string" || !message.trim()) return { statusCode: 400, headers, body: JSON.stringify({ error: "Please enter a question." }) };
-    if (message.length > 4000) return { statusCode: 400, headers, body: JSON.stringify({ error: "Please shorten your question to under 4,000 characters." }) };
+    if (message.length > (task ? TASKS[task].maxChars : 4000)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Please shorten your question to under 4,000 characters." }) };
 
     const priorTurns = sanitizeHistory(history);
 
@@ -120,17 +161,25 @@ async function run(event, { background = false } = {}) {
       return { statusCode: 400, headers, body: JSON.stringify({ error: "Please choose a supported answer language." }) };
     }
 
-    let attachmentPart = null;
-    if (attachment) {
-      if (!attachment.name || typeof attachment.mimeType !== "string" || typeof attachment.data !== "string" || !attachment.data) {
+    // Up to MAX_FILES photos/documents per question ("attachments"); "attachment" is the older single-file form.
+    const files = Array.isArray(attachments) ? attachments : attachment ? [attachment] : [];
+    if (files.length > MAX_FILES) return { statusCode: 400, headers, body: JSON.stringify({ error: `Please attach at most ${MAX_FILES} files at a time.` }) };
+    const attachmentParts = [];
+    let totalBytes = 0;
+    for (const file of files) {
+      if (!file || !file.name || typeof file.mimeType !== "string" || typeof file.data !== "string" || !file.data) {
         return { statusCode: 400, headers, body: JSON.stringify({ error: "Please attach a photo, PDF, Excel, PowerPoint, CSV, or TXT file." }) };
       }
-      const byteLength = Buffer.byteLength(attachment.data, "base64");
+      const byteLength = Buffer.byteLength(file.data, "base64");
+      totalBytes += byteLength;
       if (byteLength > maxFileBytes) return { statusCode: 413, headers, body: JSON.stringify({ error: "Please choose a document smaller than 4 MB." }) };
-      attachmentPart = attachmentBlock(attachment);
-      if (!attachmentPart) return { statusCode: 400, headers, body: JSON.stringify({ error: "Please attach a photo (JPEG/PNG), PDF, Excel, PowerPoint, CSV, or TXT file. If this keeps happening, refresh the page." }) };
-      if (attachmentPart.tooLong) return { statusCode: 413, headers, body: JSON.stringify({ error: "This document has too much text. Please send only the sheet or pages you need help with." }) };
+      if (totalBytes > maxTotalBytes) return { statusCode: 413, headers, body: JSON.stringify({ error: "These files are too large together. Please send fewer or smaller files (about 4 MB in total)." }) };
+      const part = attachmentBlock(file);
+      if (!part) return { statusCode: 400, headers, body: JSON.stringify({ error: "Please attach a photo (JPEG/PNG), PDF, Excel, PowerPoint, CSV, or TXT file. If this keeps happening, refresh the page." }) };
+      if (part.tooLong) return { statusCode: 413, headers, body: JSON.stringify({ error: "This document has too much text. Please send only the sheet or pages you need help with." }) };
+      attachmentParts.push(part);
     }
+    const attachmentPart = attachmentParts.length > 0;
 
     if (!process.env.ANTHROPIC_API_KEY && !client) {
       console.error("ANTHROPIC_API_KEY is not configured.");
@@ -139,9 +188,13 @@ async function run(event, { background = false } = {}) {
 
     const limited = await checkRateLimit(event);
     if (limited) return { statusCode: limited.statusCode, headers, body: JSON.stringify({ error: limited.error }) };
+    if (task) {
+      console.log(JSON.stringify({ type: "task", task, files: attachmentParts.length, chars: message.length }));
+      return await runTask(task, { message, attachmentParts, background, headers });
+    }
 
     // Anonymous usage log (Netlify → Functions → chat → Logs) to see what people ask.
-    console.log(JSON.stringify({ type: "question", channel: isWhatsApp ? "whatsapp" : "web", language: selectedLanguage, audience: isWorker ? "worker" : "engineer", quoteReady: quoteReady === true, followUp: priorTurns.length > 0, attachment: Boolean(attachmentPart), grade: requestedGrade(message), text: message.trim().slice(0, 300) }));
+    console.log(JSON.stringify({ type: "question", channel: isWhatsApp ? "whatsapp" : "web", language: selectedLanguage, audience: isWorker ? "worker" : "engineer", quoteReady: quoteReady === true, followUp: priorTurns.length > 0, attachment: attachmentParts.length, grade: requestedGrade(message), text: message.trim().slice(0, 300) }));
 
 
     const languageName = selectedLanguage === "auto" ? "the same language as the user's latest message" : supportedLanguages[selectedLanguage];
@@ -211,17 +264,18 @@ Retain technical units, numbers, equations, and construction terminology accurat
     const dsrContext = isDsrRequest ? `\n\n${buildCivilCatalogueContext(message)}` : "";
     const contextualGuidance = [relevantFaqContext(message), relevantDubaiRmcCostingContext(message), relevantMixDesignContext(message), relevantEngineeringReference(message)]
       .filter(Boolean).map((context) => `\n\n${context}`).join("");
-    const attachmentNote = attachmentPart ? `\n\nA ${attachment.mimeType.startsWith("image/") ? "site photo" : "project document"} named "${attachment.name}" is attached. Analyze it only as needed for this request. Today's date is ${new Date().toISOString().slice(0, 10)}; use it to judge expiry, use-by, manufacture and test dates on the attachment.` : "";
+    const described = files.map((f) => `${f.mimeType.startsWith("image/") ? "photo" : "document"} "${f.name}"`);
+    const attachmentNote = attachmentPart ? `\n\n${files.length === 1 ? `A ${files[0].mimeType.startsWith("image/") ? "site photo" : "project document"} named "${files[0].name}" is attached.` : `${files.length} files are attached, in this order: ${described.join("; ")}. Read all of them together and say which file each finding comes from.`} Analyze it only as needed for this request. Today's date is ${new Date().toISOString().slice(0, 10)}; use it to judge expiry, use-by, manufacture and test dates on the attachment.` : "";
     // A drawing, photo or document can stay attached for follow-up questions. With earlier turns,
     // it goes into the FIRST turn and is cached, so each follow-up re-reads it at about a tenth of
     // the price instead of paying for it again. Without earlier turns it goes with this question.
     const questionText = { type: "text", text: `${message.trim()}${dsrContext}${contextualGuidance}${attachmentNote}` };
     let conversationTurns = priorTurns;
-    let userContent = [...(attachmentPart ? [attachmentPart] : []), questionText];
+    let userContent = [...attachmentParts, questionText];
     if (attachmentPart && priorTurns.length) {
       const [first, ...rest] = priorTurns;
       const firstText = typeof first.content === "string" ? first.content : "";
-      conversationTurns = [{ role: "user", content: [{ ...attachmentPart, cache_control: { type: "ephemeral" } }, { type: "text", text: firstText }] }, ...rest];
+      conversationTurns = [{ role: "user", content: [...attachmentParts.slice(0, -1), { ...attachmentParts.at(-1), cache_control: { type: "ephemeral" } }, { type: "text", text: firstText }] }, ...rest];
       userContent = [questionText];
     }
 

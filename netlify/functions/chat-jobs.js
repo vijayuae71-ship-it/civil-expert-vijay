@@ -4,6 +4,7 @@
 
 const STORE_NAME = "chat-jobs";
 const MAX_AGE_MS = 30 * 60 * 1000;
+const requestKey = (id) => `req/${id}`;   // the stored question, read once by chat-background.js
 const isJobId = (id) => typeof id === "string" && /^[a-f0-9-]{32,40}$/i.test(id);
 
 function openJobStore(event) {
@@ -16,4 +17,4 @@ function openJobStore(event) {
   }
 }
 
-module.exports = { STORE_NAME, MAX_AGE_MS, isJobId, openJobStore };
+module.exports = { STORE_NAME, MAX_AGE_MS, isJobId, requestKey, openJobStore };

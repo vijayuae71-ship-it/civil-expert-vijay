@@ -23,17 +23,25 @@
     .q-in::placeholder { color: #94a3b8; }
     textarea.q-in { resize: vertical; }
     .q-num { text-align: right; font-variant-numeric: tabular-nums; }
-    .q-row { display: grid; gap: .25rem .5rem; align-items: start; padding: .45rem 0; border-bottom: 1px solid #e2e8f0; grid-template-columns: 1.5rem .8fr 1fr 1.1fr 1.8fr 1.5rem; grid-template-areas: "n d d d d x" ". u q r a ."; }
-    .q-row > .c-n { grid-area: n; padding-top: .25rem; color: #64748b; font-size: .8rem; }
+    .q-row { display: grid; gap: .25rem .5rem; align-items: start; padding: .45rem 0; border-bottom: 1px solid #e2e8f0; grid-template-columns: 2.4rem 1fr 1fr 1fr 1fr 1.5rem; grid-template-areas: "n d d d d x" "u u q q r r" "a a a a a a"; }
+    .q-row > .c-n { grid-area: n; } .q-row > .c-n input { color: #64748b; font-size: .75rem; padding-left: .1rem; padding-right: .1rem; }
     .q-row > .c-d { grid-area: d; } .q-row > .c-u { grid-area: u; } .q-row > .c-q { grid-area: q; } .q-row > .c-r { grid-area: r; } .q-row > .c-a { grid-area: a; padding-top: .25rem; } .q-row > .c-x { grid-area: x; }
     .q-head { display: none; }
     .amt { white-space: nowrap; }
+    .q-row.q-heading { grid-template-areas: "n d d d d x"; background: #f8fafc; }
+    .q-row.q-heading .c-d textarea { font-weight: 700; }
+    .q-row.q-heading .c-u, .q-row.q-heading .c-q, .q-row.q-heading .c-r, .q-row.q-heading .c-a { display: none; }
+    .ai-tag.hidden, .my-tag.hidden { display: none; }
+    .my-tag { display: inline-block; margin-left: .35rem; border-radius: 9999px; background: #dcfce7; color: #166534; font-size: .6rem; font-weight: 700; padding: 0 .35rem; vertical-align: middle; }
+    .ai-tag { display: inline-block; margin-left: .35rem; border-radius: 9999px; background: #fef3c7; color: #92400e; font-size: .6rem; font-weight: 700; padding: 0 .35rem; vertical-align: middle; }
     @media (min-width: 640px) {
-      .q-row { grid-template-columns: 1.75rem 1fr 4.5rem 4.75rem 6rem 7rem 1.75rem; grid-template-areas: "n d u q r a x"; }
+      .q-row { grid-template-columns: 3rem 1fr 4.5rem 4.75rem 6rem 7rem 1.75rem; grid-template-areas: "n d u q r a x"; }
+      .q-row.q-heading { grid-template-areas: "n d d d d d x"; }
       .q-head { display: grid; border-bottom: 2px solid #1e3a8a; padding: .35rem 0; font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; color: #1e3a8a; }
     }
     .q-row .lbl { display: block; font-size: .65rem; color: #94a3b8; padding-left: .35rem; }
-    @media (min-width: 640px) { .q-row .lbl { display: none; } }
+    .q-row .c-a .lbl { display: inline; margin-right: .5rem; }
+    @media (min-width: 640px) { .q-row .lbl, .q-row .c-a .lbl { display: none; } }
     #logo-box img { max-height: 64px; max-width: 160px; object-fit: contain; }
     @media print {
       @page { size: A4; margin: 12mm; }
@@ -43,9 +51,11 @@
       #paper { box-shadow: none !important; border: 0 !important; padding: 0 !important; }
       .q-in { border-color: transparent !important; background: transparent !important; resize: none; }
       .q-in::placeholder { color: transparent; }
-      .q-row { break-inside: avoid; grid-template-columns: 1.75rem 1fr 4.5rem 4.75rem 6rem 7rem 0; grid-template-areas: "n d u q r a x"; }
+      .q-row { break-inside: avoid; grid-template-columns: 3rem 1fr 4.5rem 4.75rem 6rem 7rem 0; grid-template-areas: "n d u q r a x"; }
+      .q-row.q-heading { grid-template-areas: "n d d d d d x"; }
+      .ai-tag, .my-tag { display: none !important; }
       .q-head { display: grid; border-bottom: 2px solid #1e3a8a; padding: .35rem 0; font-size: .7rem; font-weight: 700; color: #1e3a8a; }
-      .q-row .lbl { display: none; }
+      .q-row .lbl, .q-row .c-a .lbl { display: none; }
       .q-empty-print { display: none !important; }
     }
   </style>
@@ -63,6 +73,65 @@
     </div>
     <section id="saved" class="no-print hidden mt-3 rounded-xl border border-slate-200 bg-white p-2 shadow-sm" aria-label="Saved quotations"></section>
     <p id="from-answer" class="no-print hidden mt-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950">Items were copied from the AI answer. Rates from the AI are indicative — check every rate and quantity before you send this quotation.</p>
+    <section id="tender-tools" class="no-print mt-3 rounded-xl border border-blue-200 bg-blue-50/60 p-3">
+      <p class="text-sm font-bold text-blue-900">Tender / BOQ tools</p>
+      <p class="mt-0.5 text-xs text-slate-600">Bring in the items of any government or private tender (Excel, CSV, PDF or photos of the BOQ pages), fill your rates, then share your quotation or download it as Excel.</p>
+      <div class="mt-2 flex flex-wrap gap-2">
+        <label class="cursor-pointer rounded-lg bg-blue-700 px-3 py-1.5 text-sm font-semibold text-white hover:bg-blue-800">📄 Import tender BOQ<input id="tender-file" type="file" class="hidden" multiple accept=".xlsx,.xlsm,.xls,.csv,.pdf,image/*"></label>
+        <button type="button" id="btn-rates" class="rounded-lg border border-amber-400 bg-white px-3 py-1.5 text-sm font-semibold text-amber-800 hover:bg-amber-50">🤖 Suggest rates</button>
+        <button type="button" id="btn-simplify" class="rounded-lg border border-emerald-500 bg-white px-3 py-1.5 text-sm font-semibold text-emerald-800 hover:bg-emerald-50">📝 Simplify specs</button>
+        <label class="cursor-pointer rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50" id="btn-terms">📑 Key tender terms<input id="terms-file" type="file" class="hidden" multiple accept=".pdf,image/*"></label>
+        <button type="button" id="btn-check" class="rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-emerald-700">✅ Check before submitting</button>
+        <button type="button" id="btn-excel" class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">⬇ Excel</button>
+        <button type="button" id="btn-book" class="rounded-lg border border-emerald-500 bg-white px-3 py-1.5 text-sm font-semibold text-emerald-800 hover:bg-emerald-50" aria-controls="ratebook">📒 My rates (<span id="book-count">0</span>)</button>
+        <button type="button" id="btn-bid" class="rounded-lg border border-blue-500 bg-white px-3 py-1.5 text-sm font-semibold text-blue-800 hover:bg-blue-50" aria-controls="bid">📊 Bid summary</button>
+      </div>
+      <label class="mt-2 flex items-center gap-2 text-xs font-semibold text-slate-600">Site location for rates <input id="rate-location" class="min-w-0 flex-1 rounded-md border border-slate-300 bg-white px-2 py-1 text-sm font-normal" placeholder="e.g. Whitefield, Bengaluru" maxlength="120"></label>
+      <p id="tender-status" class="hidden mt-2 rounded-lg bg-white px-3 py-2 text-sm text-slate-700" role="status"></p>
+    </section>
+    <section id="ratebook" class="no-print hidden mt-3 rounded-xl border border-emerald-300 bg-white p-3 shadow-sm">
+      <div class="flex items-center justify-between gap-2"><p class="text-sm font-bold text-emerald-900">📒 My rates</p><button type="button" data-close="ratebook" class="rounded px-2 text-slate-400 hover:bg-slate-100" aria-label="Close my rates">✕</button></div>
+      <p class="mt-0.5 text-xs text-slate-600">Your own rates, saved on this phone. 🤖 Suggest rates uses them first (tagged <span class="my-tag">Mine</span>) and asks the AI only for new work. The book grows each time you save a quote's rates.</p>
+      <div class="mt-2 flex flex-wrap gap-2">
+        <button type="button" id="rb-save" class="rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-emerald-700">💾 Save rates from this quote</button>
+        <label class="cursor-pointer rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">⬆ Import rate list (Excel)<input id="rb-import" type="file" class="hidden" accept=".xlsx,.xls,.csv"></label>
+        <button type="button" id="rb-export" class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">⬇ Export</button>
+      </div>
+      <input id="rb-search" type="search" class="mt-2 w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm" placeholder="Search my rates (e.g. M25, plaster, steel)">
+      <div id="rb-list" class="mt-2 divide-y divide-slate-100"></div>
+      <p id="rb-more" class="mt-1 text-xs text-slate-500"></p>
+    </section>
+    <section id="bid" class="no-print hidden mt-3 rounded-xl border border-blue-300 bg-white p-3 shadow-sm">
+      <div class="flex items-center justify-between gap-2"><p class="text-sm font-bold text-blue-900">📊 Bid summary — only for you</p><button type="button" data-close="bid" class="rounded px-2 text-slate-400 hover:bg-slate-100" aria-label="Close bid summary">✕</button></div>
+      <p id="bid-note" class="mt-0.5 text-xs text-slate-600"></p>
+      <div class="mt-2 grid grid-cols-2 gap-2 text-xs font-semibold text-slate-600">
+        <label class="grid min-w-0 content-end gap-0.5">Profit in your rates (%)<input data-bid="profitPct" type="number" step="any" min="0" inputmode="decimal" class="w-full min-w-0 rounded-md border border-slate-300 px-2 py-1 text-sm font-normal"></label>
+        <label class="grid min-w-0 content-end gap-0.5">Or your total cost<input data-bid="cost" type="number" step="any" min="0" inputmode="decimal" class="w-full min-w-0 rounded-md border border-slate-300 px-2 py-1 text-sm font-normal"></label>
+        <label class="grid min-w-0 content-end gap-0.5">Department estimate<input data-bid="estimate" type="number" step="any" min="0" inputmode="decimal" class="w-full min-w-0 rounded-md border border-slate-300 px-2 py-1 text-sm font-normal"></label>
+        <label class="grid min-w-0 content-end gap-0.5">EMD amount<input data-bid="emd" type="number" step="any" min="0" inputmode="decimal" class="w-full min-w-0 rounded-md border border-slate-300 px-2 py-1 text-sm font-normal"></label>
+        <label class="grid min-w-0 content-end gap-0.5">Performance security (%)<input data-bid="perfPct" type="number" step="any" min="0" inputmode="decimal" class="w-full min-w-0 rounded-md border border-slate-300 px-2 py-1 text-sm font-normal"></label>
+        <label class="grid min-w-0 content-end gap-0.5">Held back from bills (%)<input data-bid="retentionPct" type="number" step="any" min="0" inputmode="decimal" class="w-full min-w-0 rounded-md border border-slate-300 px-2 py-1 text-sm font-normal"></label>
+        <label class="grid min-w-0 content-end gap-0.5">Completion time (months)<input data-bid="months" type="number" step="any" min="1" inputmode="decimal" class="w-full min-w-0 rounded-md border border-slate-300 px-2 py-1 text-sm font-normal"></label>
+        <label class="grid min-w-0 content-end gap-0.5">Bills paid after (days)<input data-bid="payDays" type="number" step="any" min="0" inputmode="decimal" class="w-full min-w-0 rounded-md border border-slate-300 px-2 py-1 text-sm font-normal"></label>
+      </div>
+      <p id="bid-plain" class="mt-3 rounded-lg bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-950"></p>
+      <dl id="bid-out" class="mt-2 grid grid-cols-[1fr_auto] gap-x-3 gap-y-1 text-sm"></dl>
+      <ul id="bid-flags" class="mt-2 space-y-1.5 text-sm"></ul>
+      <div class="mt-3 flex flex-wrap items-center gap-2"><button type="button" id="bid-share" class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">↗ Share summary</button><span class="text-xs text-slate-500">Rough planning figures, not accounts.</span></div>
+    </section>
+    <section id="review" class="no-print hidden mt-3 rounded-xl border border-slate-300 bg-white p-3 shadow-sm" aria-live="polite">
+      <div class="flex items-center justify-between gap-2"><p class="text-sm font-bold text-slate-800">✅ Check before submitting</p><button type="button" id="review-close" class="rounded px-2 text-slate-400 hover:bg-slate-100" aria-label="Close the check">✕</button></div>
+      <p id="review-summary" class="mt-1 text-sm font-semibold"></p>
+      <ul id="review-auto" class="mt-2 space-y-1.5 text-sm"></ul>
+      <p id="review-ai-status" class="mt-3 text-xs text-slate-500"></p>
+      <ul id="review-ai" class="mt-1 space-y-1.5 text-sm"></ul>
+      <p class="mt-3 text-xs text-slate-500">The check helps you spot mistakes; it does not replace reading the tender yourself.</p>
+    </section>
+    <details id="terms-box" class="no-print hidden mt-3 rounded-xl border border-slate-300 bg-white p-3 shadow-sm">
+      <summary class="cursor-pointer text-sm font-bold text-slate-800">📑 Key tender terms (plain words)</summary>
+      <div id="terms-text" class="mt-2 space-y-1 text-sm text-slate-700"></div>
+    </details>
+    <p id="from-tender" class="no-print hidden mt-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950">Items were copied from the tender. Check every item number, description, unit and quantity against the tender document before you submit. Rates marked <span class="ai-tag">AI</span> are AI suggestions — check them; the tag goes when you change a rate.</p>
     <p class="no-print mt-2 text-xs text-slate-500">Tap any text to edit it. Your quotations and company details are saved only on this phone or computer.</p>
 
     <article id="paper" class="mt-3 rounded-2xl border border-slate-200 bg-white p-4 sm:p-8 shadow-sm text-sm">
@@ -114,7 +183,7 @@
       </section>
 
       <section class="mt-4" aria-label="Items">
-        <div class="q-row q-head"><span>#</span><span>Description</span><span>Unit</span><span class="text-right">Qty</span><span class="text-right">Rate</span><span class="text-right">Amount</span><span></span></div>
+        <div class="q-row q-head"><span>Item</span><span>Description</span><span>Unit</span><span class="text-right">Qty</span><span class="text-right">Rate</span><span class="text-right">Amount</span><span></span></div>
         <div id="items"></div>
         <button type="button" id="add-item" class="no-print mt-2 rounded-lg border border-dashed border-blue-400 px-3 py-1.5 text-sm font-semibold text-blue-700 hover:bg-blue-50">+ Add item</button>
       </section>
@@ -202,18 +271,26 @@
     function renderItems() {
       const box = $("items"); box.innerHTML = "";
       q.items.forEach((it, i) => {
-        const r = document.createElement("div"); r.className = "q-row";
-        r.innerHTML = `<span class="c-n"></span>
-          <div class="c-d"><textarea class="q-in" rows="1" data-f="description" placeholder="Item description" aria-label="Item description"></textarea></div>
+        const r = document.createElement("div"); r.className = `q-row${it.heading ? " q-heading" : ""}`;
+        r.innerHTML = `<div class="c-n"><input class="q-in" data-f="ref" aria-label="Item number" maxlength="20"></div>
+          <div class="c-d"><textarea class="q-in" rows="1" data-f="description" placeholder="Item description" aria-label="Item description"></textarea><p class="short no-print hidden mt-0.5 rounded bg-emerald-50 px-1.5 py-0.5 text-xs text-emerald-900"></p></div>
           <div class="c-u"><span class="lbl">Unit</span><input class="q-in" data-f="unit" placeholder="m³" aria-label="Unit"></div>
           <div class="c-q"><span class="lbl">Qty</span><input class="q-in q-num" data-f="qty" type="number" step="any" min="0" inputmode="decimal" aria-label="Quantity"></div>
-          <div class="c-r"><span class="lbl">Rate</span><input class="q-in q-num" data-f="rate" type="number" step="any" min="0" inputmode="decimal" aria-label="Rate"></div>
+          <div class="c-r"><span class="lbl">Rate<span class="ai-tag hidden">AI</span><span class="my-tag hidden">Mine</span></span><input class="q-in q-num" data-f="rate" type="number" step="any" min="0" inputmode="decimal" aria-label="Rate"></div>
           <div class="c-a q-num"><span class="lbl">Amount</span><span class="amt font-semibold"></span></div>
           <button type="button" class="c-x no-print rounded-md px-1 text-lg leading-none text-slate-400 hover:bg-red-50 hover:text-red-600" title="Remove item" aria-label="Remove item">×</button>`;
-        r.querySelector(".c-n").textContent = i + 1;
+        const refInput = r.querySelector('[data-f="ref"]');
+        refInput.placeholder = it.heading ? "" : String(q.items.slice(0, i + 1).filter((x) => !x.heading).length);
+        const tag = r.querySelector(".ai-tag"); tag.classList.toggle("hidden", !it.aiRate);
+        const mine = r.querySelector(".my-tag"); mine.classList.toggle("hidden", !(it.rateFrom && !it.aiRate)); if (it.rateFrom) mine.title = `From My rates (${it.rateFrom})`;
+        const short = r.querySelector(".short"); if (it.short) { short.textContent = `In short: ${it.short}`; short.classList.remove("hidden"); }
         r.querySelectorAll("[data-f]").forEach((el) => {
           el.value = it[el.dataset.f] ?? "";
-          el.addEventListener("input", () => { it[el.dataset.f] = el.type === "number" ? (el.value === "" ? "" : Number(el.value)) : el.value; if (el.tagName === "TEXTAREA") autosize(el); renderTotals(); save(); });
+          el.addEventListener("input", () => {
+            it[el.dataset.f] = el.type === "number" ? (el.value === "" ? "" : Number(el.value)) : el.value;
+            if (el.dataset.f === "rate") { delete it.aiRate; delete it.rateFrom; tag.classList.add("hidden"); mine.classList.add("hidden"); }
+            if (el.tagName === "TEXTAREA") autosize(el); renderTotals(); save();
+          });
         });
         r.querySelector(".c-x").onclick = () => { q.items.splice(i, 1); if (!q.items.length) q.items.push({ description: "", unit: "", qty: 1, rate: 0 }); renderItems(); renderTotals(); save(); };
         box.appendChild(r);
@@ -232,6 +309,7 @@
       $("totals").lastElementChild.textContent = m(t.total);
       $("in-words").textContent = Q.amountInWords(t.total, q.currency);
       $("sign-company").textContent = company.name || "your company";
+      if (!$("bid").classList.contains("hidden")) renderBid();
     }
     const autosize = (el) => { el.style.height = "auto"; el.style.height = `${el.scrollHeight + 2}px`; };
     const autosizeAll = () => document.querySelectorAll("#paper textarea").forEach(autosize);
@@ -263,7 +341,7 @@
         const [open, dup, del] = row.querySelectorAll("button");
         open.children[0].textContent = `${x.number} · ${x.client?.name || "No client"}`;
         open.children[1].textContent = `${nice(x.date)} · ${Q.money(Q.totals(x).total, x.currency)}${x.subject ? ` · ${x.subject}` : ""}`;
-        open.onclick = () => { q = x; fill(); toggleList(false); window.scrollTo({ top: 0, behavior: "smooth" }); };
+        open.onclick = () => { q = x; fill(); hideReview(); $("bid").classList.add("hidden"); showTerms(x.tenderTerms); $("from-tender").classList.toggle("hidden", !x.fromTender); toggleList(false); window.scrollTo({ top: 0, behavior: "smooth" }); };
         dup.onclick = () => { const fresh = blank({ currency: x.currency }); q = { ...JSON.parse(JSON.stringify(x)), id: fresh.id, number: fresh.number, date: fresh.date, validUntil: fresh.validUntil }; save(); fill(); toggleList(false); toast("Copied as a new quotation"); };
         del.onclick = () => { if (!confirm(`Delete quotation ${x.number}?`)) return; quotes = quotes.filter((y) => y.id !== x.id); store.set(KEY, quotes); if (x.id === q.id) { q = quotes[0] || blank(); fill(); } renderSaved(); };
         box.appendChild(row);
@@ -286,7 +364,7 @@
     $("tax-rate").addEventListener("input", (e) => { q.taxRate = e.target.value === "" ? 0 : Number(e.target.value); renderTotals(); save(); });
     $("discount").addEventListener("input", (e) => { q.discount = e.target.value === "" ? 0 : Number(e.target.value); renderTotals(); save(); });
     $("add-item").onclick = () => { q.items.push({ description: "", unit: "", qty: 1, rate: 0 }); renderItems(); renderTotals(); save(); $("items").lastElementChild.querySelector("textarea").focus(); };
-    $("btn-new").onclick = () => { q = blank(); save(); fill(); $("from-answer").classList.add("hidden"); toast("New quotation"); };
+    $("btn-new").onclick = () => { q = blank(); save(); fill(); hideReview(); $("bid").classList.add("hidden"); showTerms(""); $("from-answer").classList.add("hidden"); $("from-tender").classList.add("hidden"); toast("New quotation"); };
     $("btn-list").onclick = () => toggleList();
     $("logo-file").addEventListener("change", (e) => {
       const f = e.target.files[0]; if (!f) return;
@@ -339,16 +417,24 @@
       let sy = y; if (q.subject) { font(9.5, "bold"); const ls = wrap(q.subject, CW / 2 - 10); pdf.text(ls, M + CW / 2 + 10, sy); sy += ls.length * 12; }
       y = Math.max(cy, sy, y + 12) + 12;
       // items table
-      const cols = [["#", 22, "left"], ["Description", 0, "left"], ["Unit", 44, "left"], ["Qty", 52, "right"], ["Rate", 72, "right"], ["Amount", 86, "right"]];
+      const refW = Math.min(60, Math.max(24, ...t.items.map((it) => String(it.ref || "").length * 5 + 12)));
+      const cols = [["Item", refW, "left"], ["Description", 0, "left"], ["Unit", 40, "left"], ["Qty", 50, "right"], ["Rate", 68, "right"], ["Amount", 80, "right"]];
       cols[1][1] = CW - cols.reduce((s, c) => s + c[1], 0);
       const footer = () => { const n = pdf.internal.getNumberOfPages(); font(7, "normal", GREY); pdf.text(`${q.number || ""}  ·  Page ${n}`, W - M, H - 20, { align: "right" }); };
       const head = () => { pdf.setFillColor(...BLUE); pdf.rect(M, y, CW, 20, "F"); font(8, "bold", [255, 255, 255]); let x = M; cols.forEach(([l, w, a]) => { pdf.text(l, a === "right" ? x + w - 5 : x + 5, y + 13, { align: a }); x += w; }); y += 20; };
       const need = (h) => { if (y + h > H - 50) { footer(); pdf.addPage(); y = M; head(); } };
       head();
+      let serial = 0;
       t.items.forEach((it, i) => {
+        if (it.heading) {
+          font(8.5, "bold"); const d = wrap(it.description, CW - refW - 10), rh = Math.max(18, d.length * 11 + 7); need(rh);
+          pdf.setFillColor(241, 245, 249); pdf.rect(M, y, CW, rh, "F"); pdf.text(clean(it.ref || ""), M + 5, y + 12); pdf.text(d, M + refW + 5, y + 12);
+          pdf.setDrawColor(226, 232, 240); pdf.setLineWidth(0.5); pdf.line(M, y + rh, W - M, y + rh); y += rh; return;
+        }
+        serial += 1;
         font(8.5); const d = wrap(it.description, cols[1][1] - 10), rh = Math.max(18, d.length * 11 + 7); need(rh);
         if (i % 2) { pdf.setFillColor(248, 250, 252); pdf.rect(M, y, CW, rh, "F"); }
-        const cells = [String(i + 1), d, clean(it.unit), String(it.qty ?? ""), m(it.rate).replace(/^\S+ /, ""), m(it.amount).replace(/^\S+ /, "")];
+        const cells = [clean(it.ref || String(serial)), d, clean(it.unit), String(it.qty ?? ""), m(it.rate).replace(/^\S+ /, ""), m(it.amount).replace(/^\S+ /, "")];
         let x = M; cells.forEach((c, k) => { const [, w, a] = cols[k]; pdf.text(c, a === "right" ? x + w - 5 : x + 5, y + 12, { align: a }); x += w; });
         pdf.setDrawColor(226, 232, 240); pdf.setLineWidth(0.5); pdf.line(M, y + rh, W - M, y + rh); y += rh;
       });
@@ -372,7 +458,7 @@
       return pdf;
     }
     async function withBusy(btn, fn) { const label = btn.textContent; btn.disabled = true; btn.textContent = "…"; try { await fn(); } catch (e) { if (e && e.name !== "AbortError") toast(e.message || "Something went wrong."); } finally { btn.disabled = false; btn.textContent = label; } }
-    function checkReady() { if (!Q.totals(q).items.some((it) => String(it.description).trim())) { toast("Add at least one item first."); return false; } return true; }
+    function checkReady() { if (!Q.totals(q).items.some((it) => !it.heading && String(it.description).trim())) { toast("Add at least one item first."); return false; } return true; }
     $("btn-pdf").onclick = (e) => { if (!checkReady()) return; if (!latinOnly()) { toast("Choose “Save as PDF” on the print screen."); setTimeout(() => window.print(), 600); return; } withBusy(e.currentTarget, async () => (await buildPdf()).save(fileName())); };
     $("btn-print").onclick = () => window.print();
     const waLink = () => { const to = String(q.client.phone || "").replace(/\D/g, ""); return `https://wa.me/${to.length >= 9 ? to : ""}?text=${encodeURIComponent(Q.shareText({ ...q, company }))}`; };
@@ -392,16 +478,358 @@
       });
     };
 
+    // ---------- tender tools ----------
+    const tStatus = (msg) => { const el = $("tender-status"); el.textContent = msg || ""; el.classList.toggle("hidden", !msg); };
+    const loadScript = (src, ready) => ready() ? Promise.resolve() : new Promise((ok, fail) => { const sc = document.createElement("script"); sc.src = src; sc.onload = ok; sc.onerror = () => fail(new Error("Could not load a needed tool. Check your internet connection.")); document.head.appendChild(sc); });
+    const loadXlsx = () => loadScript("https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js", () => window.XLSX);
+    const uuid = () => (crypto.randomUUID ? crypto.randomUUID() : Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, "0")).join(""));
+    // Long AI work runs in the background (chat-start → chat-background); we check back every 4 seconds.
+    async function aiJob(payload) {
+      const jobId = uuid();
+      const res = await fetch("/.netlify/functions/chat-start", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...payload, jobId, audience: "engineer", language: "en" }) });
+      if (res.status !== 202) { let e = {}; try { e = await res.json(); } catch {} throw new Error(e.error || "Could not start. Please try again."); }
+      const until = Date.now() + 10 * 60 * 1000; let misses = 0;
+      while (Date.now() < until) {
+        await new Promise((r) => setTimeout(r, 4000));
+        let job;
+        try { job = await (await fetch(`/.netlify/functions/chat-status?id=${jobId}`, { cache: "no-store" })).json(); misses = 0; }
+        catch { if (++misses > 5) throw new Error("Connection lost. Please try again."); continue; }
+        if (job.status === "done") return job;
+        if (job.status === "error") throw new Error(job.error || "The AI could not finish. Please try again.");
+      }
+      throw new Error("This is taking too long. Please try again with fewer pages.");
+    }
+    const fileData = (file) => new Promise((ok, fail) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(",")[1]); r.onerror = () => fail(new Error(`Could not read ${file.name}.`)); r.readAsDataURL(file); });
+    async function imageData(file) {
+      let bmp; try { bmp = await createImageBitmap(file); } catch { throw new Error(`${file.name}: this photo format could not be opened. Please use JPEG.`); }
+      const sc = Math.min(1, 2200 / Math.max(bmp.width, bmp.height)), cv = document.createElement("canvas");
+      cv.width = Math.round(bmp.width * sc); cv.height = Math.round(bmp.height * sc); cv.getContext("2d").drawImage(bmp, 0, 0, cv.width, cv.height);
+      return cv.toDataURL("image/jpeg", 0.88).split(",")[1];
+    }
+    const sameItem = (a, b) => (a.ref || "") === (b.ref || "") && a.description === b.description;
+    // PDFs and photos: the AI copies the BOQ word for word, in parts for long tenders.
+    async function readTenderWithAi(files) {
+      const attachments = [];
+      for (const f of files) {
+        if (/^image\//.test(f.type)) attachments.push({ name: f.name.replace(/\.[^.]+$/, "") + ".jpg", mimeType: "image/jpeg", data: await imageData(f) });
+        else if (/\.pdf$/i.test(f.name) || f.type === "application/pdf") {
+          if (f.size > 4 * 1024 * 1024) throw new Error(`${f.name} is larger than 4 MB. Send only the BOQ pages (save them as a smaller PDF), or photos of those pages.`);
+          attachments.push({ name: f.name, mimeType: "application/pdf", data: await fileData(f) });
+        }
+      }
+      if (!attachments.length) throw new Error("Please choose an Excel, CSV or PDF file, or photos of the BOQ pages.");
+      if (attachments.reduce((n, a) => n + a.data.length * 0.75, 0) > 4.5 * 1024 * 1024) throw new Error("These files are too large together (about 4 MB in total). Send only the BOQ pages.");
+      tenderDocs = attachments;   // kept in this tab for "Key tender terms"
+      const items = [];
+      for (let part = 1; part <= 12; part++) {
+        tStatus(`Reading the tender BOQ${part > 1 ? ` — part ${part} (${items.filter((x) => !x.heading).length} items so far)` : ""}… about 1–3 minutes per part. Keep this page open.`);
+        const last = items[items.length - 1];
+        const message = last ? `Continue: copy the BOQ rows that come after item ${last.ref ? `"${last.ref}" ` : ""}"${last.description.slice(0, 120)}". Use the same table header.` : "Copy the complete BOQ from the attached tender document.";
+        const job = await aiJob({ task: "tender-items", message, attachments });
+        if (/NO BOQ FOUND/.test(job.reply) && !items.length) throw new Error("No BOQ was found in this file. Send the pages with the schedule of quantities.");
+        const got = Q.tenderItemsFromText(job.reply).filter((x) => !items.some((y) => sameItem(x, y)));
+        items.push(...got);
+        if (!job.truncated || !got.length) break;
+      }
+      return items;
+    }
+    // Excel/CSV: read on the phone, exactly as written (no AI).
+    async function readTenderSpreadsheet(file) {
+      await loadXlsx();
+      const wb = XLSX.read(await file.arrayBuffer(), { type: "array" });
+      const sheets = wb.SheetNames.map((name) => ({ name, items: Q.tenderItems(XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, raw: true, defval: "" })) })).filter((x) => x.items.some((it) => !it.heading));
+      if (!sheets.length) throw new Error("No BOQ table was found. The sheet needs columns such as Description, Unit and Quantity.");
+      return sheets.length === 1 ? sheets[0].items : sheets.flatMap((sh) => [{ ref: "", description: sh.name, heading: true }, ...sh.items]);
+    }
+    let tenderBusy = false, tenderDocs = null;
+    $("tender-file").addEventListener("change", async (e) => {
+      const files = Array.from(e.target.files || []).slice(0, 5); e.target.value = "";
+      if (!files.length) return;
+      if (tenderBusy) { toast("Please wait for the current step to finish."); return; }
+      tenderBusy = true;
+      try {
+        const sheet = files.find((f) => /\.(xlsx|xlsm|xls|csv)$/i.test(f.name));
+        let items;
+        if (sheet) { tStatus("Reading the spreadsheet…"); items = await readTenderSpreadsheet(sheet); }
+        else items = await readTenderWithAi(files);
+        const count = items.filter((x) => !x.heading).length;
+        if (!count) throw new Error("No BOQ lines with a quantity were found.");
+        q = blank({ subject: `Tender: ${files[0].name.replace(/\.[^.]+$/, "")}`, fromTender: true, validUntil: today(90),
+          terms: "1. All terms and conditions as per the tender document.\n2. Quantities as per the tender BOQ; billing on actual measured quantities.\n3. Rates are valid for 90 days from the date of opening of the tender, or as required by the tender." });
+        q.items = items.slice(0, 2000).map((it) => ({ ...it, orig: { qty: it.qty, unit: it.unit, description: it.description } }));
+        q.tenderRefs = q.items.map((it) => it.ref).filter(Boolean);
+        save(); fill(); hideReview();
+        $("from-tender").classList.remove("hidden"); $("from-answer").classList.add("hidden");
+        tStatus(`✓ ${count} items imported${items.length > count ? ` with ${items.length - count} heading${items.length - count === 1 ? "" : "s"}` : ""}. Enter your rates, or add the site location and tap 🤖 Suggest rates.`);
+      } catch (err) { tStatus(`⚠️ ${err.message || "Could not import this file."}`); }
+      finally { tenderBusy = false; }
+    });
+    $("btn-rates").onclick = async () => {
+      if (tenderBusy) { toast("Please wait for the current step to finish."); return; }
+      const want = (it) => String(it.description || "").trim() && !(Number(it.rate) > 0);
+      if (!q.items.some((it) => !it.heading && want(it))) { toast("Every item already has a rate."); return; }
+      const book = loadBook(), target = q;
+      // 1. The same work is already in My rates: use it directly.
+      let mine = 0, ai = 0;
+      target.items.forEach((it, i) => {
+        if (it.heading || !want(it)) return;
+        const e = Q.ownRateFor({ ...it, description: Q.fullDescription(target.items, i) }, book, { currency: target.currency });
+        if (e) { it.rate = Number(e.rate); it.rateFrom = e.id; delete it.aiRate; mine++; }
+      });
+      if (mine) { renderItems(); renderTotals(); save(); }
+      const todo = target.items.filter((it) => !it.heading && want(it)).length;
+      if (!todo) { tStatus(`✓ ${mine} rates filled from My rates (tagged Mine).`); return; }
+      // 2. The rest: the AI, shown your rates for similar work.
+      const loc = $("rate-location").value.trim() || String(target.client.site || "").trim();
+      if (!loc) { tStatus(mine ? `✓ ${mine} rates filled from My rates. For the other ${todo}, enter the site location and tap 🤖 Suggest rates again.` : ""); toast("Enter the site location first, so the rates suit the place."); $("rate-location").focus(); return; }
+      tenderBusy = true;
+      const month = new Date().toLocaleString("en-GB", { month: "long", year: "numeric" });
+      const reqs = Q.rateRequests(target.items, { location: loc, currency: target.currency, month, want, book });
+      try {
+        for (const [k, r] of reqs.entries()) {
+          tStatus(`Suggesting rates — part ${k + 1} of ${reqs.length} (${todo} items${mine ? `; ${mine} already from My rates` : ""})… about a minute per part. Keep this page open.`);
+          const job = await aiJob({ task: "tender-rates", message: r.message });
+          const rates = Q.ratesFromText(job.reply, r.indexes.length), sources = Q.sourcesFromText(job.reply, r.indexes.length);
+          r.indexes.forEach((idx, n) => {
+            const it = target.items[idx];
+            if (!it || !Number.isFinite(rates[n]) || Number(it.rate) > 0) return;
+            const id = (String(sources[n] || "").match(/^R\d+/i) || [])[0], entry = id && book.find((e) => e.id.toUpperCase() === id.toUpperCase());
+            it.rate = rates[n];
+            if (entry && Number(entry.rate) === rates[n] && !/adjust/i.test(sources[n])) { it.rateFrom = entry.id; delete it.aiRate; mine++; }
+            else { it.aiRate = true; if (entry) it.rateFrom = entry.id; else delete it.rateFrom; ai++; }
+          });
+          if (q === target) { renderItems(); renderTotals(); } save();
+        }
+        target.fromTender = true; if (q === target) $("from-tender").classList.remove("hidden");
+        tStatus(`✓ ${mine ? `${mine} from My rates (Mine) and ` : ""}${ai} AI rates for ${loc}, ${month}. Check every AI rate before you submit.`);
+      } catch (err) { tStatus(`⚠️ ${err.message}${mine + ai ? ` (${mine + ai} rates were filled before this.)` : ""}`); }
+      finally { tenderBusy = false; }
+    };
+
+    // ---------- my rate book ----------
+    const BOOK_KEY = "cae-ratebook-v1";
+    const loadBook = () => store.get(BOOK_KEY, []);
+    const saveBook = (book) => { if (!store.set(BOOK_KEY, book)) toast("Could not save — the phone storage is full."); $("book-count").textContent = book.length; };
+    function renderBook() {
+      const book = loadBook(), find = $("rb-search").value.trim().toLowerCase();
+      $("book-count").textContent = book.length;
+      const words = find.split(/\s+/).filter(Boolean);
+      const shown = book.filter((e) => words.every((w) => `${e.id} ${e.description} ${e.short || ""} ${e.unit}`.toLowerCase().includes(w))).sort((a, b) => String(b.updated).localeCompare(String(a.updated)));
+      const list = $("rb-list"); list.innerHTML = "";
+      if (!book.length) list.innerHTML = "<p class='py-2 text-sm text-slate-500'>No rates yet. Price a quote and tap 💾 Save rates from this quote, or import your rate list from Excel.</p>";
+      shown.slice(0, 150).forEach((e) => {
+        const row = document.createElement("div"); row.className = "flex items-start gap-2 py-2";
+        row.innerHTML = "<div class='min-w-0 flex-1'><p class='line-clamp-2 text-sm text-slate-800'></p><p class='text-[11px] text-slate-500'></p></div><input type='number' step='any' min='0' inputmode='decimal' class='w-24 rounded-md border border-slate-300 px-2 py-1 text-right text-sm' aria-label='Rate'><button type='button' class='rounded px-1.5 text-lg leading-none text-slate-400 hover:bg-red-50 hover:text-red-600' aria-label='Delete rate'>×</button>";
+        // "Parent — sub-item": show the sub-item first so "All kinds of soil" and "Ordinary rock" differ at a glance.
+        const parts = String(e.description).split(" — ");
+        row.querySelector("p").textContent = e.short || (parts.length > 1 ? `${parts.slice(1).join(" — ")} · ${parts[0]}` : e.description); row.querySelector("p").title = e.description;
+        row.querySelectorAll("p")[1].textContent = `${e.id} · per ${e.unit || "unit"} · ${e.currency} · ${e.updated || ""}${e.from ? ` · ${e.from}` : ""}${(e.history || []).length ? ` · before: ${e.history.slice(0, 2).map((h) => h.rate).join(", ")}` : ""}`;
+        const input = row.querySelector("input"); input.value = e.rate;
+        input.addEventListener("change", () => {
+          const v = Number(input.value); if (!(v > 0)) { input.value = e.rate; return; }
+          const b = loadBook(), x = b.find((y) => y.id === e.id); if (!x) return;
+          if (Number(x.rate) !== v) { x.history = [{ rate: x.rate, date: x.updated, from: x.from }, ...(x.history || [])].slice(0, 5); x.rate = v; x.updated = today(); x.from = "edited"; }
+          saveBook(b); renderBook();
+        });
+        row.querySelector("button").onclick = () => { if (!confirm(`Delete ${e.id} from My rates?`)) return; saveBook(loadBook().filter((y) => y.id !== e.id)); renderBook(); };
+        $("rb-list").appendChild(row);
+      });
+      $("rb-more").textContent = shown.length > 150 ? `Showing 150 of ${shown.length}. Search to find others.` : "";
+    }
+    const togglePanel = (id, open) => { const el = $(id); open = open ?? el.classList.contains("hidden"); el.classList.toggle("hidden", !open); if (open) el.scrollIntoView({ behavior: "smooth", block: "start" }); return open; };
+    document.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", () => $(b.dataset.close).classList.add("hidden")));
+    $("btn-book").onclick = () => { if (togglePanel("ratebook")) renderBook(); };
+    $("rb-search").addEventListener("input", renderBook);
+    $("rb-save").onclick = () => {
+      const skipped = q.items.filter((it) => !it.heading && it.aiRate).length;
+      const { book, added, updated } = Q.addToRateBook(loadBook(), q, today());
+      saveBook(book); renderBook();
+      toast(added + updated ? `Saved: ${added} new, ${updated} updated${skipped ? ` · ${skipped} unchecked AI rates left out` : ""}.` : skipped ? `Nothing saved: change or confirm the ${skipped} AI rates first (they are left out until checked).` : "Nothing new to save.");
+    };
+    $("rb-import").addEventListener("change", async (e) => {
+      const f = e.target.files[0]; e.target.value = ""; if (!f) return;
+      try {
+        await loadXlsx();
+        const wb = XLSX.read(await f.arrayBuffer(), { type: "array" });
+        const list = wb.SheetNames.flatMap((n) => Q.rateListFromRows(XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, raw: true, defval: "" }), q.currency, today()));
+        if (!list.length) throw new Error("No rates found. The sheet needs Description and Rate columns (Unit is optional).");
+        const fake = { number: `import ${f.name}`.slice(0, 40), currency: q.currency, items: list.map((x) => ({ description: x.description, unit: x.unit, qty: 1, rate: x.rate })) };
+        const { book, added, updated } = Q.addToRateBook(loadBook(), fake, today());
+        saveBook(book); renderBook(); toast(`Imported: ${added} new, ${updated} updated rates (${q.currency}).`);
+      } catch (err) { toast(err.message || "Could not read this file."); }
+    });
+    $("rb-export").onclick = (e) => withBusy(e.currentTarget, async () => {
+      const book = loadBook(); if (!book.length) { toast("My rates is empty."); return; }
+      await loadXlsx();
+      const rows = [["Id", "Description", "Unit", "Rate", "Currency", "Updated", "From"], ...book.map((x) => [x.id, x.description, x.unit, Number(x.rate), x.currency, x.updated, x.from])];
+      const ws = XLSX.utils.aoa_to_sheet(rows); ws["!cols"] = [{ wch: 6 }, { wch: 70 }, { wch: 8 }, { wch: 12 }, { wch: 8 }, { wch: 11 }, { wch: 18 }];
+      const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "My rates"); XLSX.writeFile(wb, `my-rates-${today()}.xlsx`);
+    });
+
+    // ---------- bid summary ----------
+    function bidInputs() {
+      const facts = Q.termsFacts(q.tenderTerms), saved = q.bid || {};
+      const pick = (k, d) => (saved[k] !== undefined && saved[k] !== "" ? saved[k] : d);
+      return { profitPct: pick("profitPct", 15), cost: pick("cost", ""), estimate: pick("estimate", facts.estimate ?? ""), emd: pick("emd", facts.emd ?? ""), perfPct: pick("perfPct", facts.perfPct ?? 5), retentionPct: pick("retentionPct", facts.retentionPct ?? 5), months: pick("months", facts.months ?? 6), payDays: pick("payDays", 45), facts };
+    }
+    function renderBid() {
+      const b = bidInputs(), m = (n) => Q.money(Math.round(n), q.currency).replace(/\.00$/, "");
+      document.querySelectorAll("[data-bid]").forEach((el) => { if (document.activeElement !== el) el.value = b[el.dataset.bid] ?? ""; });
+      const found = Object.entries(b.facts).filter(([k, v]) => v !== undefined && ["estimate", "emd", "perfPct", "retentionPct", "months"].includes(k)).length;
+      $("bid-note").textContent = q.tenderTerms ? (found ? `${found} figures were filled from the key tender terms — check them.` : "The key tender terms did not give these figures; fill them in.") : "Tip: tap 📑 Key tender terms first and the estimate, EMD, security and time are filled in for you.";
+      const r = Q.bidSummary(q, b);
+      const rows = [["Your quote (before tax)", m(r.base)], ...(r.tax ? [["Tax", m(r.tax)], ["Quote with tax", m(r.total)]] : []),
+        ["Your cost (estimated)", m(r.cost)], ["Your profit", `${m(r.profit)} (${r.margin.toFixed(1)}%)`], ["Profit per month", m(r.profitPerMonth)],
+        ...(r.vsEstimate !== null ? [["Against department estimate", `${Math.abs(r.vsEstimate).toFixed(1)}% ${r.vsEstimate >= 0 ? "above" : "below"}`]] : []),
+        ["EMD (blocked until award)", m(r.emd)], ["Performance security", m(r.perfSec)], ["Held back from bills (by the end)", m(r.retention)],
+        ["Money you spend per month", m(r.monthly)], ["Your own money needed at the peak", m(r.peak)]];
+      const out = $("bid-out"); out.innerHTML = "";
+      rows.forEach(([l, v], i) => { const dt = document.createElement("dt"), dd = document.createElement("dd"); dt.className = "text-slate-600"; dd.className = `text-right tabular-nums ${i === rows.length - 1 || l === "Your profit" ? "font-bold text-slate-900" : ""}`; dt.textContent = l; dd.textContent = v; out.append(dt, dd); });
+      $("bid-plain").textContent = r.base ? `Profit about ${m(r.profit)} (${r.margin.toFixed(1)}%) on ${m(r.base)} over ${r.months} months. You need about ${m(r.peak)} of your own money at the peak.` : "Add rates to see the summary.";
+      const fl = $("bid-flags"); fl.innerHTML = "";
+      r.flags.forEach((f) => fl.appendChild(li(`${f.level === "red" ? "🔴" : "🟠"} ${f.text}`)));
+      return r;
+    }
+    $("btn-bid").onclick = () => { if (togglePanel("bid")) renderBid(); };
+    document.querySelectorAll("[data-bid]").forEach((el) => el.addEventListener("input", () => { q.bid = { ...(q.bid || {}), [el.dataset.bid]: el.value === "" ? "" : Number(el.value) }; save(); renderBid(); }));
+    $("bid-share").onclick = async () => {
+      const r = renderBid(), m = (n) => Q.money(Math.round(n), q.currency).replace(/\.00$/, "");
+      const text = [`*Bid summary — ${q.subject || q.number}*`, `Quote (before tax): ${m(r.base)}`, `Profit: ${m(r.profit)} (${r.margin.toFixed(1)}%), ${m(r.profitPerMonth)}/month over ${r.months} months`,
+        ...(r.vsEstimate !== null ? [`Vs estimate: ${Math.abs(r.vsEstimate).toFixed(1)}% ${r.vsEstimate >= 0 ? "above" : "below"}`] : []), `EMD ${m(r.emd)} · Performance security ${m(r.perfSec)} · Held back ${m(r.retention)}`,
+        `Own money needed at peak: ${m(r.peak)}`, ...r.flags.map((f) => `${f.level === "red" ? "🔴" : "🟠"} ${f.text}`)].join("\n");
+      try { if (navigator.share) await navigator.share({ title: "Bid summary", text }); else { await navigator.clipboard.writeText(text); toast("Copied — paste it in WhatsApp."); } } catch {}
+    };
+
+    // ---------- simplify, key terms, check ----------
+    $("btn-simplify").onclick = async () => {
+      if (tenderBusy) { toast("Please wait for the current step to finish."); return; }
+      const want = (it) => String(it.description || "").trim().length > 0 && !it.short;
+      const reqs = Q.simplifyRequests(q.items, { want });
+      if (!reqs.length) { toast(q.items.some((it) => it.short) ? "Every item already has a short version." : "Add or import items first."); return; }
+      tenderBusy = true; const target = q; let done = 0;
+      try {
+        for (const [k, r] of reqs.entries()) {
+          tStatus(`Writing the specs in simple words — part ${k + 1} of ${reqs.length}… about a minute per part.`);
+          const job = await aiJob({ task: "tender-simplify", message: r.message });
+          const shorts = Q.shortsFromText(job.reply, r.indexes.length);
+          r.indexes.forEach((idx, n) => { if (shorts[n]) { target.items[idx].short = shorts[n]; done++; } });
+          if (q === target) renderItems(); save();
+        }
+        tStatus(`✓ ${done} items now have an “In short” line (green). It is only for you; the quotation keeps the tender wording.`);
+      } catch (err) { tStatus(`⚠️ ${err.message}`); }
+      finally { tenderBusy = false; }
+    };
+    function showTerms(text) {
+      const box = $("terms-text"); box.innerHTML = "";
+      String(text || "").split("\n").map((l) => l.trim()).filter(Boolean).forEach((l) => {
+        const el = document.createElement(/^[-*•]\s/.test(l) ? "li" : "p");
+        const clean = l.replace(/^[-*•]\s+/, "").replace(/^#+\s*/, "");
+        if (el.tagName === "LI") el.className = "ml-5 list-disc";
+        const bold = clean.match(/^\*\*(.+?)\*\*:?\s*(.*)$/);
+        if (bold) { const b = document.createElement("strong"); b.textContent = bold[1]; el.append(b, bold[2] ? ` ${bold[2].replace(/\*\*/g, "")}` : ""); if (el.tagName === "P") el.className = "mt-2 text-slate-900"; }
+        else el.textContent = clean.replace(/\*\*/g, "");
+        box.appendChild(el);
+      });
+      $("terms-box").classList.toggle("hidden", !text); if (text) $("terms-box").open = true;
+    }
+    async function fetchTerms(attachments) {
+      tenderBusy = true;
+      try {
+        tStatus("Reading the tender conditions… about 1–2 minutes.");
+        const job = await aiJob({ task: "tender-terms", message: "List the important tender terms in plain words.", attachments });
+        if (/NO TERMS FOUND/.test(job.reply)) { tStatus("⚠️ No tender conditions were found in this file — it may contain only the BOQ. Choose the NIT / conditions of contract PDF."); return; }
+        q.tenderTerms = job.reply.trim(); save(); showTerms(q.tenderTerms);
+        tStatus("✓ Key tender terms are shown below. They are also used by ✅ Check before submitting.");
+      } catch (err) { tStatus(`⚠️ ${err.message}`); }
+      finally { tenderBusy = false; }
+    }
+    $("btn-terms").addEventListener("click", (e) => {
+      if (e.target.id === "terms-file") return;
+      if (tenderBusy) { e.preventDefault(); toast("Please wait for the current step to finish."); return; }
+      if (tenderDocs) { e.preventDefault(); fetchTerms(tenderDocs); }   // the tender PDF read in this tab
+      else toast("Choose the tender PDF (NIT / conditions), or photos of those pages.");
+    });
+    $("terms-file").addEventListener("change", async (e) => {
+      const files = Array.from(e.target.files || []).slice(0, 5); e.target.value = "";
+      if (!files.length || tenderBusy) return;
+      try {
+        const attachments = [];
+        for (const f of files) {
+          if (/^image\//.test(f.type)) attachments.push({ name: f.name.replace(/\.[^.]+$/, "") + ".jpg", mimeType: "image/jpeg", data: await imageData(f) });
+          else if (/\.pdf$/i.test(f.name)) { if (f.size > 4 * 1024 * 1024) throw new Error(`${f.name} is larger than 4 MB. Send only the conditions pages.`); attachments.push({ name: f.name, mimeType: "application/pdf", data: await fileData(f) }); }
+        }
+        if (!attachments.length) throw new Error("Please choose a PDF or photos.");
+        tenderDocs = attachments; await fetchTerms(attachments);
+      } catch (err) { tStatus(`⚠️ ${err.message}`); }
+    });
+    const ICON = { red: "🔴", amber: "🟠" };
+    const hideReview = () => $("review").classList.add("hidden");
+    $("review-close").onclick = hideReview;
+    function li(text, cls = "") { const el = document.createElement("li"); el.className = `flex gap-2 ${cls}`; const [icon, ...rest] = Array.from(text); el.innerHTML = "<span class='shrink-0'></span><span></span>"; el.children[0].textContent = icon; el.children[1].textContent = rest.join("").trim(); return el; }
+    $("btn-check").onclick = async () => {
+      if (tenderBusy) { toast("Please wait for the current step to finish."); return; }
+      if (!checkReady()) return;
+      const auto = Q.checkQuote({ ...q, company });
+      const box = $("review"), list = $("review-auto"), aiList = $("review-ai");
+      list.innerHTML = ""; aiList.innerHTML = ""; box.classList.remove("hidden");
+      auto.forEach((i) => list.appendChild(li(`${ICON[i.level]} ${i.text}`)));
+      const reds = auto.filter((i) => i.level === "red").length, ambers = auto.length - reds;
+      const summary = () => { const r = reds + aiList.querySelectorAll("[data-red]").length, a = ambers + aiList.querySelectorAll("[data-amber]").length; $("review-summary").textContent = r ? `🔴 ${r} must fix · 🟠 ${a} to check` : a ? `🟠 ${a} to check — no blocking problems found` : "✅ No problems found"; };
+      summary(); box.scrollIntoView({ behavior: "smooth", block: "start" });
+      if (!q.tenderTerms) $("review-ai-status").textContent = "Tip: tap 📑 Key tender terms first, so the AI can also check your terms against the tender.";
+      tenderBusy = true;
+      try {
+        $("review-ai-status").textContent = `AI review of rates and terms${q.tenderTerms ? "" : " (without tender terms)"}… about a minute.`;
+        const job = await aiJob({ task: "tender-check", message: Q.reviewMessage({ ...q, company }, auto) });
+        job.reply.split("\n").map((l) => l.trim()).filter((l) => /^(🔴|🟠|✅)/u.test(l)).slice(0, 15).forEach((l) => {
+          const el = li(l); if (l.startsWith("🔴")) el.dataset.red = "1"; else if (l.startsWith("🟠")) el.dataset.amber = "1"; aiList.appendChild(el);
+        });
+        $("review-ai-status").textContent = aiList.children.length ? "AI review (rates, inclusions, tax and terms):" : "AI review: nothing to add.";
+        summary();
+      } catch (err) { $("review-ai-status").textContent = `AI review could not run: ${err.message}`; }
+      finally { tenderBusy = false; }
+    };
+
+    $("btn-excel").onclick = (e) => {
+      if (!checkReady()) return;
+      withBusy(e.currentTarget, async () => {
+        await loadXlsx();
+        const t = Q.totals(q), cur = q.currency, rows = [];
+        rows.push([company.name || ""], [[company.address, company.phone, company.email, company.taxId].filter(Boolean).join(" · ")], [],
+          ["QUOTATION", "", `No. ${q.number || ""}`, "", `Date: ${nice(q.date)}`, `Valid until: ${nice(q.validUntil)}`],
+          [`To: ${q.client.name || ""}`, [q.client.phone, q.client.site].filter(Boolean).join(" · ")], [`Subject: ${q.subject || ""}`], []);
+        rows.push(["Item No", "Description", "Unit", "Qty", `Rate (${cur})`, `Amount (${cur})`]);
+        const first = rows.length + 1; let n = 0;
+        t.items.forEach((it) => {
+          if (it.heading) { rows.push([it.ref || "", it.description]); return; }
+          n += 1; const r = rows.length + 1;
+          rows.push([it.ref || String(n), it.description, it.unit || "", Number(it.qty) || 0, Number(it.rate) || 0, { t: "n", v: it.amount, f: `D${r}*E${r}` }]);
+        });
+        const last = rows.length; rows.push([]);
+        const sub = rows.length + 1; rows.push(["", "Subtotal", "", "", "", { t: "n", v: t.subtotal, f: `SUM(F${first}:F${last})` }]);
+        const disc = Number(t.discount) || 0;
+        if (disc) rows.push(["", "Discount", "", "", "", -disc]);
+        const taxRow = rows.length + 1;
+        if (Number(q.taxRate)) rows.push(["", `${q.taxLabel || "Tax"} @ ${q.taxRate}%`, "", "", "", { t: "n", v: t.tax, f: `ROUND((F${sub}-${disc})*${Number(q.taxRate)}/100,2)` }]);
+        rows.push(["", "TOTAL", "", "", "", { t: "n", v: t.total, f: `F${sub}-${disc}${Number(q.taxRate) ? `+F${taxRow}` : ""}` }], ["", Q.amountInWords(t.total, cur)]);
+        if (q.terms && q.terms.trim()) { rows.push([], ["", "Terms & conditions"]); q.terms.split("\n").forEach((l) => rows.push(["", l])); }
+        const ws = XLSX.utils.aoa_to_sheet(rows);
+        ws["!cols"] = [{ wch: 9 }, { wch: 70 }, { wch: 8 }, { wch: 10 }, { wch: 14 }, { wch: 16 }];
+        const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Quotation");
+        XLSX.writeFile(wb, fileName().replace(/\.pdf$/, ".xlsx"));
+      });
+    };
+
     // ---------- start ----------
     const imported = store.get(IMPORT_KEY, null);
     if (imported && Array.isArray(imported.items) && imported.items.length && Date.now() - (imported.at || 0) < 30 * 60 * 1000) {
       q = blank({ currency: Q.CURRENCIES[imported.currency] ? imported.currency : undefined, subject: String(imported.subject || "").slice(0, 300) });
       q.items = imported.items.slice(0, 200).map((it) => ({ description: String(it.description || ""), unit: String(it.unit || ""), qty: Number(it.qty) || 0, rate: Number(it.rate) || 0 }));
       $("from-answer").classList.remove("hidden"); save();
-    } else q = quotes[0] || blank();
+    } else { q = quotes[0] || blank(); $("from-tender").classList.toggle("hidden", !q.fromTender); showTerms(q.tenderTerms); }
     store.del(IMPORT_KEY);
     if (location.search) history.replaceState(null, "", location.pathname);
-    fill(); renderSaved();
+    fill(); renderSaved(); $("book-count").textContent = loadBook().length;
     window.addEventListener("beforeprint", autosizeAll);
   })();
   </script>
