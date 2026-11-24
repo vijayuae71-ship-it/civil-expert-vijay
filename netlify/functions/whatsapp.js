@@ -18,7 +18,7 @@ const { BRAND_NAME } = require("./brand");
 const usage = require("./usage-stats");
 
 const API_VERSION = process.env.WHATSAPP_API_VERSION || "v23.0";
-const SITE_URL = process.env.URL || "https://constructionaiexpert.netlify.app";
+const SITE_URL = process.env.URL || "https://civilengineervijay.netlify.app";
 const MAX_MEDIA_BYTES = 4 * 1024 * 1024;
 const HISTORY_TURNS = 8;
 const CONVERSATION_IDLE_MS = 24 * 3600e3;   // after a day of silence, start a fresh conversation

@@ -11,12 +11,13 @@
 [functions]
   node_bundler = "esbuild"
 
-# One address for everyone: the old Netlify site (same code, separate project) forwards every
-# page to the main site, keeping the path and query (…/expert?q=x → constructionaiexpert…/expert?q=x).
+# One address for everyone: the main site is civilengineervijay.netlify.app (the Netlify project the
+# owner manages, with its keys and settings). The second Netlify project that also builds this code
+# forwards every page there, keeping the path and query (…/expert?q=x → civilengineervijay…/expert?q=x).
 # It matches only that host, so the main site and deploy previews are not affected.
 [[redirects]]
-  from = "https://civilengineervijay.netlify.app/*"
-  to = "https://constructionaiexpert.netlify.app/:splat"
+  from = "https://constructionaiexpert.netlify.app/*"
+  to = "https://civilengineervijay.netlify.app/:splat"
   status = 301
   force = true
 
