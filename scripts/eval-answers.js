@@ -256,6 +256,31 @@ CASES.push({
   })]
 });
 
+const priceListPdf = { name: "sample-price-list.pdf", mimeType: "application/pdf", data: require("fs").readFileSync(require("path").join(__dirname, "fixtures", "sample-price-list.pdf")).toString("base64") };
+const sampleMaterials = Q.addMaterials([], Q.materialsFromText("Supplier: Sri Ganesh Building Materials\nList date: 2026-11-01\n\n| Item | Make | Size / Model | Unit | Price | Price basis |\n|---|---|---|---|---|---|\n| OPC 43 grade cement | UltraTech | 50 kg bag | Bag | 385 | dealer excl GST |\n| River sand, washed | | Zone II | Cum | 2850 | dealer excl GST |\n| TMT bar Fe-500D | TATA Tiscon | 12 mm | Kg | 68.75 | dealer excl GST |").list, "2026-11-24").materials;
+CASES.push(
+  {
+    group: "tender", background: true, name: "Copies a supplier price list: supplier, date, makes, sizes, units and dealer prices",
+    body: { task: "price-list", message: "Copy this price list.", attachments: [priceListPdf] },
+    must: [
+      check("supplier and date 2026-11-01", (t) => { const r = Q.materialsFromText(t); return /Ganesh/i.test(r.supplier) && r.listDate === "2026-11-01"; }),
+      check("cement 385, 12 mm TMT 68.75, sand 2850, putty 1050 (MRP), 7 rows", (t) => { const l = Q.materialsFromText(t).list; const p = (re) => (l.find((m) => re.test(Q.matLabel(m))) || {}).price; return l.length === 7 && p(/UltraTech/) === 385 && p(/12 mm/) === 68.75 && p(/sand/i) === 2850 && p(/putty/i) === 1050; }),
+      /excl/i
+    ]
+  },
+  {
+    group: "tender", background: true, name: "Builds rates from my material prices and shows the breakup",
+    body: { task: "tender-rates", message: Q.rateRequests([
+      { ref: "13.1.1", description: "12 mm cement plaster of mix 1:6 (1 cement : 6 coarse sand) on brick walls", unit: "sqm", qty: 412, rate: 0 },
+      { ref: "5.22A.6", description: "Steel reinforcement for R.C.C. work including straightening, cutting, bending, placing in position and binding, Thermo-Mechanically Treated bars of grade Fe-500D", unit: "kg", qty: 2850, rate: 0 }
+    ], { location: "Mysuru, Karnataka", currency: "INR", month: "November 2026", materials: sampleMaterials })[0].message },
+    must: [check("both built from M ids, with a breakup; plaster 180–450/sqm, steel 75–110/kg", (t) => {
+      const r = Q.ratesFromText(t, 2), src = Q.sourcesFromText(t, 2), b = Q.basisFromText(t, 2);
+      return /M\d/.test(src[0]) && /M\d/.test(src[1]) && /385|380/.test(b[0] || "") && /68\.75|68/.test(b[1] || "") && r[0] >= 180 && r[0] <= 450 && r[1] >= 75 && r[1] <= 110;
+    })]
+  }
+);
+
 // ---------- several files at once (group "multi") ----------
 CASES.push(
   {

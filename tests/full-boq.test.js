@@ -128,3 +128,12 @@ test("simplify, key terms and check tasks have their own instructions", async ()
     assert.match(systemText(calls[0]), re, task);
   }
 });
+
+test("price lists have their own copy instruction; tender rates know about material prices", async () => {
+  const calls = fakeClaude(chat, "Supplier: X\nList date: unknown\n\n| Item | Make | Size / Model | Unit | Price | Price basis |\n|---|---|---|---|---|---|\n| Cement | A | 50 kg | bag | 380 | net |");
+  await runJob(memoryStore(), { task: "price-list", message: "Copy this price list.", attachments: [{ name: "list.pdf", mimeType: "application/pdf", data: "AA==" }] });
+  assert.match(systemText(calls[0]), /copy a supplier's price list/);
+  const rate = fakeClaude(chat, "x");
+  await runJob(memoryStore(), { task: "tender-rates", message: "Items:\n1. Plaster" });
+  assert.match(systemText(rate[0]), /OWN MATERIAL PRICES/);
+});

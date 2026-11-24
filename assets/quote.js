@@ -168,13 +168,17 @@
         const more = extra(i);
         return `${n + 1}. ${it.ref ? `[${it.ref}] ` : ""}${fullDescription(items, i)} (unit: ${it.unit || "-"}, qty: ${it.qty})${more ? `\n   ${more}` : ""}`;
       });
-      out.push({ indexes: chunk.map(({ i }) => i), message: `${header}\nItems:\n${lines.join("\n")}` });
+      const indexes = chunk.map(({ i }) => i);
+      out.push({ indexes, message: `${typeof header === "function" ? header(indexes) : header}\nItems:\n${lines.join("\n")}` });
     }
     return out;
   }
   // With a rate book, each item lists the contractor's own rates for similar work (ids R1, R2 …).
-  const rateRequests = (items, { location = "", currency = "INR", month = "", want, book = [] } = {}, size = 40) =>
-    itemRequests(items, `Site location: ${location || "not stated"}. Currency: ${currency}. Month: ${month}.`, want, size, (i) => {
+  const rateRequests = (items, { location = "", currency = "INR", month = "", want, book = [], materials = [] } = {}, size = 40) =>
+    itemRequests(items, (indexes) => {
+      const mats = relevantMaterials(indexes.map((i) => fullDescription(items, i)), materials, { currency });
+      return `Site location: ${location || "not stated"}. Currency: ${currency}. Month: ${month}.${mats.length ? `\nYour material prices (use the ones each item needs):\n${mats.map((m) => `- ${materialLine(m)}`).join("\n")}` : ""}`;
+    }, want, size, (i) => {
       const own = similarRates({ ...items[i], description: fullDescription(items, i) }, book, { currency });
       return own.length ? `Your rates for similar work: ${own.map(({ entry }) => `${entry.id} = ${entry.rate} per ${entry.unit || "unit"} (${String(entry.short || entry.description).slice(0, 140)})`).join("; ")}` : "";
     });
@@ -248,6 +252,14 @@
     return [];
   }
   // The AI's "Source" column: "R12" (own rate used as is), "R12 adjusted", or "market".
+  const basisFromText = (text, count) => {
+    const out = Array(count).fill(undefined);
+    for (const rows of tables(text)) for (const r of rows.slice(1)) {
+      const n = parseInt(r[0], 10);
+      if (n >= 1 && n <= count && r[3]) out[n - 1] = String(r[3]).trim();
+    }
+    return out;
+  };
   const sourcesFromText = (text, count) => {
     const out = Array(count).fill(undefined);
     for (const rows of tables(text)) for (const r of rows.slice(1)) {
@@ -256,6 +268,74 @@
     }
     return out;
   };
+
+  // ---------- my material prices (supplier catalogues and price lists) ----------
+  // { id: "M3", name, make, spec, unit, price, priceBasis, currency, supplier, listDate, updated }
+  const matText = (m) => [m.name, m.spec].filter(Boolean).join(" ");
+  const matLabel = (m) => [m.make, m.name, m.spec].filter(Boolean).join(" ");
+  // Columns of a price list: item/product, make/brand, size/model, unit, price (net/dealer/MRP).
+  function priceColumns(header) {
+    const h = header.map((x) => String(x || "").toLowerCase());
+    const find = (re, skip = []) => h.findIndex((x, i) => !skip.includes(i) && re.test(x));
+    const price = find(/net|dealer|dlp|price|rate|mrp|cost|amount/);
+    const basis = find(/basis|remark|note/, [price]);
+    const make = find(/make|brand|manufacturer|company/, [price, basis]);
+    const spec = find(/size|model|spec|grade|type|code|dia|thick|capacity/, [price, basis, make]);
+    const unit = find(/^\s*(unit|uom|per|pack|packing)/, [price, basis, make, spec]);
+    const name = find(/item|product|description|material|particular|name/, [price, basis, make, spec, unit]);
+    return { name, make, spec, unit, price, basis };
+  }
+  function materialsFromRows(rows, { currency = "INR", supplier = "", listDate = "" } = {}) {
+    for (let h = 0; h < Math.min((rows || []).length, 40); h++) {
+      const header = (rows[h] || []).map(cellStr), col = priceColumns(header);
+      if (col.name === -1 || col.price === -1) continue;
+      const out = [];
+      for (const raw of rows.slice(h + 1)) {
+        const r = (raw || []).map(cellStr), price = toNumber(r[col.price]);
+        if (!r[col.name] || !(price > 0) || isTotalRow([r[col.name]])) continue;
+        const get = (k) => (col[k] !== -1 ? (r[col[k]] || "").replace(/^[-–—]$|^n\/?a$/i, "") : "");
+        out.push({ name: r[col.name], make: get("make"), spec: get("spec"), unit: get("unit"), price, priceBasis: get("basis"), currency, supplier, listDate });
+      }
+      if (out.length) return out;
+    }
+    return [];
+  }
+  // The AI's copy of a catalogue: "Supplier: …", "List date: …", then | Item | Make | Size / Model | Unit | Price | Price basis |.
+  function materialsFromText(text, { currency = "INR" } = {}) {
+    const s = String(text || "");
+    const supplier = ((s.match(/^\s*Supplier:\s*(.+)$/im) || [])[1] || "").replace(/^unknown$/i, "").trim();
+    const date = ((s.match(/^\s*List date:\s*(\d{4}-\d{2}-\d{2})/im) || [])[1] || "");
+    const list = tables(s).flatMap((rows) => materialsFromRows(rows, { currency, supplier, listDate: date }));
+    return { supplier, listDate: date, list };
+  }
+  const matKey = (m) => `${tokens(matLabel(m)).join(" ")}|${normUnit(m.unit)}|${m.currency || "INR"}|${tokens(m.supplier).join(" ")}`;
+  function addMaterials(materials, list, date = new Date().toISOString().slice(0, 10)) {
+    const out = (materials || []).map((m) => ({ ...m }));
+    const byKey = new Map(out.map((m) => [matKey(m), m]));
+    let next = out.reduce((mx, m) => Math.max(mx, parseInt(String(m.id).slice(1), 10) || 0), 0), added = 0, updated = 0;
+    for (const m of list || []) {
+      const found = byKey.get(matKey(m));
+      if (found) { if (Number(found.price) !== Number(m.price) || found.listDate !== m.listDate) { Object.assign(found, { price: Number(m.price), priceBasis: m.priceBasis || found.priceBasis, listDate: m.listDate || found.listDate, updated: date }); updated++; } }
+      else { const e = { ...m, id: `M${++next}`, price: Number(m.price), updated: date }; out.push(e); byKey.set(matKey(e), e); added++; }
+    }
+    return { materials: out, added, updated };
+  }
+  // How old a price is, in days (from the list date, else when it was saved).
+  const priceAgeDays = (m, today = new Date()) => { const d = Date.parse(m.listDate || m.updated || ""); return Number.isFinite(d) ? Math.floor((today - d) / 864e5) : Infinity; };
+  // Material prices worth showing for a set of items: a distinctive word of the material's name
+  // (cement, sand, TMT, 500d, putty, PPR …) appears in one of the item descriptions.
+  const GENERIC = new Set("grade size type bar bars pipe pipes sheet sheets per bag bags box boxes pack nos mm kg new".split(" "));
+  function relevantMaterials(descriptions, materials, { currency = "INR", limit = 60 } = {}) {
+    const words = new Set([].concat(descriptions).flatMap((d) => tokens(d)));
+    return (materials || [])
+      .filter((m) => (m.currency || "INR") === currency && Number(m.price) > 0)
+      .map((m) => ({ m, hit: [...new Set(tokens(m.name))].filter((w) => w.length >= 3 && !/^\d+(\.\d+)?$/.test(w) && !GENERIC.has(w) && words.has(w)).length }))
+      .filter((x) => x.hit > 0)
+      .sort((a, b) => b.hit - a.hit)
+      .slice(0, limit)
+      .map((x) => x.m);
+  }
+  const materialLine = (m) => `${m.id} ${matLabel(m)} = ${m.price} per ${m.unit || "unit"}${m.priceBasis ? ` (${m.priceBasis})` : ""}${m.supplier ? `, ${m.supplier}` : ""}${m.listDate ? `, ${m.listDate}` : ""}`;
 
   // ---------- bid summary ----------
   const lakhCrore = (num, word) => { const n = Number(String(num).replace(/,/g, "")); return /crore|cr\b/i.test(word || "") ? n * 1e7 : /lakh|lac/i.test(word || "") ? n * 1e5 : n; };
@@ -315,7 +395,7 @@
   // ---------- checks before submitting (no AI) ----------
   // Items imported from a tender keep `orig` (the tender's qty, unit, description); q.tenderRefs lists
   // the tender's item numbers. Returns [{ level: "red" | "amber", text }], most serious first.
-  function checkQuote(q) {
+  function checkQuote(q, { materials = [], today = new Date() } = {}) {
     const issues = [], items = q.items || [], priced = items.filter((it) => !it.heading && String(it.description || "").trim());
     const name = (it) => it.ref || `"${String(it.description).slice(0, 30)}"`;
     const list = (arr, max = 6) => arr.slice(0, max).join(", ") + (arr.length > max ? ` and ${arr.length - max} more` : "");
@@ -340,6 +420,9 @@
     }
     const ai = priced.filter((it) => it.aiRate);
     if (ai.length) issues.push({ level: "amber", text: `${ai.length} rate${ai.length === 1 ? " is" : "s are"} still the AI suggestion (${list(ai.map(name))}). Check each against your own costs and supplier prices.` });
+    const used = [...new Set(priced.flatMap((it) => it.materials || []))].map((id) => materials.find((m) => m.id === id)).filter(Boolean);
+    const old = used.filter((m) => priceAgeDays(m, today) > 90);
+    if (old.length) issues.push({ level: "amber", text: `Rates use material prices older than 3 months: ${list(old.map((m) => `${matLabel(m)} (${m.listDate || m.updated})`), 4)}. Get today's price from the supplier.` });
     const seen = new Map(); items.forEach((it) => { if (it.ref) seen.set(it.ref, (seen.get(it.ref) || 0) + 1); });
     const dup = [...seen].filter(([, n]) => n > 1).map(([r]) => r);
     if (dup.length) issues.push({ level: "amber", text: `Item number used twice: ${list(dup)}.` });
@@ -352,16 +435,19 @@
   }
 
   // A compact text of the quotation for the AI review.
-  function reviewMessage(q, autoIssues = []) {
+  function reviewMessage(q, autoIssues = [], { materials = [] } = {}) {
     const t = totals(q), cur = q.currency || "INR";
     const days = q.validUntil && q.date ? Math.round((Date.parse(q.validUntil) - Date.parse(q.date)) / 864e5) : "";
-    const lines = t.items.filter((it) => !it.heading).slice(0, 400).map((it) => `${it.ref || "-"} | ${(it.short || String(it.description)).replace(/\s+/g, " ").slice(0, 160)} | ${it.unit || ""} | ${it.qty} | ${it.rate} | ${it.amount}${it.aiRate ? " | AI rate" : ""}`);
+    const lines = t.items.filter((it) => !it.heading).slice(0, 400).map((it) => `${it.ref || "-"} | ${(it.short || String(it.description)).replace(/\s+/g, " ").slice(0, 160)} | ${it.unit || ""} | ${it.qty} | ${it.rate} | ${it.amount}${it.aiRate ? " | AI rate" : ""}${it.rateBasis ? ` | built up: ${String(it.rateBasis).slice(0, 120)}` : ""}`);
+    const usedIds = [...new Set(t.items.flatMap((it) => it.materials || []))];
+    const usedMats = usedIds.map((id) => materials.find((m) => m.id === id)).filter(Boolean);
     return [
       `Tender key terms (plain summary):\n${q.tenderTerms ? String(q.tenderTerms).slice(0, 6000) : "Not available."}`,
       `Quotation: currency ${cur}; ${Number(q.taxRate) ? `${q.taxLabel || "tax"} ${q.taxRate}% added on top` : "no tax added"}; discount ${t.discount}; quote valid ${days} days; total ${t.total}.`,
       `Quotation terms:\n${String(q.terms || "").slice(0, 2000)}`,
       `Site / project: ${(q.client && q.client.site) || "not stated"}. Subject: ${q.subject || ""}`,
       `Items (Item No | description | unit | qty | rate | amount):\n${lines.join("\n")}`,
+      `Material prices used in the rates (make, size, supplier, date): ${usedMats.length ? usedMats.map(materialLine).join("; ") : "none"}`,
       `Already found by the automatic check (do not repeat): ${autoIssues.map((i) => i.text).join(" / ") || "nothing"}`
     ].join("\n\n");
   }
@@ -431,7 +517,7 @@
     return `${major} ${words(whole, currency === "INR")}${frac ? ` and ${words(frac, false)} ${minor}` : ""} Only`;
   }
 
-  const api = { CURRENCIES, toNumber, money, detectCurrency, itemsFromAnswer, tenderItems, tenderItemsFromText, ratesFromText, shortsFromText, sourcesFromText, rateRequests, similarRates, ownRateFor, addToRateBook, rateListFromRows, normUnit, fullDescription, termsFacts, bidSummary, simplifyRequests, checkQuote, reviewMessage, totals, quoteNumber, shareText, amountInWords, isTotalRow };
+  const api = { CURRENCIES, toNumber, money, detectCurrency, itemsFromAnswer, tenderItems, tenderItemsFromText, ratesFromText, shortsFromText, sourcesFromText, basisFromText, materialLine, materialsFromRows, materialsFromText, addMaterials, relevantMaterials, priceAgeDays, matLabel, rateRequests, similarRates, ownRateFor, addToRateBook, rateListFromRows, normUnit, fullDescription, termsFacts, bidSummary, simplifyRequests, checkQuote, reviewMessage, totals, quoteNumber, shareText, amountInWords, isTotalRow };
   if (typeof module === "object" && module.exports) module.exports = api;
   else root.QUOTE = api;
 })(typeof self !== "undefined" ? self : this);
