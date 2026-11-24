@@ -215,7 +215,7 @@
     $("t-fb-sub").textContent = tot.up + tot.down ? `${pct(tot.up, tot.up + tot.down)} helpful` : "no votes yet";
     const q = ds.map((d) => ({ d: d.day, v: d.questions + Object.values(d.tasks || {}).reduce((a, b) => a + b, 0) }));
     columns($("c-q"), q, int, int, { integer: true, empty: "No questions yet in this period. Ask one on the AI page, then tap ↻." });
-    columns($("c-cost"), ds.map((d) => ({ d: d.day, v: d.cost })), usd, (v) => `$${v.toFixed(v > 0 && v < 10 ? 2 : 0)}`, { empty: "No AI cost yet in this period." });
+    columns($("c-cost"), ds.map((d) => ({ d: d.day, v: d.cost })), usd, (v) => `$${v.toFixed(v === 0 ? 0 : v < 0.1 ? 3 : v < 10 ? 2 : 0)}`, { empty: "No AI cost yet in this period." });
     table($("tbl-q"), ["Day", "Questions", "Tool tasks", "Saved answers", "👍", "👎"], ds.slice().reverse().map((d) => [d.day, int(d.questions), int(Object.values(d.tasks || {}).reduce((a, b) => a + b, 0)), int(d.cached), int(d.feedback?.up || 0), int(d.feedback?.down || 0)]));
     table($("tbl-cost"), ["Day", "AI cost", "AI calls"], ds.slice().reverse().map((d) => [d.day, usd(d.cost), int(Object.values(d.models || {}).reduce((a, m) => a + m.calls, 0))]));
     hbars($("b-channel"), tot.channels, { names: { web: "Website / app", whatsapp: "WhatsApp" } });
