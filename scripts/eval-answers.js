@@ -239,6 +239,23 @@ CASES.push(
   }
 );
 
+const myBook = Q.addToRateBook([], { currency: "INR", items: [
+  { description: "Machine batched M-25 RCC up to plinth level including pumping, excluding centering, shuttering and reinforcement", unit: "cum", qty: 1, rate: 7900 },
+  { description: "12 mm cement plaster of mix 1:6 on brick walls", unit: "sqm", qty: 1, rate: 265 }] }).book;
+const myRatesMessage = Q.rateRequests([
+  { ref: "5.33.1", description: "Machine batched machine mixed M-25 grade RCC, all works up to plinth level, including pumping, excluding centering, shuttering, finishing and reinforcement", unit: "cum", qty: 24.6, rate: 0 },
+  { ref: "5.33.2", description: "Machine batched M-30 grade RCC in suspended slabs and beams from plinth to floor five level, including pumping, excluding centering, shuttering and reinforcement", unit: "cum", qty: 40, rate: 0 },
+  { ref: "13.1.1", description: "12 mm cement plaster of mix 1:6 (1 cement : 6 coarse sand)", unit: "sqm", qty: 412, rate: 0 }
+], { location: "Mysuru, Karnataka", currency: "INR", month: "November 2026", book: myBook })[0].message;
+CASES.push({
+  group: "tender", background: true, name: "Uses my own rates first: same work as is, different grade adjusted",
+  body: { task: "tender-rates", message: myRatesMessage },
+  must: [check("5.33.1 = my 7900 (R1); 5.33.2 = R1 adjusted upward; plaster = my 265 (R2)", (t) => {
+    const r = Q.ratesFromText(t, 3), src = Q.sourcesFromText(t, 3);
+    return r[0] === 7900 && /^R1$/i.test(src[0]) && /^R1/i.test(src[1]) && /adjust/i.test(src[1]) && r[1] > 7900 && r[2] === 265 && /^R2$/i.test(src[2]);
+  })]
+});
+
 // ---------- several files at once (group "multi") ----------
 CASES.push(
   {

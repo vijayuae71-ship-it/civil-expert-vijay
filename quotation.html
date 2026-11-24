@@ -31,7 +31,8 @@
     .q-row.q-heading { grid-template-areas: "n d d d d x"; background: #f8fafc; }
     .q-row.q-heading .c-d textarea { font-weight: 700; }
     .q-row.q-heading .c-u, .q-row.q-heading .c-q, .q-row.q-heading .c-r, .q-row.q-heading .c-a { display: none; }
-    .ai-tag.hidden { display: none; }
+    .ai-tag.hidden, .my-tag.hidden { display: none; }
+    .my-tag { display: inline-block; margin-left: .35rem; border-radius: 9999px; background: #dcfce7; color: #166534; font-size: .6rem; font-weight: 700; padding: 0 .35rem; vertical-align: middle; }
     .ai-tag { display: inline-block; margin-left: .35rem; border-radius: 9999px; background: #fef3c7; color: #92400e; font-size: .6rem; font-weight: 700; padding: 0 .35rem; vertical-align: middle; }
     @media (min-width: 640px) {
       .q-row { grid-template-columns: 3rem 1fr 4.5rem 4.75rem 6rem 7rem 1.75rem; grid-template-areas: "n d u q r a x"; }
@@ -52,7 +53,7 @@
       .q-in::placeholder { color: transparent; }
       .q-row { break-inside: avoid; grid-template-columns: 3rem 1fr 4.5rem 4.75rem 6rem 7rem 0; grid-template-areas: "n d u q r a x"; }
       .q-row.q-heading { grid-template-areas: "n d d d d d x"; }
-      .ai-tag { display: none !important; }
+      .ai-tag, .my-tag { display: none !important; }
       .q-head { display: grid; border-bottom: 2px solid #1e3a8a; padding: .35rem 0; font-size: .7rem; font-weight: 700; color: #1e3a8a; }
       .q-row .lbl, .q-row .c-a .lbl { display: none; }
       .q-empty-print { display: none !important; }
@@ -82,9 +83,41 @@
         <label class="cursor-pointer rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50" id="btn-terms">📑 Key tender terms<input id="terms-file" type="file" class="hidden" multiple accept=".pdf,image/*"></label>
         <button type="button" id="btn-check" class="rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-emerald-700">✅ Check before submitting</button>
         <button type="button" id="btn-excel" class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">⬇ Excel</button>
+        <button type="button" id="btn-book" class="rounded-lg border border-emerald-500 bg-white px-3 py-1.5 text-sm font-semibold text-emerald-800 hover:bg-emerald-50" aria-controls="ratebook">📒 My rates (<span id="book-count">0</span>)</button>
+        <button type="button" id="btn-bid" class="rounded-lg border border-blue-500 bg-white px-3 py-1.5 text-sm font-semibold text-blue-800 hover:bg-blue-50" aria-controls="bid">📊 Bid summary</button>
       </div>
       <label class="mt-2 flex items-center gap-2 text-xs font-semibold text-slate-600">Site location for rates <input id="rate-location" class="min-w-0 flex-1 rounded-md border border-slate-300 bg-white px-2 py-1 text-sm font-normal" placeholder="e.g. Whitefield, Bengaluru" maxlength="120"></label>
       <p id="tender-status" class="hidden mt-2 rounded-lg bg-white px-3 py-2 text-sm text-slate-700" role="status"></p>
+    </section>
+    <section id="ratebook" class="no-print hidden mt-3 rounded-xl border border-emerald-300 bg-white p-3 shadow-sm">
+      <div class="flex items-center justify-between gap-2"><p class="text-sm font-bold text-emerald-900">📒 My rates</p><button type="button" data-close="ratebook" class="rounded px-2 text-slate-400 hover:bg-slate-100" aria-label="Close my rates">✕</button></div>
+      <p class="mt-0.5 text-xs text-slate-600">Your own rates, saved on this phone. 🤖 Suggest rates uses them first (tagged <span class="my-tag">Mine</span>) and asks the AI only for new work. The book grows each time you save a quote's rates.</p>
+      <div class="mt-2 flex flex-wrap gap-2">
+        <button type="button" id="rb-save" class="rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-emerald-700">💾 Save rates from this quote</button>
+        <label class="cursor-pointer rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">⬆ Import rate list (Excel)<input id="rb-import" type="file" class="hidden" accept=".xlsx,.xls,.csv"></label>
+        <button type="button" id="rb-export" class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">⬇ Export</button>
+      </div>
+      <input id="rb-search" type="search" class="mt-2 w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm" placeholder="Search my rates (e.g. M25, plaster, steel)">
+      <div id="rb-list" class="mt-2 divide-y divide-slate-100"></div>
+      <p id="rb-more" class="mt-1 text-xs text-slate-500"></p>
+    </section>
+    <section id="bid" class="no-print hidden mt-3 rounded-xl border border-blue-300 bg-white p-3 shadow-sm">
+      <div class="flex items-center justify-between gap-2"><p class="text-sm font-bold text-blue-900">📊 Bid summary — only for you</p><button type="button" data-close="bid" class="rounded px-2 text-slate-400 hover:bg-slate-100" aria-label="Close bid summary">✕</button></div>
+      <p id="bid-note" class="mt-0.5 text-xs text-slate-600"></p>
+      <div class="mt-2 grid grid-cols-2 gap-2 text-xs font-semibold text-slate-600">
+        <label class="grid min-w-0 content-end gap-0.5">Profit in your rates (%)<input data-bid="profitPct" type="number" step="any" min="0" inputmode="decimal" class="w-full min-w-0 rounded-md border border-slate-300 px-2 py-1 text-sm font-normal"></label>
+        <label class="grid min-w-0 content-end gap-0.5">Or your total cost<input data-bid="cost" type="number" step="any" min="0" inputmode="decimal" class="w-full min-w-0 rounded-md border border-slate-300 px-2 py-1 text-sm font-normal"></label>
+        <label class="grid min-w-0 content-end gap-0.5">Department estimate<input data-bid="estimate" type="number" step="any" min="0" inputmode="decimal" class="w-full min-w-0 rounded-md border border-slate-300 px-2 py-1 text-sm font-normal"></label>
+        <label class="grid min-w-0 content-end gap-0.5">EMD amount<input data-bid="emd" type="number" step="any" min="0" inputmode="decimal" class="w-full min-w-0 rounded-md border border-slate-300 px-2 py-1 text-sm font-normal"></label>
+        <label class="grid min-w-0 content-end gap-0.5">Performance security (%)<input data-bid="perfPct" type="number" step="any" min="0" inputmode="decimal" class="w-full min-w-0 rounded-md border border-slate-300 px-2 py-1 text-sm font-normal"></label>
+        <label class="grid min-w-0 content-end gap-0.5">Held back from bills (%)<input data-bid="retentionPct" type="number" step="any" min="0" inputmode="decimal" class="w-full min-w-0 rounded-md border border-slate-300 px-2 py-1 text-sm font-normal"></label>
+        <label class="grid min-w-0 content-end gap-0.5">Completion time (months)<input data-bid="months" type="number" step="any" min="1" inputmode="decimal" class="w-full min-w-0 rounded-md border border-slate-300 px-2 py-1 text-sm font-normal"></label>
+        <label class="grid min-w-0 content-end gap-0.5">Bills paid after (days)<input data-bid="payDays" type="number" step="any" min="0" inputmode="decimal" class="w-full min-w-0 rounded-md border border-slate-300 px-2 py-1 text-sm font-normal"></label>
+      </div>
+      <p id="bid-plain" class="mt-3 rounded-lg bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-950"></p>
+      <dl id="bid-out" class="mt-2 grid grid-cols-[1fr_auto] gap-x-3 gap-y-1 text-sm"></dl>
+      <ul id="bid-flags" class="mt-2 space-y-1.5 text-sm"></ul>
+      <div class="mt-3 flex flex-wrap items-center gap-2"><button type="button" id="bid-share" class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">↗ Share summary</button><span class="text-xs text-slate-500">Rough planning figures, not accounts.</span></div>
     </section>
     <section id="review" class="no-print hidden mt-3 rounded-xl border border-slate-300 bg-white p-3 shadow-sm" aria-live="polite">
       <div class="flex items-center justify-between gap-2"><p class="text-sm font-bold text-slate-800">✅ Check before submitting</p><button type="button" id="review-close" class="rounded px-2 text-slate-400 hover:bg-slate-100" aria-label="Close the check">✕</button></div>
@@ -243,18 +276,19 @@
           <div class="c-d"><textarea class="q-in" rows="1" data-f="description" placeholder="Item description" aria-label="Item description"></textarea><p class="short no-print hidden mt-0.5 rounded bg-emerald-50 px-1.5 py-0.5 text-xs text-emerald-900"></p></div>
           <div class="c-u"><span class="lbl">Unit</span><input class="q-in" data-f="unit" placeholder="m³" aria-label="Unit"></div>
           <div class="c-q"><span class="lbl">Qty</span><input class="q-in q-num" data-f="qty" type="number" step="any" min="0" inputmode="decimal" aria-label="Quantity"></div>
-          <div class="c-r"><span class="lbl">Rate<span class="ai-tag hidden">AI</span></span><input class="q-in q-num" data-f="rate" type="number" step="any" min="0" inputmode="decimal" aria-label="Rate"></div>
+          <div class="c-r"><span class="lbl">Rate<span class="ai-tag hidden">AI</span><span class="my-tag hidden">Mine</span></span><input class="q-in q-num" data-f="rate" type="number" step="any" min="0" inputmode="decimal" aria-label="Rate"></div>
           <div class="c-a q-num"><span class="lbl">Amount</span><span class="amt font-semibold"></span></div>
           <button type="button" class="c-x no-print rounded-md px-1 text-lg leading-none text-slate-400 hover:bg-red-50 hover:text-red-600" title="Remove item" aria-label="Remove item">×</button>`;
         const refInput = r.querySelector('[data-f="ref"]');
         refInput.placeholder = it.heading ? "" : String(q.items.slice(0, i + 1).filter((x) => !x.heading).length);
         const tag = r.querySelector(".ai-tag"); tag.classList.toggle("hidden", !it.aiRate);
+        const mine = r.querySelector(".my-tag"); mine.classList.toggle("hidden", !(it.rateFrom && !it.aiRate)); if (it.rateFrom) mine.title = `From My rates (${it.rateFrom})`;
         const short = r.querySelector(".short"); if (it.short) { short.textContent = `In short: ${it.short}`; short.classList.remove("hidden"); }
         r.querySelectorAll("[data-f]").forEach((el) => {
           el.value = it[el.dataset.f] ?? "";
           el.addEventListener("input", () => {
             it[el.dataset.f] = el.type === "number" ? (el.value === "" ? "" : Number(el.value)) : el.value;
-            if (el.dataset.f === "rate" && it.aiRate) { delete it.aiRate; tag.classList.add("hidden"); }
+            if (el.dataset.f === "rate") { delete it.aiRate; delete it.rateFrom; tag.classList.add("hidden"); mine.classList.add("hidden"); }
             if (el.tagName === "TEXTAREA") autosize(el); renderTotals(); save();
           });
         });
@@ -275,6 +309,7 @@
       $("totals").lastElementChild.textContent = m(t.total);
       $("in-words").textContent = Q.amountInWords(t.total, q.currency);
       $("sign-company").textContent = company.name || "your company";
+      if (!$("bid").classList.contains("hidden")) renderBid();
     }
     const autosize = (el) => { el.style.height = "auto"; el.style.height = `${el.scrollHeight + 2}px`; };
     const autosizeAll = () => document.querySelectorAll("#paper textarea").forEach(autosize);
@@ -306,7 +341,7 @@
         const [open, dup, del] = row.querySelectorAll("button");
         open.children[0].textContent = `${x.number} · ${x.client?.name || "No client"}`;
         open.children[1].textContent = `${nice(x.date)} · ${Q.money(Q.totals(x).total, x.currency)}${x.subject ? ` · ${x.subject}` : ""}`;
-        open.onclick = () => { q = x; fill(); hideReview(); showTerms(x.tenderTerms); $("from-tender").classList.toggle("hidden", !x.fromTender); toggleList(false); window.scrollTo({ top: 0, behavior: "smooth" }); };
+        open.onclick = () => { q = x; fill(); hideReview(); $("bid").classList.add("hidden"); showTerms(x.tenderTerms); $("from-tender").classList.toggle("hidden", !x.fromTender); toggleList(false); window.scrollTo({ top: 0, behavior: "smooth" }); };
         dup.onclick = () => { const fresh = blank({ currency: x.currency }); q = { ...JSON.parse(JSON.stringify(x)), id: fresh.id, number: fresh.number, date: fresh.date, validUntil: fresh.validUntil }; save(); fill(); toggleList(false); toast("Copied as a new quotation"); };
         del.onclick = () => { if (!confirm(`Delete quotation ${x.number}?`)) return; quotes = quotes.filter((y) => y.id !== x.id); store.set(KEY, quotes); if (x.id === q.id) { q = quotes[0] || blank(); fill(); } renderSaved(); };
         box.appendChild(row);
@@ -329,7 +364,7 @@
     $("tax-rate").addEventListener("input", (e) => { q.taxRate = e.target.value === "" ? 0 : Number(e.target.value); renderTotals(); save(); });
     $("discount").addEventListener("input", (e) => { q.discount = e.target.value === "" ? 0 : Number(e.target.value); renderTotals(); save(); });
     $("add-item").onclick = () => { q.items.push({ description: "", unit: "", qty: 1, rate: 0 }); renderItems(); renderTotals(); save(); $("items").lastElementChild.querySelector("textarea").focus(); };
-    $("btn-new").onclick = () => { q = blank(); save(); fill(); hideReview(); showTerms(""); $("from-answer").classList.add("hidden"); $("from-tender").classList.add("hidden"); toast("New quotation"); };
+    $("btn-new").onclick = () => { q = blank(); save(); fill(); hideReview(); $("bid").classList.add("hidden"); showTerms(""); $("from-answer").classList.add("hidden"); $("from-tender").classList.add("hidden"); toast("New quotation"); };
     $("btn-list").onclick = () => toggleList();
     $("logo-file").addEventListener("change", (e) => {
       const f = e.target.files[0]; if (!f) return;
@@ -532,27 +567,139 @@
     $("btn-rates").onclick = async () => {
       if (tenderBusy) { toast("Please wait for the current step to finish."); return; }
       const want = (it) => String(it.description || "").trim() && !(Number(it.rate) > 0);
-      const todo = q.items.filter((it) => !it.heading && want(it)).length;
-      if (!todo) { toast("Every item already has a rate."); return; }
-      const loc = $("rate-location").value.trim() || String(q.client.site || "").trim();
-      if (!loc) { toast("Enter the site location first, so the rates suit the place."); $("rate-location").focus(); return; }
+      if (!q.items.some((it) => !it.heading && want(it))) { toast("Every item already has a rate."); return; }
+      const book = loadBook(), target = q;
+      // 1. The same work is already in My rates: use it directly.
+      let mine = 0, ai = 0;
+      target.items.forEach((it, i) => {
+        if (it.heading || !want(it)) return;
+        const e = Q.ownRateFor({ ...it, description: Q.fullDescription(target.items, i) }, book, { currency: target.currency });
+        if (e) { it.rate = Number(e.rate); it.rateFrom = e.id; delete it.aiRate; mine++; }
+      });
+      if (mine) { renderItems(); renderTotals(); save(); }
+      const todo = target.items.filter((it) => !it.heading && want(it)).length;
+      if (!todo) { tStatus(`✓ ${mine} rates filled from My rates (tagged Mine).`); return; }
+      // 2. The rest: the AI, shown your rates for similar work.
+      const loc = $("rate-location").value.trim() || String(target.client.site || "").trim();
+      if (!loc) { tStatus(mine ? `✓ ${mine} rates filled from My rates. For the other ${todo}, enter the site location and tap 🤖 Suggest rates again.` : ""); toast("Enter the site location first, so the rates suit the place."); $("rate-location").focus(); return; }
       tenderBusy = true;
       const month = new Date().toLocaleString("en-GB", { month: "long", year: "numeric" });
-      const reqs = Q.rateRequests(q.items, { location: loc, currency: q.currency, month, want });
-      const target = q; let filled = 0;
+      const reqs = Q.rateRequests(target.items, { location: loc, currency: target.currency, month, want, book });
       try {
         for (const [k, r] of reqs.entries()) {
-          tStatus(`Suggesting rates — part ${k + 1} of ${reqs.length} (${todo} items)… about a minute per part. Keep this page open.`);
+          tStatus(`Suggesting rates — part ${k + 1} of ${reqs.length} (${todo} items${mine ? `; ${mine} already from My rates` : ""})… about a minute per part. Keep this page open.`);
           const job = await aiJob({ task: "tender-rates", message: r.message });
-          const rates = Q.ratesFromText(job.reply, r.indexes.length);
-          r.indexes.forEach((idx, n) => { const it = target.items[idx]; if (it && Number.isFinite(rates[n]) && !(Number(it.rate) > 0)) { it.rate = rates[n]; it.aiRate = true; filled++; } });
+          const rates = Q.ratesFromText(job.reply, r.indexes.length), sources = Q.sourcesFromText(job.reply, r.indexes.length);
+          r.indexes.forEach((idx, n) => {
+            const it = target.items[idx];
+            if (!it || !Number.isFinite(rates[n]) || Number(it.rate) > 0) return;
+            const id = (String(sources[n] || "").match(/^R\d+/i) || [])[0], entry = id && book.find((e) => e.id.toUpperCase() === id.toUpperCase());
+            it.rate = rates[n];
+            if (entry && Number(entry.rate) === rates[n] && !/adjust/i.test(sources[n])) { it.rateFrom = entry.id; delete it.aiRate; mine++; }
+            else { it.aiRate = true; if (entry) it.rateFrom = entry.id; else delete it.rateFrom; ai++; }
+          });
           if (q === target) { renderItems(); renderTotals(); } save();
         }
-        target.fromTender = true; $("from-tender").classList.remove("hidden");
-        tStatus(`✓ ${filled} rates suggested for ${loc}, ${month}. They are marked AI — check each one before you submit.`);
-      } catch (err) { tStatus(`⚠️ ${err.message}${filled ? ` (${filled} rates were filled before this.)` : ""}`); }
+        target.fromTender = true; if (q === target) $("from-tender").classList.remove("hidden");
+        tStatus(`✓ ${mine ? `${mine} from My rates (Mine) and ` : ""}${ai} AI rates for ${loc}, ${month}. Check every AI rate before you submit.`);
+      } catch (err) { tStatus(`⚠️ ${err.message}${mine + ai ? ` (${mine + ai} rates were filled before this.)` : ""}`); }
       finally { tenderBusy = false; }
     };
+
+    // ---------- my rate book ----------
+    const BOOK_KEY = "cae-ratebook-v1";
+    const loadBook = () => store.get(BOOK_KEY, []);
+    const saveBook = (book) => { if (!store.set(BOOK_KEY, book)) toast("Could not save — the phone storage is full."); $("book-count").textContent = book.length; };
+    function renderBook() {
+      const book = loadBook(), find = $("rb-search").value.trim().toLowerCase();
+      $("book-count").textContent = book.length;
+      const words = find.split(/\s+/).filter(Boolean);
+      const shown = book.filter((e) => words.every((w) => `${e.id} ${e.description} ${e.short || ""} ${e.unit}`.toLowerCase().includes(w))).sort((a, b) => String(b.updated).localeCompare(String(a.updated)));
+      const list = $("rb-list"); list.innerHTML = "";
+      if (!book.length) list.innerHTML = "<p class='py-2 text-sm text-slate-500'>No rates yet. Price a quote and tap 💾 Save rates from this quote, or import your rate list from Excel.</p>";
+      shown.slice(0, 150).forEach((e) => {
+        const row = document.createElement("div"); row.className = "flex items-start gap-2 py-2";
+        row.innerHTML = "<div class='min-w-0 flex-1'><p class='line-clamp-2 text-sm text-slate-800'></p><p class='text-[11px] text-slate-500'></p></div><input type='number' step='any' min='0' inputmode='decimal' class='w-24 rounded-md border border-slate-300 px-2 py-1 text-right text-sm' aria-label='Rate'><button type='button' class='rounded px-1.5 text-lg leading-none text-slate-400 hover:bg-red-50 hover:text-red-600' aria-label='Delete rate'>×</button>";
+        // "Parent — sub-item": show the sub-item first so "All kinds of soil" and "Ordinary rock" differ at a glance.
+        const parts = String(e.description).split(" — ");
+        row.querySelector("p").textContent = e.short || (parts.length > 1 ? `${parts.slice(1).join(" — ")} · ${parts[0]}` : e.description); row.querySelector("p").title = e.description;
+        row.querySelectorAll("p")[1].textContent = `${e.id} · per ${e.unit || "unit"} · ${e.currency} · ${e.updated || ""}${e.from ? ` · ${e.from}` : ""}${(e.history || []).length ? ` · before: ${e.history.slice(0, 2).map((h) => h.rate).join(", ")}` : ""}`;
+        const input = row.querySelector("input"); input.value = e.rate;
+        input.addEventListener("change", () => {
+          const v = Number(input.value); if (!(v > 0)) { input.value = e.rate; return; }
+          const b = loadBook(), x = b.find((y) => y.id === e.id); if (!x) return;
+          if (Number(x.rate) !== v) { x.history = [{ rate: x.rate, date: x.updated, from: x.from }, ...(x.history || [])].slice(0, 5); x.rate = v; x.updated = today(); x.from = "edited"; }
+          saveBook(b); renderBook();
+        });
+        row.querySelector("button").onclick = () => { if (!confirm(`Delete ${e.id} from My rates?`)) return; saveBook(loadBook().filter((y) => y.id !== e.id)); renderBook(); };
+        $("rb-list").appendChild(row);
+      });
+      $("rb-more").textContent = shown.length > 150 ? `Showing 150 of ${shown.length}. Search to find others.` : "";
+    }
+    const togglePanel = (id, open) => { const el = $(id); open = open ?? el.classList.contains("hidden"); el.classList.toggle("hidden", !open); if (open) el.scrollIntoView({ behavior: "smooth", block: "start" }); return open; };
+    document.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", () => $(b.dataset.close).classList.add("hidden")));
+    $("btn-book").onclick = () => { if (togglePanel("ratebook")) renderBook(); };
+    $("rb-search").addEventListener("input", renderBook);
+    $("rb-save").onclick = () => {
+      const skipped = q.items.filter((it) => !it.heading && it.aiRate).length;
+      const { book, added, updated } = Q.addToRateBook(loadBook(), q, today());
+      saveBook(book); renderBook();
+      toast(added + updated ? `Saved: ${added} new, ${updated} updated${skipped ? ` · ${skipped} unchecked AI rates left out` : ""}.` : skipped ? `Nothing saved: change or confirm the ${skipped} AI rates first (they are left out until checked).` : "Nothing new to save.");
+    };
+    $("rb-import").addEventListener("change", async (e) => {
+      const f = e.target.files[0]; e.target.value = ""; if (!f) return;
+      try {
+        await loadXlsx();
+        const wb = XLSX.read(await f.arrayBuffer(), { type: "array" });
+        const list = wb.SheetNames.flatMap((n) => Q.rateListFromRows(XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, raw: true, defval: "" }), q.currency, today()));
+        if (!list.length) throw new Error("No rates found. The sheet needs Description and Rate columns (Unit is optional).");
+        const fake = { number: `import ${f.name}`.slice(0, 40), currency: q.currency, items: list.map((x) => ({ description: x.description, unit: x.unit, qty: 1, rate: x.rate })) };
+        const { book, added, updated } = Q.addToRateBook(loadBook(), fake, today());
+        saveBook(book); renderBook(); toast(`Imported: ${added} new, ${updated} updated rates (${q.currency}).`);
+      } catch (err) { toast(err.message || "Could not read this file."); }
+    });
+    $("rb-export").onclick = (e) => withBusy(e.currentTarget, async () => {
+      const book = loadBook(); if (!book.length) { toast("My rates is empty."); return; }
+      await loadXlsx();
+      const rows = [["Id", "Description", "Unit", "Rate", "Currency", "Updated", "From"], ...book.map((x) => [x.id, x.description, x.unit, Number(x.rate), x.currency, x.updated, x.from])];
+      const ws = XLSX.utils.aoa_to_sheet(rows); ws["!cols"] = [{ wch: 6 }, { wch: 70 }, { wch: 8 }, { wch: 12 }, { wch: 8 }, { wch: 11 }, { wch: 18 }];
+      const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "My rates"); XLSX.writeFile(wb, `my-rates-${today()}.xlsx`);
+    });
+
+    // ---------- bid summary ----------
+    function bidInputs() {
+      const facts = Q.termsFacts(q.tenderTerms), saved = q.bid || {};
+      const pick = (k, d) => (saved[k] !== undefined && saved[k] !== "" ? saved[k] : d);
+      return { profitPct: pick("profitPct", 15), cost: pick("cost", ""), estimate: pick("estimate", facts.estimate ?? ""), emd: pick("emd", facts.emd ?? ""), perfPct: pick("perfPct", facts.perfPct ?? 5), retentionPct: pick("retentionPct", facts.retentionPct ?? 5), months: pick("months", facts.months ?? 6), payDays: pick("payDays", 45), facts };
+    }
+    function renderBid() {
+      const b = bidInputs(), m = (n) => Q.money(Math.round(n), q.currency).replace(/\.00$/, "");
+      document.querySelectorAll("[data-bid]").forEach((el) => { if (document.activeElement !== el) el.value = b[el.dataset.bid] ?? ""; });
+      const found = Object.entries(b.facts).filter(([k, v]) => v !== undefined && ["estimate", "emd", "perfPct", "retentionPct", "months"].includes(k)).length;
+      $("bid-note").textContent = q.tenderTerms ? (found ? `${found} figures were filled from the key tender terms — check them.` : "The key tender terms did not give these figures; fill them in.") : "Tip: tap 📑 Key tender terms first and the estimate, EMD, security and time are filled in for you.";
+      const r = Q.bidSummary(q, b);
+      const rows = [["Your quote (before tax)", m(r.base)], ...(r.tax ? [["Tax", m(r.tax)], ["Quote with tax", m(r.total)]] : []),
+        ["Your cost (estimated)", m(r.cost)], ["Your profit", `${m(r.profit)} (${r.margin.toFixed(1)}%)`], ["Profit per month", m(r.profitPerMonth)],
+        ...(r.vsEstimate !== null ? [["Against department estimate", `${Math.abs(r.vsEstimate).toFixed(1)}% ${r.vsEstimate >= 0 ? "above" : "below"}`]] : []),
+        ["EMD (blocked until award)", m(r.emd)], ["Performance security", m(r.perfSec)], ["Held back from bills (by the end)", m(r.retention)],
+        ["Money you spend per month", m(r.monthly)], ["Your own money needed at the peak", m(r.peak)]];
+      const out = $("bid-out"); out.innerHTML = "";
+      rows.forEach(([l, v], i) => { const dt = document.createElement("dt"), dd = document.createElement("dd"); dt.className = "text-slate-600"; dd.className = `text-right tabular-nums ${i === rows.length - 1 || l === "Your profit" ? "font-bold text-slate-900" : ""}`; dt.textContent = l; dd.textContent = v; out.append(dt, dd); });
+      $("bid-plain").textContent = r.base ? `Profit about ${m(r.profit)} (${r.margin.toFixed(1)}%) on ${m(r.base)} over ${r.months} months. You need about ${m(r.peak)} of your own money at the peak.` : "Add rates to see the summary.";
+      const fl = $("bid-flags"); fl.innerHTML = "";
+      r.flags.forEach((f) => fl.appendChild(li(`${f.level === "red" ? "🔴" : "🟠"} ${f.text}`)));
+      return r;
+    }
+    $("btn-bid").onclick = () => { if (togglePanel("bid")) renderBid(); };
+    document.querySelectorAll("[data-bid]").forEach((el) => el.addEventListener("input", () => { q.bid = { ...(q.bid || {}), [el.dataset.bid]: el.value === "" ? "" : Number(el.value) }; save(); renderBid(); }));
+    $("bid-share").onclick = async () => {
+      const r = renderBid(), m = (n) => Q.money(Math.round(n), q.currency).replace(/\.00$/, "");
+      const text = [`*Bid summary — ${q.subject || q.number}*`, `Quote (before tax): ${m(r.base)}`, `Profit: ${m(r.profit)} (${r.margin.toFixed(1)}%), ${m(r.profitPerMonth)}/month over ${r.months} months`,
+        ...(r.vsEstimate !== null ? [`Vs estimate: ${Math.abs(r.vsEstimate).toFixed(1)}% ${r.vsEstimate >= 0 ? "above" : "below"}`] : []), `EMD ${m(r.emd)} · Performance security ${m(r.perfSec)} · Held back ${m(r.retention)}`,
+        `Own money needed at peak: ${m(r.peak)}`, ...r.flags.map((f) => `${f.level === "red" ? "🔴" : "🟠"} ${f.text}`)].join("\n");
+      try { if (navigator.share) await navigator.share({ title: "Bid summary", text }); else { await navigator.clipboard.writeText(text); toast("Copied — paste it in WhatsApp."); } } catch {}
+    };
+
     // ---------- simplify, key terms, check ----------
     $("btn-simplify").onclick = async () => {
       if (tenderBusy) { toast("Please wait for the current step to finish."); return; }
@@ -682,7 +829,7 @@
     } else { q = quotes[0] || blank(); $("from-tender").classList.toggle("hidden", !q.fromTender); showTerms(q.tenderTerms); }
     store.del(IMPORT_KEY);
     if (location.search) history.replaceState(null, "", location.pathname);
-    fill(); renderSaved();
+    fill(); renderSaved(); $("book-count").textContent = loadBook().length;
     window.addEventListener("beforeprint", autosizeAll);
   })();
   </script>

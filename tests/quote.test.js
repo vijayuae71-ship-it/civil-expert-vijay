@@ -196,3 +196,77 @@ test("simplify requests and short lines", () => {
   assert.match(r.message, /^Explain each tender item in short, simple words\.\nItems:\n1\. \[1\.1\]/);
   assert.deepEqual(Q.shortsFromText("| No | In short |\n|---|---|\n| 2 | Rock digging, per cum |", 3), [undefined, "Rock digging, per cum", undefined]);
 });
+
+// ---------- my rate book ----------
+test("units with different spellings match", () => {
+  assert.deepEqual(["Cum", "m³", "M3", "cu.m"].map(Q.normUnit), ["m3", "m3", "m3", "m3"]);
+  assert.deepEqual(["Sqm", "m²", "sq.m"].map(Q.normUnit), ["m2", "m2", "m2"]);
+  assert.deepEqual(["RMT", "Rm", "metre"].map(Q.normUnit), ["m", "m", "m"]);
+  assert.deepEqual(["Nos.", "each", "No"].map(Q.normUnit), ["no", "no", "no"]);
+});
+
+test("saving a quote's rates: checked rates only, sub-items with their parent, updates keep history", () => {
+  const items = Q.tenderItems(GEPNIC).map((it) => (it.heading ? it : { ...it, rate: it.ref === "1.1" ? 290 : it.ref === "1.2" ? 1500 : 6500 }));
+  items[2].aiRate = true;                                             // 1.2 is an unchecked AI rate
+  const first = Q.addToRateBook([], { number: "Q-1", currency: "INR", items }, "2026-11-24");
+  assert.equal(first.added, 2);
+  assert.deepEqual(first.book.map((e) => [e.id, e.unit, e.rate]), [["R1", "cum", 290], ["R2", "cum", 6500]]);
+  assert.match(first.book[0].description, /^Earth work in excavation .* — All kinds of soil$/);
+  items[1].rate = 310;
+  const second = Q.addToRateBook(first.book, { number: "Q-2", currency: "INR", items }, "2026-12-01");
+  assert.equal(second.updated, 1); assert.equal(second.added, 0);
+  assert.deepEqual(second.book[0].history, [{ rate: 290, date: "2026-11-24", from: "Q-1" }]);
+  assert.equal(second.book[0].rate, 310);
+  assert.equal(first.book[0].rate, 290, "the old book is not changed");
+});
+
+test("own rates: same work is used directly; similar work is offered to the AI; other currency or unit is ignored", () => {
+  const { book } = Q.addToRateBook([], { currency: "INR", items: [
+    { description: "Machine batched M-25 RCC up to plinth level including pumping, excluding shuttering and reinforcement", unit: "cum", qty: 1, rate: 7900 },
+    { description: "12 mm cement plaster of mix 1:6", unit: "sqm", qty: 1, rate: 280 }] });
+  assert.equal(Q.ownRateFor({ description: "Machine batched M-25 RCC up to plinth level including pumping, excluding shuttering and reinforcement.", unit: "m³" }, book).id, "R1");
+  assert.equal(Q.ownRateFor({ description: "Machine batched M-30 RCC in slabs above plinth including pumping", unit: "cum" }, book), null);
+  assert.deepEqual(Q.similarRates({ description: "Machine batched M-30 RCC in slabs above plinth including pumping", unit: "cum" }, book).map((x) => x.entry.id), ["R1"]);
+  assert.deepEqual(Q.similarRates({ description: "12 mm cement plaster of mix 1:6", unit: "cum" }, book), [], "different unit");
+  assert.deepEqual(Q.similarRates({ description: "12 mm cement plaster of mix 1:6", unit: "sqm" }, book, { currency: "AED" }), [], "different currency");
+  const [req] = Q.rateRequests([{ ref: "5.33.2", description: "Machine batched M-30 RCC in slabs above plinth including pumping", unit: "cum", qty: 40, rate: 0 }], { location: "Pune", book });
+  assert.match(req.message, /\n {3}Your rates for similar work: R1 = 7900 per cum \(Machine batched M-25 RCC/);
+  assert.deepEqual(Q.sourcesFromText("| No | Rate | Source | Basis |\n|---|---|---|---|\n| 1 | 8400 | R1 adjusted | M30 + slab |", 1), ["R1 adjusted"]);
+});
+
+test("rate list from Excel: description, unit and rate columns", () => {
+  const list = Q.rateListFromRows([["My rate list 2026"], ["S.No", "Item", "Unit", "Rate (Rs)"], [1, "PCC 1:4:8", "cum", "6,200"], [2, "Brick work 1:6", "cum", 7800], [3, "Note: rates excl GST", "", ""]], "INR", "2026-11-24");
+  assert.deepEqual(list.map((x) => [x.description, x.unit, x.rate]), [["PCC 1:4:8", "cum", 6200], ["Brick work 1:6", "cum", 7800]]);
+});
+
+// ---------- bid summary ----------
+test("figures are read from the key tender terms", () => {
+  const f = Q.termsFacts("**Money**\n- Estimated cost put to tender: Rs. 48.6 lakh.\n- EMD Rs. 97,200.\n- Performance security 5% of the tendered value.\n- Security deposit 2.5% recovered from each running bill.\n**Work & time**\n- Complete in 6 (six) months.\n- Offer valid for 120 days.\n**Penalties**\n- 0.5% per week of delay, max 10%.");
+  assert.deepEqual({ ...f, emdPct: undefined }, { estimate: 4860000, emd: 97200, emdPct: undefined, perfPct: 5, retentionPct: 2.5, months: 6, validityDays: 120, ldPctPerWeek: 0.5 });
+  assert.equal(Q.termsFacts("Estimated cost Rs 2.5 crore. EMD 2% of estimated cost.").emd, 500000);
+  assert.deepEqual(Q.termsFacts(""), { estimate: undefined, emd: undefined, emdPct: undefined, perfPct: undefined, retentionPct: undefined, months: undefined, validityDays: undefined, ldPctPerWeek: undefined });
+});
+
+test("bid summary: profit, money locked up, peak cash and plain warnings", () => {
+  const q = { items: [{ qty: 1, rate: 4860000 }], taxRate: 0 };
+  const r = Q.bidSummary(q, { profitPct: 12, estimate: 4860000, emd: 97200, perfPct: 5, retentionPct: 2.5, months: 6, payDays: 45 });
+  assert.equal(Math.round(r.cost), 4339286);
+  assert.equal(Math.round(r.profit), 520714);
+  assert.equal(r.margin.toFixed(1), "10.7");
+  assert.equal(r.vsEstimate, 0);
+  assert.equal(Math.round(r.perfSec), 243000);
+  assert.equal(Math.round(r.workingCap), 1808036);    // 6 months of cost, paid 45 days late → 2.5 months of spend
+  assert.equal(Math.round(r.peak), 2172536);
+  const thin = Q.bidSummary(q, { profitPct: 3, estimate: 4000000, months: 6 });
+  assert.match(thin.flags.map((f) => f.text).join(" "), /Profit is thin \(2\.9%\).*21\.5% above the department's estimate/);
+  assert.equal(Q.bidSummary(q, { cost: 5000000 }).flags[0].level, "red");
+  assert.match(Q.bidSummary(q, { profitPct: 15, estimate: 6000000 }).flags.map((f) => f.text).join(" "), /19\.0% below the estimate/);
+});
+
+test("a heading is only a parent for its own sub-items (by item number)", () => {
+  const items = [{ ref: "1", description: "Earth work in excavation by mechanical means", heading: true }, { ref: "1.1", description: "All kinds of soil", unit: "cum", qty: 5 },
+    { ref: "", description: "Machine batched M-30 RCC in slabs", unit: "cum", qty: 4 }, { ref: "2", description: "Brick work", unit: "cum", qty: 3 }];
+  assert.equal(Q.fullDescription(items, 1), "Earth work in excavation by mechanical means — All kinds of soil");
+  assert.equal(Q.fullDescription(items, 2), "Machine batched M-30 RCC in slabs");
+  assert.equal(Q.fullDescription(items, 3), "Brick work");
+});
