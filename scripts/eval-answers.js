@@ -191,6 +191,29 @@ CASES.push(
 // ---------- unusual product photos (group "product"): fictional labels in scripts/fixtures ----------
 const photo = (file) => ({ name: file, mimeType: "image/jpeg", data: require("fs").readFileSync(require("path").join(__dirname, "fixtures", file)).toString("base64") });
 
+// ---------- tenders (group "tender"): copy a BOQ word for word, then price it ----------
+const Q = require("../assets/quote.js");
+const tenderPdf = { name: "sample-tender-boq.pdf", mimeType: "application/pdf", data: require("fs").readFileSync(require("path").join(__dirname, "fixtures", "sample-tender-boq.pdf")).toString("base64") };
+const check = (label, fn) => ({ toString: () => label, test: (text) => { try { return fn(text); } catch { return false; } } });
+const EXPECTED = [["2.8", null], ["2.8.1", 86.4], ["4.1.8", 9.75], ["5.33", null], ["5.33.1", 24.6], ["5.22A", null], ["5.22A.6", 2850], ["6.1.2", 31.2], ["13.1.1", 412]];
+CASES.push(
+  {
+    group: "tender", background: true, name: "Copies every tender BOQ line exactly: item numbers, headings, units and quantities",
+    body: { task: "tender-items", message: "Copy the complete BOQ from the attached tender document.", attachments: [tenderPdf] },
+    must: [
+      check("all 9 lines with the right item numbers and quantities", (t) => JSON.stringify(Q.tenderItemsFromText(t).map((i) => [i.ref, i.heading ? null : i.qty])) === JSON.stringify(EXPECTED)),
+      /including pumping of concrete to site of laying but excluding the cost of centering, shuttering, finishing and reinforcement/,
+      /Thermo-Mechanically Treated bars of grade Fe-500D or more/
+    ],
+    mustNot: [/Total/, /Rate \(Rs/]
+  },
+  {
+    group: "tender", background: true, name: "Suggests a sensible rate for every tender item",
+    body: { task: "tender-rates", message: Q.rateRequests(Q.tenderItems([["Item No", "Description", "Unit", "Qty"], ["2.8", "Earth work in excavation by mechanical means in foundation trenches, lift upto 1.5 m, lead 50 m", "", ""], ["2.8.1", "All kinds of soil", "cum", 86.4], ["5.22A.6", "Steel reinforcement for R.C.C. work, Thermo-Mechanically Treated bars of grade Fe-500D, upto plinth level", "kg", 2850], ["13.1.1", "12 mm cement plaster of mix 1:6 (1 cement : 6 coarse sand)", "sqm", 412]]), { location: "Mysuru, Karnataka", currency: "INR", month: "November 2026" })[0].message },
+    must: [check("3 rates in sensible ranges (earthwork 150–600/cum, steel 60–120/kg, plaster 200–600/sqm)", (t) => { const [a, b, c] = Q.ratesFromText(t, 3); return a >= 150 && a <= 600 && b >= 60 && b <= 120 && c >= 200 && c <= 600; })]
+  }
+);
+
 // ---------- several files at once (group "multi") ----------
 CASES.push(
   {

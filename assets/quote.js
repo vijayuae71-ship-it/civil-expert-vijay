@@ -105,9 +105,71 @@
     return items;
   }
 
+  // ---------- tender BOQs (Excel/CSV rows, or a table the AI copied from a PDF) ----------
+  // Keeps the tender's own item numbers, descriptions, units and quantities. Rows without a
+  // quantity (parent items such as "Providing and laying … in:") stay as headings.
+  const cellStr = (v) => String(v == null ? "" : v).replace(/\s+/g, " ").trim();
+  function findHeader(rows, maxScan = 40) {
+    for (let i = 0; i < Math.min(rows.length, maxScan); i++) {
+      const header = (rows[i] || []).map(cellStr);
+      if (header.filter(Boolean).length < 3) continue;
+      const col = columns(header);
+      if (col.desc !== -1 && col.qty !== -1 && /[a-z]/i.test(header[col.desc] || "") && /[a-z]/i.test(header[col.qty] || "")) {
+        return { index: i, col: { ...col, ref: header.findIndex(isSerial) } };
+      }
+    }
+    return null;
+  }
+  function tenderItems(rows) {
+    const found = findHeader(rows || []);
+    if (!found) return [];
+    const { col } = found, items = [];
+    for (const raw of rows.slice(found.index + 1)) {
+      const r = (raw || []).map(cellStr);
+      const description = r[col.desc] || "", ref = col.ref !== -1 ? r[col.ref] || "" : "";
+      if (!description || /^\d+$/.test(description)) continue;        // empty rows, and the "1 2 3 4" column-number row
+      if (isTotalRow([description, ref])) continue;
+      const qty = toNumber(r[col.qty]);
+      const rate = col.rate !== -1 ? toNumber(r[col.rate]) : NaN;
+      const unit = col.unit !== -1 ? r[col.unit] || "" : "";
+      if (!Number.isFinite(qty) || (qty === 0 && !unit)) items.push({ ref, description, heading: true });
+      else items.push({ ref, description, unit, qty, rate: Number.isFinite(rate) ? rate : 0 });
+    }
+    // Drop trailing headings with nothing under them (notes, signatures).
+    while (items.length && items[items.length - 1].heading) items.pop();
+    return items;
+  }
+  const tenderItemsFromText = (text) => tables(text).flatMap((rows) => tenderItems(rows));
+
+  // The AI's rate table ("No | Rate | Basis") → rates in item order (NaN where missing).
+  function ratesFromText(text, count) {
+    const out = Array(count).fill(NaN);
+    for (const rows of tables(text)) for (const r of rows.slice(1)) {
+      const n = parseInt(r[0], 10), rate = toNumber(r[1]);
+      if (n >= 1 && n <= count && Number.isFinite(rate) && rate >= 0) out[n - 1] = rate;
+    }
+    return out;
+  }
+  // Requests for "Suggest rates": numbered item lists of at most `size` items and ~9,000 characters.
+  // `want` picks the items to price (default: every non-heading item); indexes refer to `items`.
+  function rateRequests(items, { location = "", currency = "INR", month = "", want = (it) => !it.heading } = {}, size = 40) {
+    const priced = items.map((it, i) => ({ it, i })).filter(({ it }) => !it.heading && want(it));
+    const out = [];
+    for (let k = 0; k < priced.length; k += size) {
+      const chunk = priced.slice(k, k + size);
+      const lines = chunk.map(({ it }, n) => {
+        const parent = (() => { for (let j = items.indexOf(it) - 1; j >= 0; j--) if (items[j].heading) return items[j].description; return ""; })();
+        const desc = `${parent && it.description.length < 80 ? parent.slice(0, 300) + " — " : ""}${it.description}`.slice(0, 600);
+        return `${n + 1}. ${it.ref ? `[${it.ref}] ` : ""}${desc} (unit: ${it.unit || "-"}, qty: ${it.qty})`;
+      });
+      out.push({ indexes: chunk.map(({ i }) => i), message: `Site location: ${location || "not stated"}. Currency: ${currency}. Month: ${month}.\nItems:\n${lines.join("\n")}` });
+    }
+    return out;
+  }
+
   // ---------- quotation maths ----------
   function totals(q) {
-    const items = (q.items || []).map((it) => ({ ...it, amount: round2((Number(it.qty) || 0) * (Number(it.rate) || 0)) }));
+    const items = (q.items || []).map((it) => ({ ...it, amount: it.heading ? 0 : round2((Number(it.qty) || 0) * (Number(it.rate) || 0)) }));
     const subtotal = round2(items.reduce((s, it) => s + it.amount, 0));
     const discount = round2(Math.min(subtotal, Math.max(0, Number(q.discount) || 0)));
     const taxable = round2(subtotal - discount);
@@ -129,7 +191,12 @@
     if (q.client && q.client.name) L.push(`To: ${q.client.name}${q.client.site ? ` — ${q.client.site}` : ""}`);
     if (q.subject) L.push(`Subject: ${q.subject}`);
     L.push("");
-    t.items.forEach((it, i) => L.push(`${i + 1}. ${it.description}\n   ${it.qty} ${it.unit || ""} × ${m(it.rate)} = *${m(it.amount)}*`.replace(/ {2,}×/, " ×")));
+    let n = 0;
+    t.items.forEach((it) => {
+      if (it.heading) { L.push(`*${it.ref ? it.ref + " " : ""}${it.description}*`); return; }
+      n += 1;
+      L.push(`${it.ref || n}. ${it.description}\n   ${it.qty} ${it.unit || ""} × ${m(it.rate)} = *${m(it.amount)}*`.replace(/ {2,}×/, " ×"));
+    });
     L.push("");
     L.push(`Subtotal: ${m(t.subtotal)}`);
     if (t.discount) L.push(`Discount: −${m(t.discount)}`);
@@ -165,7 +232,7 @@
     return `${major} ${words(whole, currency === "INR")}${frac ? ` and ${words(frac, false)} ${minor}` : ""} Only`;
   }
 
-  const api = { CURRENCIES, toNumber, money, detectCurrency, itemsFromAnswer, totals, quoteNumber, shareText, amountInWords, isTotalRow };
+  const api = { CURRENCIES, toNumber, money, detectCurrency, itemsFromAnswer, tenderItems, tenderItemsFromText, ratesFromText, rateRequests, totals, quoteNumber, shareText, amountInWords, isTotalRow };
   if (typeof module === "object" && module.exports) module.exports = api;
   else root.QUOTE = api;
 })(typeof self !== "undefined" ? self : this);

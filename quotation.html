@@ -23,17 +23,24 @@
     .q-in::placeholder { color: #94a3b8; }
     textarea.q-in { resize: vertical; }
     .q-num { text-align: right; font-variant-numeric: tabular-nums; }
-    .q-row { display: grid; gap: .25rem .5rem; align-items: start; padding: .45rem 0; border-bottom: 1px solid #e2e8f0; grid-template-columns: 1.5rem .8fr 1fr 1.1fr 1.8fr 1.5rem; grid-template-areas: "n d d d d x" ". u q r a ."; }
-    .q-row > .c-n { grid-area: n; padding-top: .25rem; color: #64748b; font-size: .8rem; }
+    .q-row { display: grid; gap: .25rem .5rem; align-items: start; padding: .45rem 0; border-bottom: 1px solid #e2e8f0; grid-template-columns: 2.4rem 1fr 1fr 1fr 1fr 1.5rem; grid-template-areas: "n d d d d x" "u u q q r r" "a a a a a a"; }
+    .q-row > .c-n { grid-area: n; } .q-row > .c-n input { color: #64748b; font-size: .75rem; padding-left: .1rem; padding-right: .1rem; }
     .q-row > .c-d { grid-area: d; } .q-row > .c-u { grid-area: u; } .q-row > .c-q { grid-area: q; } .q-row > .c-r { grid-area: r; } .q-row > .c-a { grid-area: a; padding-top: .25rem; } .q-row > .c-x { grid-area: x; }
     .q-head { display: none; }
     .amt { white-space: nowrap; }
+    .q-row.q-heading { grid-template-areas: "n d d d d x"; background: #f8fafc; }
+    .q-row.q-heading .c-d textarea { font-weight: 700; }
+    .q-row.q-heading .c-u, .q-row.q-heading .c-q, .q-row.q-heading .c-r, .q-row.q-heading .c-a { display: none; }
+    .ai-tag.hidden { display: none; }
+    .ai-tag { display: inline-block; margin-left: .35rem; border-radius: 9999px; background: #fef3c7; color: #92400e; font-size: .6rem; font-weight: 700; padding: 0 .35rem; vertical-align: middle; }
     @media (min-width: 640px) {
-      .q-row { grid-template-columns: 1.75rem 1fr 4.5rem 4.75rem 6rem 7rem 1.75rem; grid-template-areas: "n d u q r a x"; }
+      .q-row { grid-template-columns: 3rem 1fr 4.5rem 4.75rem 6rem 7rem 1.75rem; grid-template-areas: "n d u q r a x"; }
+      .q-row.q-heading { grid-template-areas: "n d d d d d x"; }
       .q-head { display: grid; border-bottom: 2px solid #1e3a8a; padding: .35rem 0; font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; color: #1e3a8a; }
     }
     .q-row .lbl { display: block; font-size: .65rem; color: #94a3b8; padding-left: .35rem; }
-    @media (min-width: 640px) { .q-row .lbl { display: none; } }
+    .q-row .c-a .lbl { display: inline; margin-right: .5rem; }
+    @media (min-width: 640px) { .q-row .lbl, .q-row .c-a .lbl { display: none; } }
     #logo-box img { max-height: 64px; max-width: 160px; object-fit: contain; }
     @media print {
       @page { size: A4; margin: 12mm; }
@@ -43,9 +50,11 @@
       #paper { box-shadow: none !important; border: 0 !important; padding: 0 !important; }
       .q-in { border-color: transparent !important; background: transparent !important; resize: none; }
       .q-in::placeholder { color: transparent; }
-      .q-row { break-inside: avoid; grid-template-columns: 1.75rem 1fr 4.5rem 4.75rem 6rem 7rem 0; grid-template-areas: "n d u q r a x"; }
+      .q-row { break-inside: avoid; grid-template-columns: 3rem 1fr 4.5rem 4.75rem 6rem 7rem 0; grid-template-areas: "n d u q r a x"; }
+      .q-row.q-heading { grid-template-areas: "n d d d d d x"; }
+      .ai-tag { display: none !important; }
       .q-head { display: grid; border-bottom: 2px solid #1e3a8a; padding: .35rem 0; font-size: .7rem; font-weight: 700; color: #1e3a8a; }
-      .q-row .lbl { display: none; }
+      .q-row .lbl, .q-row .c-a .lbl { display: none; }
       .q-empty-print { display: none !important; }
     }
   </style>
@@ -63,6 +72,18 @@
     </div>
     <section id="saved" class="no-print hidden mt-3 rounded-xl border border-slate-200 bg-white p-2 shadow-sm" aria-label="Saved quotations"></section>
     <p id="from-answer" class="no-print hidden mt-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950">Items were copied from the AI answer. Rates from the AI are indicative — check every rate and quantity before you send this quotation.</p>
+    <section id="tender-tools" class="no-print mt-3 rounded-xl border border-blue-200 bg-blue-50/60 p-3">
+      <p class="text-sm font-bold text-blue-900">Tender / BOQ tools</p>
+      <p class="mt-0.5 text-xs text-slate-600">Bring in the items of any government or private tender (Excel, CSV, PDF or photos of the BOQ pages), fill your rates, then share your quotation or download it as Excel.</p>
+      <div class="mt-2 flex flex-wrap gap-2">
+        <label class="cursor-pointer rounded-lg bg-blue-700 px-3 py-1.5 text-sm font-semibold text-white hover:bg-blue-800">📄 Import tender BOQ<input id="tender-file" type="file" class="hidden" multiple accept=".xlsx,.xlsm,.xls,.csv,.pdf,image/*"></label>
+        <button type="button" id="btn-rates" class="rounded-lg border border-amber-400 bg-white px-3 py-1.5 text-sm font-semibold text-amber-800 hover:bg-amber-50">🤖 Suggest rates</button>
+        <button type="button" id="btn-excel" class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">⬇ Excel</button>
+      </div>
+      <label class="mt-2 flex items-center gap-2 text-xs font-semibold text-slate-600">Site location for rates <input id="rate-location" class="min-w-0 flex-1 rounded-md border border-slate-300 bg-white px-2 py-1 text-sm font-normal" placeholder="e.g. Whitefield, Bengaluru" maxlength="120"></label>
+      <p id="tender-status" class="hidden mt-2 rounded-lg bg-white px-3 py-2 text-sm text-slate-700" role="status"></p>
+    </section>
+    <p id="from-tender" class="no-print hidden mt-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950">Items were copied from the tender. Check every item number, description, unit and quantity against the tender document before you submit. Rates marked <span class="ai-tag">AI</span> are AI suggestions — check them; the tag goes when you change a rate.</p>
     <p class="no-print mt-2 text-xs text-slate-500">Tap any text to edit it. Your quotations and company details are saved only on this phone or computer.</p>
 
     <article id="paper" class="mt-3 rounded-2xl border border-slate-200 bg-white p-4 sm:p-8 shadow-sm text-sm">
@@ -114,7 +135,7 @@
       </section>
 
       <section class="mt-4" aria-label="Items">
-        <div class="q-row q-head"><span>#</span><span>Description</span><span>Unit</span><span class="text-right">Qty</span><span class="text-right">Rate</span><span class="text-right">Amount</span><span></span></div>
+        <div class="q-row q-head"><span>Item</span><span>Description</span><span>Unit</span><span class="text-right">Qty</span><span class="text-right">Rate</span><span class="text-right">Amount</span><span></span></div>
         <div id="items"></div>
         <button type="button" id="add-item" class="no-print mt-2 rounded-lg border border-dashed border-blue-400 px-3 py-1.5 text-sm font-semibold text-blue-700 hover:bg-blue-50">+ Add item</button>
       </section>
@@ -202,18 +223,24 @@
     function renderItems() {
       const box = $("items"); box.innerHTML = "";
       q.items.forEach((it, i) => {
-        const r = document.createElement("div"); r.className = "q-row";
-        r.innerHTML = `<span class="c-n"></span>
+        const r = document.createElement("div"); r.className = `q-row${it.heading ? " q-heading" : ""}`;
+        r.innerHTML = `<div class="c-n"><input class="q-in" data-f="ref" aria-label="Item number" maxlength="20"></div>
           <div class="c-d"><textarea class="q-in" rows="1" data-f="description" placeholder="Item description" aria-label="Item description"></textarea></div>
           <div class="c-u"><span class="lbl">Unit</span><input class="q-in" data-f="unit" placeholder="m³" aria-label="Unit"></div>
           <div class="c-q"><span class="lbl">Qty</span><input class="q-in q-num" data-f="qty" type="number" step="any" min="0" inputmode="decimal" aria-label="Quantity"></div>
-          <div class="c-r"><span class="lbl">Rate</span><input class="q-in q-num" data-f="rate" type="number" step="any" min="0" inputmode="decimal" aria-label="Rate"></div>
+          <div class="c-r"><span class="lbl">Rate<span class="ai-tag hidden">AI</span></span><input class="q-in q-num" data-f="rate" type="number" step="any" min="0" inputmode="decimal" aria-label="Rate"></div>
           <div class="c-a q-num"><span class="lbl">Amount</span><span class="amt font-semibold"></span></div>
           <button type="button" class="c-x no-print rounded-md px-1 text-lg leading-none text-slate-400 hover:bg-red-50 hover:text-red-600" title="Remove item" aria-label="Remove item">×</button>`;
-        r.querySelector(".c-n").textContent = i + 1;
+        const refInput = r.querySelector('[data-f="ref"]');
+        refInput.placeholder = it.heading ? "" : String(q.items.slice(0, i + 1).filter((x) => !x.heading).length);
+        const tag = r.querySelector(".ai-tag"); tag.classList.toggle("hidden", !it.aiRate);
         r.querySelectorAll("[data-f]").forEach((el) => {
           el.value = it[el.dataset.f] ?? "";
-          el.addEventListener("input", () => { it[el.dataset.f] = el.type === "number" ? (el.value === "" ? "" : Number(el.value)) : el.value; if (el.tagName === "TEXTAREA") autosize(el); renderTotals(); save(); });
+          el.addEventListener("input", () => {
+            it[el.dataset.f] = el.type === "number" ? (el.value === "" ? "" : Number(el.value)) : el.value;
+            if (el.dataset.f === "rate" && it.aiRate) { delete it.aiRate; tag.classList.add("hidden"); }
+            if (el.tagName === "TEXTAREA") autosize(el); renderTotals(); save();
+          });
         });
         r.querySelector(".c-x").onclick = () => { q.items.splice(i, 1); if (!q.items.length) q.items.push({ description: "", unit: "", qty: 1, rate: 0 }); renderItems(); renderTotals(); save(); };
         box.appendChild(r);
@@ -263,7 +290,7 @@
         const [open, dup, del] = row.querySelectorAll("button");
         open.children[0].textContent = `${x.number} · ${x.client?.name || "No client"}`;
         open.children[1].textContent = `${nice(x.date)} · ${Q.money(Q.totals(x).total, x.currency)}${x.subject ? ` · ${x.subject}` : ""}`;
-        open.onclick = () => { q = x; fill(); toggleList(false); window.scrollTo({ top: 0, behavior: "smooth" }); };
+        open.onclick = () => { q = x; fill(); $("from-tender").classList.toggle("hidden", !x.fromTender); toggleList(false); window.scrollTo({ top: 0, behavior: "smooth" }); };
         dup.onclick = () => { const fresh = blank({ currency: x.currency }); q = { ...JSON.parse(JSON.stringify(x)), id: fresh.id, number: fresh.number, date: fresh.date, validUntil: fresh.validUntil }; save(); fill(); toggleList(false); toast("Copied as a new quotation"); };
         del.onclick = () => { if (!confirm(`Delete quotation ${x.number}?`)) return; quotes = quotes.filter((y) => y.id !== x.id); store.set(KEY, quotes); if (x.id === q.id) { q = quotes[0] || blank(); fill(); } renderSaved(); };
         box.appendChild(row);
@@ -286,7 +313,7 @@
     $("tax-rate").addEventListener("input", (e) => { q.taxRate = e.target.value === "" ? 0 : Number(e.target.value); renderTotals(); save(); });
     $("discount").addEventListener("input", (e) => { q.discount = e.target.value === "" ? 0 : Number(e.target.value); renderTotals(); save(); });
     $("add-item").onclick = () => { q.items.push({ description: "", unit: "", qty: 1, rate: 0 }); renderItems(); renderTotals(); save(); $("items").lastElementChild.querySelector("textarea").focus(); };
-    $("btn-new").onclick = () => { q = blank(); save(); fill(); $("from-answer").classList.add("hidden"); toast("New quotation"); };
+    $("btn-new").onclick = () => { q = blank(); save(); fill(); $("from-answer").classList.add("hidden"); $("from-tender").classList.add("hidden"); toast("New quotation"); };
     $("btn-list").onclick = () => toggleList();
     $("logo-file").addEventListener("change", (e) => {
       const f = e.target.files[0]; if (!f) return;
@@ -339,16 +366,24 @@
       let sy = y; if (q.subject) { font(9.5, "bold"); const ls = wrap(q.subject, CW / 2 - 10); pdf.text(ls, M + CW / 2 + 10, sy); sy += ls.length * 12; }
       y = Math.max(cy, sy, y + 12) + 12;
       // items table
-      const cols = [["#", 22, "left"], ["Description", 0, "left"], ["Unit", 44, "left"], ["Qty", 52, "right"], ["Rate", 72, "right"], ["Amount", 86, "right"]];
+      const refW = Math.min(60, Math.max(24, ...t.items.map((it) => String(it.ref || "").length * 5 + 12)));
+      const cols = [["Item", refW, "left"], ["Description", 0, "left"], ["Unit", 40, "left"], ["Qty", 50, "right"], ["Rate", 68, "right"], ["Amount", 80, "right"]];
       cols[1][1] = CW - cols.reduce((s, c) => s + c[1], 0);
       const footer = () => { const n = pdf.internal.getNumberOfPages(); font(7, "normal", GREY); pdf.text(`${q.number || ""}  ·  Page ${n}`, W - M, H - 20, { align: "right" }); };
       const head = () => { pdf.setFillColor(...BLUE); pdf.rect(M, y, CW, 20, "F"); font(8, "bold", [255, 255, 255]); let x = M; cols.forEach(([l, w, a]) => { pdf.text(l, a === "right" ? x + w - 5 : x + 5, y + 13, { align: a }); x += w; }); y += 20; };
       const need = (h) => { if (y + h > H - 50) { footer(); pdf.addPage(); y = M; head(); } };
       head();
+      let serial = 0;
       t.items.forEach((it, i) => {
+        if (it.heading) {
+          font(8.5, "bold"); const d = wrap(it.description, CW - refW - 10), rh = Math.max(18, d.length * 11 + 7); need(rh);
+          pdf.setFillColor(241, 245, 249); pdf.rect(M, y, CW, rh, "F"); pdf.text(clean(it.ref || ""), M + 5, y + 12); pdf.text(d, M + refW + 5, y + 12);
+          pdf.setDrawColor(226, 232, 240); pdf.setLineWidth(0.5); pdf.line(M, y + rh, W - M, y + rh); y += rh; return;
+        }
+        serial += 1;
         font(8.5); const d = wrap(it.description, cols[1][1] - 10), rh = Math.max(18, d.length * 11 + 7); need(rh);
         if (i % 2) { pdf.setFillColor(248, 250, 252); pdf.rect(M, y, CW, rh, "F"); }
-        const cells = [String(i + 1), d, clean(it.unit), String(it.qty ?? ""), m(it.rate).replace(/^\S+ /, ""), m(it.amount).replace(/^\S+ /, "")];
+        const cells = [clean(it.ref || String(serial)), d, clean(it.unit), String(it.qty ?? ""), m(it.rate).replace(/^\S+ /, ""), m(it.amount).replace(/^\S+ /, "")];
         let x = M; cells.forEach((c, k) => { const [, w, a] = cols[k]; pdf.text(c, a === "right" ? x + w - 5 : x + 5, y + 12, { align: a }); x += w; });
         pdf.setDrawColor(226, 232, 240); pdf.setLineWidth(0.5); pdf.line(M, y + rh, W - M, y + rh); y += rh;
       });
@@ -372,7 +407,7 @@
       return pdf;
     }
     async function withBusy(btn, fn) { const label = btn.textContent; btn.disabled = true; btn.textContent = "…"; try { await fn(); } catch (e) { if (e && e.name !== "AbortError") toast(e.message || "Something went wrong."); } finally { btn.disabled = false; btn.textContent = label; } }
-    function checkReady() { if (!Q.totals(q).items.some((it) => String(it.description).trim())) { toast("Add at least one item first."); return false; } return true; }
+    function checkReady() { if (!Q.totals(q).items.some((it) => !it.heading && String(it.description).trim())) { toast("Add at least one item first."); return false; } return true; }
     $("btn-pdf").onclick = (e) => { if (!checkReady()) return; if (!latinOnly()) { toast("Choose “Save as PDF” on the print screen."); setTimeout(() => window.print(), 600); return; } withBusy(e.currentTarget, async () => (await buildPdf()).save(fileName())); };
     $("btn-print").onclick = () => window.print();
     const waLink = () => { const to = String(q.client.phone || "").replace(/\D/g, ""); return `https://wa.me/${to.length >= 9 ? to : ""}?text=${encodeURIComponent(Q.shareText({ ...q, company }))}`; };
@@ -392,13 +427,149 @@
       });
     };
 
+    // ---------- tender tools ----------
+    const tStatus = (msg) => { const el = $("tender-status"); el.textContent = msg || ""; el.classList.toggle("hidden", !msg); };
+    const loadScript = (src, ready) => ready() ? Promise.resolve() : new Promise((ok, fail) => { const sc = document.createElement("script"); sc.src = src; sc.onload = ok; sc.onerror = () => fail(new Error("Could not load a needed tool. Check your internet connection.")); document.head.appendChild(sc); });
+    const loadXlsx = () => loadScript("https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js", () => window.XLSX);
+    const uuid = () => (crypto.randomUUID ? crypto.randomUUID() : Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, "0")).join(""));
+    // Long AI work runs in the background (chat-start → chat-background); we check back every 4 seconds.
+    async function aiJob(payload) {
+      const jobId = uuid();
+      const res = await fetch("/.netlify/functions/chat-start", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...payload, jobId, audience: "engineer", language: "en" }) });
+      if (res.status !== 202) { let e = {}; try { e = await res.json(); } catch {} throw new Error(e.error || "Could not start. Please try again."); }
+      const until = Date.now() + 10 * 60 * 1000; let misses = 0;
+      while (Date.now() < until) {
+        await new Promise((r) => setTimeout(r, 4000));
+        let job;
+        try { job = await (await fetch(`/.netlify/functions/chat-status?id=${jobId}`, { cache: "no-store" })).json(); misses = 0; }
+        catch { if (++misses > 5) throw new Error("Connection lost. Please try again."); continue; }
+        if (job.status === "done") return job;
+        if (job.status === "error") throw new Error(job.error || "The AI could not finish. Please try again.");
+      }
+      throw new Error("This is taking too long. Please try again with fewer pages.");
+    }
+    const fileData = (file) => new Promise((ok, fail) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(",")[1]); r.onerror = () => fail(new Error(`Could not read ${file.name}.`)); r.readAsDataURL(file); });
+    async function imageData(file) {
+      let bmp; try { bmp = await createImageBitmap(file); } catch { throw new Error(`${file.name}: this photo format could not be opened. Please use JPEG.`); }
+      const sc = Math.min(1, 2200 / Math.max(bmp.width, bmp.height)), cv = document.createElement("canvas");
+      cv.width = Math.round(bmp.width * sc); cv.height = Math.round(bmp.height * sc); cv.getContext("2d").drawImage(bmp, 0, 0, cv.width, cv.height);
+      return cv.toDataURL("image/jpeg", 0.88).split(",")[1];
+    }
+    const sameItem = (a, b) => (a.ref || "") === (b.ref || "") && a.description === b.description;
+    // PDFs and photos: the AI copies the BOQ word for word, in parts for long tenders.
+    async function readTenderWithAi(files) {
+      const attachments = [];
+      for (const f of files) {
+        if (/^image\//.test(f.type)) attachments.push({ name: f.name.replace(/\.[^.]+$/, "") + ".jpg", mimeType: "image/jpeg", data: await imageData(f) });
+        else if (/\.pdf$/i.test(f.name) || f.type === "application/pdf") {
+          if (f.size > 4 * 1024 * 1024) throw new Error(`${f.name} is larger than 4 MB. Send only the BOQ pages (save them as a smaller PDF), or photos of those pages.`);
+          attachments.push({ name: f.name, mimeType: "application/pdf", data: await fileData(f) });
+        }
+      }
+      if (!attachments.length) throw new Error("Please choose an Excel, CSV or PDF file, or photos of the BOQ pages.");
+      if (attachments.reduce((n, a) => n + a.data.length * 0.75, 0) > 4.5 * 1024 * 1024) throw new Error("These files are too large together (about 4 MB in total). Send only the BOQ pages.");
+      const items = [];
+      for (let part = 1; part <= 12; part++) {
+        tStatus(`Reading the tender BOQ${part > 1 ? ` — part ${part} (${items.filter((x) => !x.heading).length} items so far)` : ""}… about 1–3 minutes per part. Keep this page open.`);
+        const last = items[items.length - 1];
+        const message = last ? `Continue: copy the BOQ rows that come after item ${last.ref ? `"${last.ref}" ` : ""}"${last.description.slice(0, 120)}". Use the same table header.` : "Copy the complete BOQ from the attached tender document.";
+        const job = await aiJob({ task: "tender-items", message, attachments });
+        if (/NO BOQ FOUND/.test(job.reply) && !items.length) throw new Error("No BOQ was found in this file. Send the pages with the schedule of quantities.");
+        const got = Q.tenderItemsFromText(job.reply).filter((x) => !items.some((y) => sameItem(x, y)));
+        items.push(...got);
+        if (!job.truncated || !got.length) break;
+      }
+      return items;
+    }
+    // Excel/CSV: read on the phone, exactly as written (no AI).
+    async function readTenderSpreadsheet(file) {
+      await loadXlsx();
+      const wb = XLSX.read(await file.arrayBuffer(), { type: "array" });
+      const sheets = wb.SheetNames.map((name) => ({ name, items: Q.tenderItems(XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, raw: true, defval: "" })) })).filter((x) => x.items.some((it) => !it.heading));
+      if (!sheets.length) throw new Error("No BOQ table was found. The sheet needs columns such as Description, Unit and Quantity.");
+      return sheets.length === 1 ? sheets[0].items : sheets.flatMap((sh) => [{ ref: "", description: sh.name, heading: true }, ...sh.items]);
+    }
+    let tenderBusy = false;
+    $("tender-file").addEventListener("change", async (e) => {
+      const files = Array.from(e.target.files || []).slice(0, 5); e.target.value = "";
+      if (!files.length) return;
+      if (tenderBusy) { toast("Please wait for the current step to finish."); return; }
+      tenderBusy = true;
+      try {
+        const sheet = files.find((f) => /\.(xlsx|xlsm|xls|csv)$/i.test(f.name));
+        let items;
+        if (sheet) { tStatus("Reading the spreadsheet…"); items = await readTenderSpreadsheet(sheet); }
+        else items = await readTenderWithAi(files);
+        const count = items.filter((x) => !x.heading).length;
+        if (!count) throw new Error("No BOQ lines with a quantity were found.");
+        q = blank({ subject: `Tender: ${files[0].name.replace(/\.[^.]+$/, "")}`, fromTender: true });
+        q.items = items.slice(0, 2000); save(); fill();
+        $("from-tender").classList.remove("hidden"); $("from-answer").classList.add("hidden");
+        tStatus(`✓ ${count} items imported${items.length > count ? ` with ${items.length - count} heading${items.length - count === 1 ? "" : "s"}` : ""}. Enter your rates, or add the site location and tap 🤖 Suggest rates.`);
+      } catch (err) { tStatus(`⚠️ ${err.message || "Could not import this file."}`); }
+      finally { tenderBusy = false; }
+    });
+    $("btn-rates").onclick = async () => {
+      if (tenderBusy) { toast("Please wait for the current step to finish."); return; }
+      const want = (it) => String(it.description || "").trim() && !(Number(it.rate) > 0);
+      const todo = q.items.filter((it) => !it.heading && want(it)).length;
+      if (!todo) { toast("Every item already has a rate."); return; }
+      const loc = $("rate-location").value.trim() || String(q.client.site || "").trim();
+      if (!loc) { toast("Enter the site location first, so the rates suit the place."); $("rate-location").focus(); return; }
+      tenderBusy = true;
+      const month = new Date().toLocaleString("en-GB", { month: "long", year: "numeric" });
+      const reqs = Q.rateRequests(q.items, { location: loc, currency: q.currency, month, want });
+      const target = q; let filled = 0;
+      try {
+        for (const [k, r] of reqs.entries()) {
+          tStatus(`Suggesting rates — part ${k + 1} of ${reqs.length} (${todo} items)… about a minute per part. Keep this page open.`);
+          const job = await aiJob({ task: "tender-rates", message: r.message });
+          const rates = Q.ratesFromText(job.reply, r.indexes.length);
+          r.indexes.forEach((idx, n) => { const it = target.items[idx]; if (it && Number.isFinite(rates[n]) && !(Number(it.rate) > 0)) { it.rate = rates[n]; it.aiRate = true; filled++; } });
+          if (q === target) { renderItems(); renderTotals(); } save();
+        }
+        target.fromTender = true; $("from-tender").classList.remove("hidden");
+        tStatus(`✓ ${filled} rates suggested for ${loc}, ${month}. They are marked AI — check each one before you submit.`);
+      } catch (err) { tStatus(`⚠️ ${err.message}${filled ? ` (${filled} rates were filled before this.)` : ""}`); }
+      finally { tenderBusy = false; }
+    };
+    $("btn-excel").onclick = (e) => {
+      if (!checkReady()) return;
+      withBusy(e.currentTarget, async () => {
+        await loadXlsx();
+        const t = Q.totals(q), cur = q.currency, rows = [];
+        rows.push([company.name || ""], [[company.address, company.phone, company.email, company.taxId].filter(Boolean).join(" · ")], [],
+          ["QUOTATION", "", `No. ${q.number || ""}`, "", `Date: ${nice(q.date)}`, `Valid until: ${nice(q.validUntil)}`],
+          [`To: ${q.client.name || ""}`, [q.client.phone, q.client.site].filter(Boolean).join(" · ")], [`Subject: ${q.subject || ""}`], []);
+        rows.push(["Item No", "Description", "Unit", "Qty", `Rate (${cur})`, `Amount (${cur})`]);
+        const first = rows.length + 1; let n = 0;
+        t.items.forEach((it) => {
+          if (it.heading) { rows.push([it.ref || "", it.description]); return; }
+          n += 1; const r = rows.length + 1;
+          rows.push([it.ref || String(n), it.description, it.unit || "", Number(it.qty) || 0, Number(it.rate) || 0, { t: "n", v: it.amount, f: `D${r}*E${r}` }]);
+        });
+        const last = rows.length; rows.push([]);
+        const sub = rows.length + 1; rows.push(["", "Subtotal", "", "", "", { t: "n", v: t.subtotal, f: `SUM(F${first}:F${last})` }]);
+        const disc = Number(t.discount) || 0;
+        if (disc) rows.push(["", "Discount", "", "", "", -disc]);
+        const taxRow = rows.length + 1;
+        if (Number(q.taxRate)) rows.push(["", `${q.taxLabel || "Tax"} @ ${q.taxRate}%`, "", "", "", { t: "n", v: t.tax, f: `ROUND((F${sub}-${disc})*${Number(q.taxRate)}/100,2)` }]);
+        rows.push(["", "TOTAL", "", "", "", { t: "n", v: t.total, f: `F${sub}-${disc}${Number(q.taxRate) ? `+F${taxRow}` : ""}` }], ["", Q.amountInWords(t.total, cur)]);
+        if (q.terms && q.terms.trim()) { rows.push([], ["", "Terms & conditions"]); q.terms.split("\n").forEach((l) => rows.push(["", l])); }
+        const ws = XLSX.utils.aoa_to_sheet(rows);
+        ws["!cols"] = [{ wch: 9 }, { wch: 70 }, { wch: 8 }, { wch: 10 }, { wch: 14 }, { wch: 16 }];
+        const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Quotation");
+        XLSX.writeFile(wb, fileName().replace(/\.pdf$/, ".xlsx"));
+      });
+    };
+
     // ---------- start ----------
     const imported = store.get(IMPORT_KEY, null);
     if (imported && Array.isArray(imported.items) && imported.items.length && Date.now() - (imported.at || 0) < 30 * 60 * 1000) {
       q = blank({ currency: Q.CURRENCIES[imported.currency] ? imported.currency : undefined, subject: String(imported.subject || "").slice(0, 300) });
       q.items = imported.items.slice(0, 200).map((it) => ({ description: String(it.description || ""), unit: String(it.unit || ""), qty: Number(it.qty) || 0, rate: Number(it.rate) || 0 }));
       $("from-answer").classList.remove("hidden"); save();
-    } else q = quotes[0] || blank();
+    } else { q = quotes[0] || blank(); $("from-tender").classList.toggle("hidden", !q.fromTender); }
     store.del(IMPORT_KEY);
     if (location.search) history.replaceState(null, "", location.pathname);
     fill(); renderSaved();

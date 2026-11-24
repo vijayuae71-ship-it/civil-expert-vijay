@@ -100,3 +100,56 @@ test("a sectioned full BOQ: headings and section sub-totals are skipped, the sum
   assert.deepEqual(items.map((i) => i.description), ["Excavation in ordinary soil", "Backfilling", "M20 concrete in footings"]);
   assert.equal(Q.totals({ items }).subtotal, 94200);
 });
+
+// ---------- tender BOQs ----------
+const GEPNIC = [
+  ["Tender Inviting Authority: Executive Engineer"], ["Name of Work: Construction of Anganwadi Centre"], [],
+  ["Sl. No.", "Item Description", "Quantity", "Units", "BASIC RATE In Figures To be entered by the Bidder in Rs. P", "TOTAL AMOUNT With Taxes", "TOTAL AMOUNT In Words"],
+  [1, 2, 3, 4, 5, 6, 7],
+  ["1", "Earth work in excavation by mechanical means (Hydraulic excavator) / manual means over areas, including disposal of excavated earth, lead up to 50 m and lift up to 1.5 m", "", "", "", "", ""],
+  ["1.1", "All kinds of soil", 125.5, "cum", "", "", ""],
+  ["1.2", "Ordinary rock", "12.00", "cum", "", "", ""],
+  ["2", "Providing and laying in position cement concrete of specified grade excluding the cost of centering and shuttering - All work up to plinth level : 1:4:8 (1 Cement : 4 coarse sand : 8 graded stone aggregate 40 mm nominal size)", 18.2, "cum", "", "", ""],
+  ["", "Total in Figures", "", "", "", "", ""],
+  ["", "Quoted Rate in Figures", "", "", "", "", ""]
+];
+
+test("government e-tender BOQ sheet: item numbers, full descriptions, units, quantities; headings kept, number row and totals skipped", () => {
+  const items = Q.tenderItems(GEPNIC);
+  assert.deepEqual(items.map((i) => [i.ref, i.heading ? "H" : `${i.qty} ${i.unit}`]), [["1", "H"], ["1.1", "125.5 cum"], ["1.2", "12 cum"], ["2", "18.2 cum"]]);
+  assert.match(items[3].description, /^Providing and laying in position cement concrete .* 40 mm nominal size\)$/);
+  assert.equal(items[1].rate, 0);
+  assert.equal(Q.totals({ items: items.map((i) => (i.heading ? i : { ...i, rate: 100 })) }).subtotal, 15570);
+});
+
+test("a BOQ the AI copied from a PDF (Markdown) becomes the same items", () => {
+  const text = "| Item No | Description | Unit | Qty |\n|---|---|---|---|\n| 5.1 | Brick work with common burnt clay bricks in: | | |\n| 5.1.1 | Cement mortar 1:6 | cum | 42.75 |\n| 5.1.2 | Cement mortar 1:4 | cum | 3 |";
+  const items = Q.tenderItemsFromText(text);
+  assert.deepEqual(items.map((i) => i.ref), ["5.1", "5.1.1", "5.1.2"]);
+  assert.equal(items[0].heading, true);
+  assert.equal(items[1].qty, 42.75);
+});
+
+test("rate requests: priced items only, numbered, with the parent heading for short sub-items, 40 per request", () => {
+  const items = Q.tenderItems(GEPNIC);
+  const [req] = Q.rateRequests(items, { location: "Mysuru", currency: "INR", month: "November 2026" });
+  assert.deepEqual(req.indexes, [1, 2, 3]);
+  assert.match(req.message, /^Site location: Mysuru\. Currency: INR\. Month: November 2026\./);
+  assert.match(req.message, /\n1\. \[1\.1\] Earth work in excavation .* — All kinds of soil \(unit: cum, qty: 125\.5\)/);
+  const many = Array.from({ length: 95 }, (_, i) => ({ ref: String(i + 1), description: `Item ${i}`, unit: "m", qty: 1, rate: 0 }));
+  assert.deepEqual(Q.rateRequests(many).map((r) => r.indexes.length), [40, 40, 15]);
+  const onlyEmpty = Q.rateRequests([{ description: "a", qty: 1, rate: 50 }, { description: "b", qty: 1, rate: 0 }], { want: (it) => !(it.rate > 0) });
+  assert.deepEqual(onlyEmpty[0].indexes, [1]);
+});
+
+test("rates come back in item order; missing or bad rows stay empty", () => {
+  const reply = "| No | Rate | Basis |\n|---|---|---|\n| 1 | 285 | excavator + tipper |\n| 3 | 6,480.50 | M7.5 PCC |\n| 9 | 10 | out of range |";
+  const r = Q.ratesFromText(reply, 3);
+  assert.equal(r[0], 285); assert.ok(Number.isNaN(r[1])); assert.equal(r[2], 6480.5);
+});
+
+test("WhatsApp text uses the tender item numbers and shows headings", () => {
+  const text = Q.shareText({ number: "Q-1", currency: "INR", items: Q.tenderItems(GEPNIC).map((i) => (i.heading ? i : { ...i, rate: 100 })) });
+  assert.match(text, /\*1 Earth work in excavation/);
+  assert.match(text, /\n1\.1\. All kinds of soil\n {3}125\.5 cum × ₹ 100\.00/);
+});

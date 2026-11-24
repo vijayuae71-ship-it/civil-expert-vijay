@@ -99,3 +99,23 @@ test("a BOQ question with drawings: files go via the store, all reach Claude, th
   assert.equal(store.data.has(`req/${JOB}`), false);
   assert.equal((await ask(JOB)).status, "done");
 });
+
+test("tender tasks use their own short instruction, keep the document cached, and report a cut-off copy", async () => {
+  const store = memoryStore();
+  const calls = fakeClaude(chat, () => ({ text: "| Item No | Description | Unit | Qty |\n|---|---|---|---|\n| 1.1 | Soil | cum | 5 |", stop_reason: "max_tokens" }));
+  const pdf = { name: "tender.pdf", mimeType: "application/pdf", data: Buffer.from("%PDF").toString("base64") };
+  await runJob(store, { task: "tender-items", message: "Copy the complete BOQ from the attached tender document.", attachments: [pdf] });
+  const sys = systemText(calls[0]);
+  assert.match(sys, /copy the bill of quantities/i);
+  assert.doesNotMatch(sys, /FULL ITEMISED BOQ|Construction AI Expert/);
+  assert.deepEqual(calls[0].messages[0].content[0].cache_control, { type: "ephemeral" });
+  const job = await ask(JOB);
+  assert.equal(job.status, "done");
+  assert.equal(job.truncated, true);
+
+  const rateCalls = fakeClaude(chat, "| No | Rate | Basis |\n|---|---|---|\n| 1 | 300 | x |");
+  const long = "Site location: Pune.\nItems:\n" + "1. Earthwork (unit: cum, qty: 5)\n".repeat(300);   // longer than a normal question
+  await runJob(memoryStore(), { task: "tender-rates", message: long });
+  assert.match(systemText(rateCalls[0]), /experienced construction estimator/);
+  assert.equal((await chat.handler(post({ task: "hack", message: "x" }))).statusCode, 400);
+});

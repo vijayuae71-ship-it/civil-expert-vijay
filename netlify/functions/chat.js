@@ -89,6 +89,28 @@ function isIncompleteQuote(text, language = "en") {
 // A complete, itemised BOQ: used for BOQ/estimate questions that run in the background.
 const FULL_BOQ_INSTRUCTION = "\n\nFULL ITEMISED BOQ. This answer is prepared in the background, so length is not a constraint: this overrides every word, row and length limit above. Give the COMPLETE bill of quantities, never a lumped or summarised one. Organise it into the work sections that apply to the request, for example: A Earthwork and site preparation; B PCC and foundations; C RCC work, with separate rows for concrete (m³), reinforcement steel (kg) and shuttering (m²) of footings, columns, plinth beams, beams, slabs, lintels and staircase; D Masonry; E Plastering; F Flooring, skirting and dado; G Waterproofing; H Doors, windows and grills; I Painting; J Electrical (points, wiring, DB, fittings); K Plumbing, sanitary and drainage; L External works and miscellaneous. Every item is its own table row with its own quantity: Sl. No. (A1, A2, B1 …) | Description (with specification) | Unit | Qty | Rate | Amount, where Amount = Qty × Rate, and every quantity is worked out from the stated assumptions. A whole-building BOQ normally has 30 to 60 item rows. Never put several items, quantities or prices inside one description cell. After each section's rows add a row \"Sub-total A\" (and so on) with only its amount. After the BOQ give a short summary table of section totals and then the Grand Total. Label the rate column \"Preliminary Market Rate\" with the currency symbol (₹ for India, AED for the UAE and so on). Do not add a CPWD reference column unless an exact CPWD item and rate are page-verified; instead write one line under the table: \"CPWD DSR item references and rates to be verified against the applicable schedule.\" Keep the text outside the tables short.";
 
+// Tender tools on the Quotation page. Each has its own short instruction instead of the expert prompt.
+const TASKS = {
+  // Copy a tender's schedule of quantities from an attached PDF or photo, word for word.
+  "tender-items": {
+    maxTokens: 16000, maxChars: 4000,
+    system: "You copy the bill of quantities (schedule of quantities / BOQ / price schedule) from an attached tender document. Output ONLY one Markdown table with the header | Item No | Description | Unit | Qty | and one row per BOQ line, in document order. Copy item numbers, descriptions, units and quantities EXACTLY as printed: never summarise, shorten, translate, correct, round or merge them; keep specifications, grades, thicknesses and notes that belong to the item. Put a parent item whose quantity is given in its sub-items as its own row with Unit and Qty left empty. Leave out rates, amounts, totals, page headers and footers, and text that is not a BOQ line. Do not write anything before or after the table. If the user says to continue after an item, start with the row that comes right after it. If the document has no BOQ, reply with exactly: NO BOQ FOUND"
+  },
+  // Preliminary market rates for tender items the user has not priced yet.
+  "tender-rates": {
+    maxTokens: 8000, maxChars: 20000,
+    system: "You are an experienced construction estimator. For each numbered item give a realistic preliminary market rate for ONE unit of the stated unit, for the stated site location, currency and month: supply, labour, equipment, wastage, and a normal contractor overhead and profit, excluding GST/VAT. Read the specification in the description (grade, thickness, size, make, lead) and price exactly that. Output ONLY one Markdown table with the header | No | Rate | Basis | and one row per item, in the same order: No is the item's number in the list, Rate is a plain number with no currency sign or commas, Basis is at most 10 words on what the rate covers or assumes. Never skip an item; if an item is unclear, give your best estimate and say so in Basis. No text before or after the table."
+  }
+};
+
+async function runTask(task, { message, attachmentParts, background, headers }) {
+  const spec = TASKS[task];
+  const content = [...attachmentParts.slice(0, -1), ...(attachmentParts.length ? [{ ...attachmentParts.at(-1), cache_control: { type: "ephemeral" } }] : []), { type: "text", text: message.trim() }];
+  const answer = await askClaude({ system: [{ type: "text", text: spec.system, cache_control: { type: "ephemeral" } }], messages: [{ role: "user", content }], maxTokens: spec.maxTokens, timeout: background ? BOQ_TIMEOUT_MS : undefined });
+  if (answer.refused || !answer.text) return { statusCode: 502, headers, body: JSON.stringify({ error: "The AI could not read this document. Please try again or send a clearer file." }) };
+  return { statusCode: 200, headers, body: JSON.stringify({ reply: answer.text, truncated: answer.stopReason === "max_tokens" }) };
+}
+
 exports.handler = (event) => run(event, {});
 
 async function run(event, { background = false } = {}) {
@@ -100,13 +122,14 @@ async function run(event, { background = false } = {}) {
   if (!isAllowedOrigin(event)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Requests are accepted only from this website." }) };
 
   try {
-    const { message, attachment, attachments, language, quoteReady, history, audience, channel } = JSON.parse(event.body || "{}");
+    const { message, attachment, attachments, language, quoteReady, history, audience, channel, task } = JSON.parse(event.body || "{}");
+    if (task !== undefined && !Object.hasOwn(TASKS, task)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Unknown request." }) };
     // "whatsapp": the reply is shown in WhatsApp, which has no tables or headings.
     const isWhatsApp = channel === "whatsapp";
     // "worker": short, simple, step-by-step answers for site trades. "engineer": the detailed format.
     const isWorker = audience === "worker";
     if (typeof message !== "string" || !message.trim()) return { statusCode: 400, headers, body: JSON.stringify({ error: "Please enter a question." }) };
-    if (message.length > 4000) return { statusCode: 400, headers, body: JSON.stringify({ error: "Please shorten your question to under 4,000 characters." }) };
+    if (message.length > (task ? TASKS[task].maxChars : 4000)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Please shorten your question to under 4,000 characters." }) };
 
     const priorTurns = sanitizeHistory(history);
 
@@ -149,6 +172,10 @@ async function run(event, { background = false } = {}) {
 
     const limited = await checkRateLimit(event);
     if (limited) return { statusCode: limited.statusCode, headers, body: JSON.stringify({ error: limited.error }) };
+    if (task) {
+      console.log(JSON.stringify({ type: "task", task, files: attachmentParts.length, chars: message.length }));
+      return await runTask(task, { message, attachmentParts, background, headers });
+    }
 
     // Anonymous usage log (Netlify → Functions → chat → Logs) to see what people ask.
     console.log(JSON.stringify({ type: "question", channel: isWhatsApp ? "whatsapp" : "web", language: selectedLanguage, audience: isWorker ? "worker" : "engineer", quoteReady: quoteReady === true, followUp: priorTurns.length > 0, attachment: attachmentParts.length, grade: requestedGrade(message), text: message.trim().slice(0, 300) }));
