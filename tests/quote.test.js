@@ -319,3 +319,61 @@ test("check flags rates built on old material prices; the AI review sees the mak
   assert.match(m, /\| built up: TMT 1\.05 kg×68\.5 \+ labour 9/);
   assert.match(m, /Material prices used in the rates \(make, size, supplier, date\): M3 TATA Tiscon TMT bar Fe-500D 12 mm = 68\.5 per kg/);
 });
+
+// ---------- running bills ----------
+function wonQuote() {
+  return { id: "q1", currency: "INR", taxLabel: "GST", taxRate: 18, tenderTerms: "- Security deposit 2.5% recovered from each running bill.",
+    items: [{ ref: "1", description: "Earthwork", heading: true }, { ref: "1.1", description: "Soil", unit: "cum", qty: 125.5, rate: 290 }, { ref: "2", description: "PCC 1:4:8", unit: "cum", qty: 18.2, rate: 6500 }] };
+}
+test("RA bills are cumulative: this bill = work to date − earlier bills, then GST and deductions", () => {
+  const q = wonQuote();
+  q.bills = [{ no: 1, date: "2026-12-31", upto: { 1: 80, 2: 10 } }];
+  const one = Q.billAbstract(q, 0);
+  assert.equal(one.gross, 88200);                 // 80×290 + 10×6500
+  assert.equal(one.tax, 15876); assert.equal(one.billAmount, 104076);
+  assert.deepEqual(one.deductions.map((d) => [d.label, d.amount]), [["Security deposit / retention @ 2.5%", 2205], ["Income tax (TDS) @ 2%", 1764], ["GST TDS @ 2%", 1764], ["Labour welfare cess @ 1%", 882]]);
+  assert.equal(one.net, 97461);
+  q.bills.push(Q.newBill(q, "2027-01-31"));
+  assert.deepEqual(q.bills[1], { no: 2, date: "2027-01-31", upto: { 1: 80, 2: 10 } }, "a new bill starts from the last quantities");
+  q.bills[1].upto = { 1: 130, 2: 18.2 };
+  const two = Q.billAbstract(q, 1);
+  assert.equal(two.beforeGross, 88200); assert.equal(two.gross, 67800);   // 50×290 + 8.2×6500
+  assert.deepEqual(two.rows.filter((r) => !r.heading).map((r) => [r.ref, r.before, r.thisQty, r.thisAmount]), [["1.1", 80, 50, 14500], ["2", 10, 8.2, 53300]]);
+  assert.match(two.flags[0].text, /^1\.1: 130 cum done is more than the tender quantity 125\.5 \(\+4%\)/);
+  assert.equal(two.progressPct.toFixed(1), "100.8");
+});
+test("bill settings: contract overrides, other deduction, Gulf defaults, and a quantity that went down", () => {
+  const q = wonQuote(); q.bills = [{ no: 1, upto: { 1: 100 } }, { no: 2, upto: { 1: 90 } }];
+  q.billSettings = { itPct: 1, gstTdsPct: 0, cessPct: 0, otherLabel: "Mobilisation advance recovery", otherAmount: 5000 };
+  const a = Q.billAbstract(q, 0);
+  assert.deepEqual(a.deductions.map((d) => d.label), ["Security deposit / retention @ 2.5%", "Income tax (TDS) @ 1%", "Mobilisation advance recovery"]);
+  assert.equal(Q.billAbstract(q, 1).flags[0].level, "red");
+  assert.deepEqual(Q.defaultBillSettings({ currency: "AED", taxRate: 5 }), { sdPct: 10, itPct: 0, gstTdsPct: 0, cessPct: 0, otherLabel: "", otherAmount: 0 });
+  assert.equal(Q.billAbstract(q, 5), null);
+});
+
+// ---------- backup / restore ----------
+test("backup: round trip, wrong files refused", () => {
+  const data = { quotes: [{ id: "a", updated: 1 }], company: { name: "SV" }, ratebook: [{ id: "R1", description: "PCC", unit: "cum", rate: 6200, currency: "INR" }], materials: [] };
+  const b = Q.readBackup(JSON.stringify(Q.makeBackup(data, "2026-11-25T10:00:00Z")));
+  assert.deepEqual({ ...b, at: undefined }, { ...data, at: undefined });
+  assert.throws(() => Q.readBackup("{bad"), /not a backup file/);
+  assert.throws(() => Q.readBackup({ app: "other" }), /not a Construction AI Expert backup/);
+  assert.throws(() => Q.readBackup({ app: "construction-ai-expert", kind: "backup", version: 9 }), /newer version/);
+});
+test("restore merges: newer quote wins, nothing here is lost, clashing rate ids are renumbered", () => {
+  const phone = { quotes: [{ id: "a", number: "Q-1", updated: 200 }, { id: "c", updated: 50 }], company: { name: "SV Smart", phone: "" },
+    ratebook: [{ id: "R1", description: "PCC 1:4:8", unit: "cum", rate: 6300, currency: "INR", updated: "2026-11-20" }], materials: [] };
+  const backup = { quotes: [{ id: "a", number: "Q-1 old", updated: 100 }, { id: "b", updated: 150 }], company: { name: "Old name", phone: "90000" },
+    ratebook: [{ id: "R1", description: "Brick work 1:6", unit: "cum", rate: 7800, currency: "INR", updated: "2026-10-01" }, { id: "R2", description: "PCC 1:4:8", unit: "cum", rate: 6000, currency: "INR", updated: "2026-09-01" }],
+    materials: [{ id: "M1", name: "Cement", make: "UltraTech", unit: "bag", price: 380, currency: "INR", supplier: "X", updated: "2026-11-01" }] };
+  const m = Q.mergeBackup(phone, backup);
+  assert.deepEqual(m.quotes.map((x) => x.id), ["a", "b", "c"]);
+  assert.equal(m.quotes[0].number, "Q-1", "the phone's newer copy is kept");
+  assert.deepEqual(m.company, { name: "SV Smart", phone: "90000" });
+  assert.deepEqual(m.ratebook.map((e) => [e.id, e.description, e.rate]), [["R1", "PCC 1:4:8", 6300], ["R2", "Brick work 1:6", 7800]]);
+  assert.deepEqual(m.materials.map((e) => e.id), ["M1"]);
+  assert.deepEqual(m.counts, { quotesAdded: 1, quotesUpdated: 0, ratesAdded: 1, pricesAdded: 1 });
+  const again = Q.mergeBackup(m, backup);
+  assert.deepEqual([again.quotes.length, again.ratebook.length, again.materials.length], [3, 2, 1], "restoring twice adds nothing");
+});
