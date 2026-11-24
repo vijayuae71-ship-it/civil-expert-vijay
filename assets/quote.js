@@ -337,6 +337,102 @@
   }
   const materialLine = (m) => `${m.id} ${matLabel(m)} = ${m.price} per ${m.unit || "unit"}${m.priceBasis ? ` (${m.priceBasis})` : ""}${m.supplier ? `, ${m.supplier}` : ""}${m.listDate ? `, ${m.listDate}` : ""}`;
 
+  // ---------- running account (RA) bills ----------
+  // q.bills = [{ no, date, upto: { [itemIndex]: qty done to date } }], q.billSettings = deduction %s.
+  // Each bill is cumulative: this bill = value of work done to date − value of all earlier bills.
+  function defaultBillSettings(q) {
+    const facts = termsFacts(q.tenderTerms);
+    const india = (q.currency || "INR") === "INR";
+    return india
+      ? { sdPct: facts.retentionPct ?? 2.5, itPct: 2, gstTdsPct: Number(q.taxRate) ? 2 : 0, cessPct: 1, otherLabel: "", otherAmount: 0 }
+      : { sdPct: facts.retentionPct ?? 10, itPct: 0, gstTdsPct: 0, cessPct: 0, otherLabel: "", otherAmount: 0 };
+  }
+  const r2 = round2;
+  function billAbstract(q, n) {
+    const bills = q.bills || [], bill = bills[n];
+    if (!bill) return null;
+    const prev = n > 0 ? bills[n - 1] : null;
+    const set = { ...defaultBillSettings(q), ...(q.billSettings || {}) };
+    const rows = [], flags = [];
+    (q.items || []).forEach((it, i) => {
+      if (it.heading) { rows.push({ i, heading: true, ref: it.ref, description: it.description }); return; }
+      const rate = Number(it.rate) || 0, tenderQty = Number(it.qty) || 0;
+      const upto = Number(bill.upto?.[i]) || 0, before = Number(prev?.upto?.[i]) || 0;
+      const thisQty = r2(upto - before);
+      const row = { i, ref: it.ref, description: it.description, unit: it.unit, rate, tenderQty, upto, before, thisQty, uptoAmount: r2(upto * rate), beforeAmount: r2(before * rate), thisAmount: r2(thisQty * rate) };
+      rows.push(row);
+      const name = it.ref || `"${String(it.description).slice(0, 30)}"`;
+      if (upto < before) flags.push({ level: "red", text: `${name}: quantity to date (${upto}) is less than in the last bill (${before}).` });
+      if (tenderQty > 0 && upto > tenderQty) flags.push({ level: "amber", text: `${name}: ${upto} ${it.unit || ""} done is more than the tender quantity ${tenderQty} (+${Math.round((upto / tenderQty - 1) * 100)}%). Extra quantity usually needs the engineer's approval (deviation).`.replace(/ {2,}/g, " ") });
+      if (rate <= 0 && upto > 0) flags.push({ level: "red", text: `${name} has no rate.` });
+    });
+    const items = rows.filter((r) => !r.heading);
+    const uptoGross = r2(items.reduce((a, r) => a + r.uptoAmount, 0));
+    const beforeGross = r2(items.reduce((a, r) => a + r.beforeAmount, 0));
+    const gross = r2(uptoGross - beforeGross);
+    const taxRate = Math.max(0, Number(q.taxRate) || 0), tax = r2(gross * taxRate / 100);
+    const billAmount = r2(gross + tax);
+    const ded = [
+      ["Security deposit / retention", set.sdPct, gross],
+      ["Income tax (TDS)", set.itPct, gross],
+      ["GST TDS", set.gstTdsPct, gross],
+      ["Labour welfare cess", set.cessPct, gross]
+    ].filter(([, pct]) => Number(pct) > 0).map(([label, pct, base]) => ({ label: `${label} @ ${pct}%`, amount: r2(base * Number(pct) / 100) }));
+    if (Number(set.otherAmount) > 0) ded.push({ label: set.otherLabel || "Other deduction", amount: r2(Number(set.otherAmount)) });
+    const totalDed = r2(ded.reduce((a, d) => a + d.amount, 0));
+    const contract = totals(q).taxable;
+    return { no: bill.no || n + 1, date: bill.date, rows, uptoGross, beforeGross, gross, taxRate, tax, billAmount, deductions: ded, totalDeductions: totalDed, net: r2(billAmount - totalDed), progressPct: contract ? (uptoGross / contract) * 100 : 0, settings: set, flags };
+  }
+  // A new bill starts from the last bill's quantities (to be raised to this month's measurements).
+  function newBill(q, date = new Date().toISOString().slice(0, 10)) {
+    const bills = q.bills || [], last = bills[bills.length - 1];
+    return { no: bills.length + 1, date, upto: { ...(last?.upto || {}) } };
+  }
+
+  // ---------- backup / restore ----------
+  // One file with everything the Quotation page keeps on this device.
+  function makeBackup({ quotes = [], company = {}, ratebook = [], materials = [] }, at = new Date().toISOString()) {
+    return { app: "construction-ai-expert", kind: "backup", version: 1, at, quotes, company, ratebook, materials };
+  }
+  function readBackup(json) {
+    let b; try { b = typeof json === "string" ? JSON.parse(json) : json; } catch { throw new Error("This is not a backup file."); }
+    if (!b || b.app !== "construction-ai-expert" || b.kind !== "backup") throw new Error("This is not a Construction AI Expert backup file.");
+    if (!(b.version >= 1 && b.version <= 1)) throw new Error("This backup was made by a newer version. Update the app and try again.");
+    return { quotes: Array.isArray(b.quotes) ? b.quotes : [], company: b.company && typeof b.company === "object" ? b.company : {}, ratebook: Array.isArray(b.ratebook) ? b.ratebook : [], materials: Array.isArray(b.materials) ? b.materials : [], at: b.at };
+  }
+  // Merge: the same item (by id) keeps whichever copy is newer; everything else is added. Ids that clash
+  // between different rate-book / price entries get new numbers.
+  function mergeBackup(current, backup) {
+    const counts = { quotesAdded: 0, quotesUpdated: 0, ratesAdded: 0, pricesAdded: 0 };
+    const quotes = (current.quotes || []).map((x) => ({ ...x }));
+    for (const b of backup.quotes) {
+      if (!b || !b.id) continue;
+      const i = quotes.findIndex((x) => x.id === b.id);
+      if (i === -1) { quotes.push(b); counts.quotesAdded++; }
+      else if ((Number(b.updated) || 0) > (Number(quotes[i].updated) || 0)) { quotes[i] = b; counts.quotesUpdated++; }
+    }
+    quotes.sort((a, b) => (Number(b.updated) || 0) - (Number(a.updated) || 0));
+    const company = { ...(backup.company || {}), ...Object.fromEntries(Object.entries(current.company || {}).filter(([, v]) => v)) };
+    const mergeList = (cur, inc, prefix, sameFn, countKey) => {
+      const out = (cur || []).map((x) => ({ ...x }));
+      let next = out.reduce((m, e) => Math.max(m, parseInt(String(e.id).slice(1), 10) || 0), 0);
+      for (const e of inc) {
+        if (!e) continue;
+        const same = out.find((x) => sameFn(x, e));
+        if (same) { if (String(e.updated || "") > String(same.updated || "")) Object.assign(same, { ...e, id: same.id }); continue; }
+        const clash = !e.id || out.some((x) => x.id === e.id);
+        const id = clash ? `${prefix}${++next}` : e.id;
+        next = Math.max(next, parseInt(String(id).slice(1), 10) || 0);
+        out.push({ ...e, id });
+        counts[countKey]++;
+      }
+      return out;
+    };
+    const ratebook = mergeList(current.ratebook, backup.ratebook, "R", (a, b) => bookKey(a.description, a.unit, a.currency) === bookKey(b.description, b.unit, b.currency), "ratesAdded");
+    const materials = mergeList(current.materials, backup.materials, "M", (a, b) => matKey(a) === matKey(b), "pricesAdded");
+    return { quotes, company, ratebook, materials, counts };
+  }
+
   // ---------- bid summary ----------
   const lakhCrore = (num, word) => { const n = Number(String(num).replace(/,/g, "")); return /crore|cr\b/i.test(word || "") ? n * 1e7 : /lakh|lac/i.test(word || "") ? n * 1e5 : n; };
   // Numbers a tender's terms usually state; anything not found stays undefined.
@@ -517,7 +613,7 @@
     return `${major} ${words(whole, currency === "INR")}${frac ? ` and ${words(frac, false)} ${minor}` : ""} Only`;
   }
 
-  const api = { CURRENCIES, toNumber, money, detectCurrency, itemsFromAnswer, tenderItems, tenderItemsFromText, ratesFromText, shortsFromText, sourcesFromText, basisFromText, materialLine, materialsFromRows, materialsFromText, addMaterials, relevantMaterials, priceAgeDays, matLabel, rateRequests, similarRates, ownRateFor, addToRateBook, rateListFromRows, normUnit, fullDescription, termsFacts, bidSummary, simplifyRequests, checkQuote, reviewMessage, totals, quoteNumber, shareText, amountInWords, isTotalRow };
+  const api = { CURRENCIES, toNumber, money, detectCurrency, itemsFromAnswer, tenderItems, tenderItemsFromText, ratesFromText, shortsFromText, sourcesFromText, basisFromText, materialLine, materialsFromRows, materialsFromText, addMaterials, relevantMaterials, priceAgeDays, matLabel, rateRequests, similarRates, ownRateFor, addToRateBook, rateListFromRows, normUnit, fullDescription, termsFacts, bidSummary, defaultBillSettings, billAbstract, newBill, makeBackup, readBackup, mergeBackup, simplifyRequests, checkQuote, reviewMessage, totals, quoteNumber, shareText, amountInWords, isTotalRow };
   if (typeof module === "object" && module.exports) module.exports = api;
   else root.QUOTE = api;
 })(typeof self !== "undefined" ? self : this);

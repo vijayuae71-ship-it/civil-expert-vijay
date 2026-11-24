@@ -69,8 +69,19 @@
       <div class="flex gap-2">
         <button type="button" id="btn-new" class="rounded-lg bg-blue-700 px-3 py-1.5 text-sm font-semibold text-white hover:bg-blue-800">+ New</button>
         <button type="button" id="btn-list" class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50" aria-expanded="false" aria-controls="saved">My quotations (<span id="saved-count">0</span>)</button>
+        <button type="button" id="btn-backup" class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50" aria-controls="backup" title="Backup and restore">💾</button>
       </div>
     </div>
+    <p id="backup-nudge" class="no-print hidden mt-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600"></p>
+    <section id="backup" class="no-print hidden mt-3 rounded-xl border border-slate-300 bg-white p-3 shadow-sm">
+      <div class="flex items-center justify-between gap-2"><p class="text-sm font-bold text-slate-800">💾 Backup and restore</p><button type="button" data-close="backup" class="rounded px-2 text-slate-400 hover:bg-slate-100" aria-label="Close backup">✕</button></div>
+      <p class="mt-0.5 text-xs text-slate-600">Your quotations, bills, company details and logo, My rates and Material prices are kept only on this phone. Save a backup file and keep it safe (send it to yourself on WhatsApp or save it to Drive). Restore it on a new phone, or after clearing the browser — nothing already here is lost; for anything changed in both places, the newer copy is kept.</p>
+      <div class="mt-2 flex flex-wrap gap-2">
+        <button type="button" id="backup-save" class="rounded-lg bg-blue-700 px-3 py-1.5 text-sm font-semibold text-white hover:bg-blue-800">⬇ Save backup</button>
+        <label class="cursor-pointer rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">⬆ Restore from backup<input id="backup-file" type="file" class="hidden" accept=".json,application/json"></label>
+      </div>
+      <p id="backup-status" class="mt-2 text-xs text-slate-600"></p>
+    </section>
     <section id="saved" class="no-print hidden mt-3 rounded-xl border border-slate-200 bg-white p-2 shadow-sm" aria-label="Saved quotations"></section>
     <p id="from-answer" class="no-print hidden mt-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950">Items were copied from the AI answer. Rates from the AI are indicative — check every rate and quantity before you send this quotation.</p>
     <section id="tender-tools" class="no-print mt-3 rounded-xl border border-blue-200 bg-blue-50/60 p-3">
@@ -85,6 +96,7 @@
         <button type="button" id="btn-excel" class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">⬇ Excel</button>
         <button type="button" id="btn-book" class="rounded-lg border border-emerald-500 bg-white px-3 py-1.5 text-sm font-semibold text-emerald-800 hover:bg-emerald-50" aria-controls="ratebook">📒 My rates (<span id="book-count">0</span>)</button>
         <button type="button" id="btn-mats" class="rounded-lg border border-orange-400 bg-white px-3 py-1.5 text-sm font-semibold text-orange-800 hover:bg-orange-50" aria-controls="materials">📦 Material prices (<span id="mat-count">0</span>)</button>
+        <button type="button" id="btn-bills" class="rounded-lg border border-violet-500 bg-white px-3 py-1.5 text-sm font-semibold text-violet-800 hover:bg-violet-50" aria-controls="bills">🧾 Running bills</button>
         <button type="button" id="btn-bid" class="rounded-lg border border-blue-500 bg-white px-3 py-1.5 text-sm font-semibold text-blue-800 hover:bg-blue-50" aria-controls="bid">📊 Bid summary</button>
       </div>
       <label class="mt-2 flex items-center gap-2 text-xs font-semibold text-slate-600">Site location for rates <input id="rate-location" class="min-w-0 flex-1 rounded-md border border-slate-300 bg-white px-2 py-1 text-sm font-normal" placeholder="e.g. Whitefield, Bengaluru" maxlength="120"></label>
@@ -117,6 +129,38 @@
       <input id="mat-search" type="search" class="mt-2 w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm" placeholder="Search (e.g. cement, TMT 12 mm, Finolex)">
       <div id="mat-list" class="mt-2 divide-y divide-slate-100"></div>
       <p id="mat-more" class="mt-1 text-xs text-slate-500"></p>
+    </section>
+    <section id="bills" class="no-print hidden mt-3 rounded-xl border border-violet-300 bg-white p-3 shadow-sm">
+      <div class="flex items-center justify-between gap-2"><p class="text-sm font-bold text-violet-900">🧾 Running bills (RA bills)</p><button type="button" data-close="bills" class="rounded px-2 text-slate-400 hover:bg-slate-100" aria-label="Close running bills">✕</button></div>
+      <p class="mt-0.5 text-xs text-slate-600">After the work is awarded: for each bill enter the quantity <strong>done to date</strong> (measured, total since the start). The bill works out this bill's quantity and amount, GST, deductions and the net amount you receive. Rates come from this quotation.</p>
+      <div class="mt-2 flex flex-wrap items-center gap-2">
+        <div id="bill-tabs" class="flex flex-wrap gap-1.5"></div>
+        <button type="button" id="bill-new" class="rounded-lg bg-violet-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-violet-700">+ New bill</button>
+        <button type="button" id="bill-delete" class="hidden rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs text-red-700 hover:bg-red-50">Delete last bill</button>
+      </div>
+      <div id="bill-body" class="hidden">
+        <label class="mt-2 flex items-center gap-2 text-xs font-semibold text-slate-600">Bill date <input id="bill-date" type="date" class="rounded-md border border-slate-300 px-2 py-1 text-sm font-normal"></label>
+        <div id="bill-items" class="mt-2 divide-y divide-slate-100"></div>
+        <details class="mt-2 rounded-lg bg-slate-50 p-2 text-xs">
+          <summary class="cursor-pointer font-semibold text-slate-700">Deductions (check your contract)</summary>
+          <div class="mt-2 grid grid-cols-2 gap-2 font-semibold text-slate-600">
+            <label class="grid min-w-0 gap-0.5">Security deposit / retention %<input data-bs="sdPct" type="number" step="any" min="0" inputmode="decimal" class="w-full min-w-0 rounded-md border border-slate-300 px-2 py-1 text-sm font-normal"></label>
+            <label class="grid min-w-0 gap-0.5">Income tax TDS %<input data-bs="itPct" type="number" step="any" min="0" inputmode="decimal" class="w-full min-w-0 rounded-md border border-slate-300 px-2 py-1 text-sm font-normal"></label>
+            <label class="grid min-w-0 gap-0.5">GST TDS %<input data-bs="gstTdsPct" type="number" step="any" min="0" inputmode="decimal" class="w-full min-w-0 rounded-md border border-slate-300 px-2 py-1 text-sm font-normal"></label>
+            <label class="grid min-w-0 gap-0.5">Labour welfare cess %<input data-bs="cessPct" type="number" step="any" min="0" inputmode="decimal" class="w-full min-w-0 rounded-md border border-slate-300 px-2 py-1 text-sm font-normal"></label>
+            <label class="grid min-w-0 gap-0.5">Other deduction (name)<input data-bs="otherLabel" maxlength="40" class="w-full min-w-0 rounded-md border border-slate-300 px-2 py-1 text-sm font-normal" placeholder="e.g. advance recovery"></label>
+            <label class="grid min-w-0 gap-0.5">Other deduction (amount)<input data-bs="otherAmount" type="number" step="any" min="0" inputmode="decimal" class="w-full min-w-0 rounded-md border border-slate-300 px-2 py-1 text-sm font-normal"></label>
+          </div>
+        </details>
+        <dl id="bill-out" class="mt-3 grid grid-cols-[1fr_auto] gap-x-3 gap-y-1 text-sm"></dl>
+        <p id="bill-words" class="mt-1 text-right text-xs italic text-slate-600"></p>
+        <ul id="bill-flags" class="mt-2 space-y-1.5 text-sm"></ul>
+        <div class="mt-3 flex flex-wrap gap-2">
+          <button type="button" id="bill-pdf" class="rounded-lg bg-violet-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-violet-700">PDF</button>
+          <button type="button" id="bill-excel" class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">⬇ Excel</button>
+          <button type="button" id="bill-share" class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">↗ Share</button>
+        </div>
+      </div>
     </section>
     <section id="bid" class="no-print hidden mt-3 rounded-xl border border-blue-300 bg-white p-3 shadow-sm">
       <div class="flex items-center justify-between gap-2"><p class="text-sm font-bold text-blue-900">📊 Bid summary — only for you</p><button type="button" data-close="bid" class="rounded px-2 text-slate-400 hover:bg-slate-100" aria-label="Close bid summary">✕</button></div>
@@ -328,6 +372,7 @@
       $("in-words").textContent = Q.amountInWords(t.total, q.currency);
       $("sign-company").textContent = company.name || "your company";
       if (!$("bid").classList.contains("hidden")) renderBid();
+      if (!$("bills").classList.contains("hidden")) renderBills();
     }
     const autosize = (el) => { el.style.height = "auto"; el.style.height = `${el.scrollHeight + 2}px`; };
     const autosizeAll = () => document.querySelectorAll("#paper textarea").forEach(autosize);
@@ -359,7 +404,7 @@
         const [open, dup, del] = row.querySelectorAll("button");
         open.children[0].textContent = `${x.number} · ${x.client?.name || "No client"}`;
         open.children[1].textContent = `${nice(x.date)} · ${Q.money(Q.totals(x).total, x.currency)}${x.subject ? ` · ${x.subject}` : ""}`;
-        open.onclick = () => { q = x; fill(); hideReview(); $("bid").classList.add("hidden"); showTerms(x.tenderTerms); $("from-tender").classList.toggle("hidden", !x.fromTender); toggleList(false); window.scrollTo({ top: 0, behavior: "smooth" }); };
+        open.onclick = () => { q = x; fill(); hideReview(); $("bid").classList.add("hidden"); $("bills").classList.add("hidden"); showTerms(x.tenderTerms); $("from-tender").classList.toggle("hidden", !x.fromTender); toggleList(false); window.scrollTo({ top: 0, behavior: "smooth" }); };
         dup.onclick = () => { const fresh = blank({ currency: x.currency }); q = { ...JSON.parse(JSON.stringify(x)), id: fresh.id, number: fresh.number, date: fresh.date, validUntil: fresh.validUntil }; save(); fill(); toggleList(false); toast("Copied as a new quotation"); };
         del.onclick = () => { if (!confirm(`Delete quotation ${x.number}?`)) return; quotes = quotes.filter((y) => y.id !== x.id); store.set(KEY, quotes); if (x.id === q.id) { q = quotes[0] || blank(); fill(); } renderSaved(); };
         box.appendChild(row);
@@ -382,7 +427,7 @@
     $("tax-rate").addEventListener("input", (e) => { q.taxRate = e.target.value === "" ? 0 : Number(e.target.value); renderTotals(); save(); });
     $("discount").addEventListener("input", (e) => { q.discount = e.target.value === "" ? 0 : Number(e.target.value); renderTotals(); save(); });
     $("add-item").onclick = () => { q.items.push({ description: "", unit: "", qty: 1, rate: 0 }); renderItems(); renderTotals(); save(); $("items").lastElementChild.querySelector("textarea").focus(); };
-    $("btn-new").onclick = () => { q = blank(); save(); fill(); hideReview(); $("bid").classList.add("hidden"); showTerms(""); $("from-answer").classList.add("hidden"); $("from-tender").classList.add("hidden"); toast("New quotation"); };
+    $("btn-new").onclick = () => { q = blank(); save(); fill(); hideReview(); $("bid").classList.add("hidden"); $("bills").classList.add("hidden"); showTerms(""); $("from-answer").classList.add("hidden"); $("from-tender").classList.add("hidden"); toast("New quotation"); };
     $("btn-list").onclick = () => toggleList();
     $("logo-file").addEventListener("change", (e) => {
       const f = e.target.files[0]; if (!f) return;
@@ -762,6 +807,147 @@
       const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Material prices"); XLSX.writeFile(wb, `material-prices-${today()}.xlsx`);
     });
 
+    // ---------- running bills ----------
+    let billN = -1;
+    const mm = (n) => Q.money(n, q.currency);
+    function renderBills() {
+      q.bills = q.bills || [];
+      if (billN >= q.bills.length || billN < 0) billN = q.bills.length - 1;
+      const tabs = $("bill-tabs"); tabs.innerHTML = "";
+      q.bills.forEach((b, n) => { const t = document.createElement("button"); t.type = "button"; t.className = `rounded-full px-3 py-1 text-xs font-semibold ${n === billN ? "bg-violet-700 text-white" : "border border-violet-300 text-violet-800"}`; t.textContent = `RA ${b.no}`; t.onclick = () => { billN = n; renderBills(); }; tabs.appendChild(t); });
+      $("bill-delete").classList.toggle("hidden", !q.bills.length);
+      $("bill-body").classList.toggle("hidden", billN < 0);
+      if (billN < 0) return;
+      const bill = q.bills[billN], a = Q.billAbstract(q, billN);
+      $("bill-date").value = bill.date || "";
+      const set = a.settings;
+      document.querySelectorAll("[data-bs]").forEach((el) => { if (document.activeElement !== el) el.value = set[el.dataset.bs] ?? ""; });
+      const box = $("bill-items");
+      if (box.dataset.for !== `${q.id}:${billN}:${q.items.length}`) {
+        box.dataset.for = `${q.id}:${billN}:${q.items.length}`; box.innerHTML = "";
+        a.rows.forEach((r) => {
+          const row = document.createElement("div");
+          if (r.heading) { row.className = "py-1.5 text-xs font-bold text-slate-700"; row.textContent = `${r.ref ? r.ref + " " : ""}${String(r.description).slice(0, 120)}`; box.appendChild(row); return; }
+          row.className = "py-2";
+          row.innerHTML = "<p class='line-clamp-2 text-sm text-slate-800'></p><div class='mt-1 grid grid-cols-[1fr_1fr_1.2fr] items-end gap-2 text-xs'><div><span class='block text-slate-400'>Tender · Rate</span><span class='t'></span></div><div><span class='block text-slate-400'>Last bill</span><span class='p'></span></div><label class='grid gap-0.5'><span class='text-slate-400'>Done to date</span><input type='number' step='any' min='0' inputmode='decimal' class='w-full rounded-md border border-violet-300 px-2 py-1 text-right text-sm'></label></div><p class='mt-1 text-right text-xs text-slate-600 a'></p>";
+          row.querySelector("p").textContent = `${r.ref ? r.ref + " · " : ""}${r.description}`;
+          row.querySelector(".t").textContent = `${r.tenderQty} ${r.unit || ""} · ${mm(r.rate)}`;
+          row.querySelector(".p").textContent = `${r.before} ${r.unit || ""}`;
+          const input = row.querySelector("input"); input.value = bill.upto?.[r.i] ?? ""; input.dataset.i = r.i;
+          input.addEventListener("input", () => { bill.upto = bill.upto || {}; if (input.value === "") delete bill.upto[r.i]; else bill.upto[r.i] = Number(input.value); save(); renderBills(); });
+          box.appendChild(row);
+        });
+      }
+      box.querySelectorAll("input[data-i]").forEach((input) => { const r = a.rows.find((x) => String(x.i) === input.dataset.i); input.closest(".py-2").querySelector(".a").textContent = `This bill: ${r.thisQty} ${r.unit || ""} = ${mm(r.thisAmount)}`; });
+      const rows = [["Work done to date", mm(a.uptoGross)], ["Less: earlier bills", `− ${mm(a.beforeGross)}`], ["This bill (gross)", mm(a.gross)], ...(a.tax ? [[`${q.taxLabel || "Tax"} @ ${a.taxRate}%`, mm(a.tax)], ["Bill amount", mm(a.billAmount)]] : []),
+        ...a.deductions.map((d) => [`Less: ${d.label}`, `− ${mm(d.amount)}`]), ["Net payable", mm(a.net)], ["Work done so far", `${a.progressPct.toFixed(1)}% of the contract`]];
+      const out = $("bill-out"); out.innerHTML = "";
+      rows.forEach(([l, v]) => { const dt = document.createElement("dt"), dd = document.createElement("dd"); dt.className = "text-slate-600"; dd.className = `text-right tabular-nums ${l === "Net payable" ? "border-t-2 border-violet-700 pt-1 text-base font-extrabold text-violet-900" : l === "This bill (gross)" ? "font-bold" : ""}`; if (l === "Net payable") dt.className = "border-t-2 border-violet-700 pt-1 text-base font-extrabold text-violet-900"; dt.textContent = l; dd.textContent = v; out.append(dt, dd); });
+      $("bill-words").textContent = `Net payable: ${Q.amountInWords(Math.max(0, a.net), q.currency)}`;
+      const fl = $("bill-flags"); fl.innerHTML = "";
+      a.flags.forEach((f) => fl.appendChild(li(`${f.level === "red" ? "🔴" : "🟠"} ${f.text}`)));
+    }
+    $("btn-bills").onclick = () => { if (!q.items.some((it) => !it.heading && Number(it.rate) > 0)) { toast("Fill the rates first — bills use this quotation's rates."); return; } if (togglePanel("bills")) renderBills(); };
+    $("bill-new").onclick = () => { q.bills = q.bills || []; q.bills.push(Q.newBill(q, today())); billN = q.bills.length - 1; save(); $("bill-items").dataset.for = ""; renderBills(); toast(`RA bill ${q.bills.length} started — enter the quantities done to date.`); };
+    $("bill-delete").onclick = () => { if (!q.bills?.length || !confirm(`Delete RA bill ${q.bills.length}?`)) return; q.bills.pop(); billN = q.bills.length - 1; save(); $("bill-items").dataset.for = ""; renderBills(); };
+    $("bill-date").addEventListener("change", (e) => { if (q.bills?.[billN]) { q.bills[billN].date = e.target.value; save(); } });
+    document.querySelectorAll("[data-bs]").forEach((el) => el.addEventListener("input", () => { q.billSettings = { ...(q.billSettings || {}), [el.dataset.bs]: el.type === "number" ? (el.value === "" ? 0 : Number(el.value)) : el.value }; save(); renderBills(); }));
+    const billTitle = (a) => `RA Bill ${a.no}${a.date ? ` — ${nice(a.date)}` : ""}`;
+    $("bill-share").onclick = async () => {
+      const a = Q.billAbstract(q, billN); if (!a) return;
+      const text = [`*${billTitle(a)}*`, q.subject || "", company.name ? `From: ${company.name}` : "", q.client.name ? `To: ${q.client.name}` : "", "",
+        ...a.rows.filter((r) => !r.heading && r.thisQty).map((r) => `${r.ref || "•"} ${String(r.description).slice(0, 60)}: ${r.thisQty} ${r.unit || ""} × ${mm(r.rate)} = ${mm(r.thisAmount)}`), "",
+        `Work done to date: ${mm(a.uptoGross)}`, `This bill: ${mm(a.gross)}${a.tax ? ` + ${q.taxLabel || "Tax"} ${mm(a.tax)} = ${mm(a.billAmount)}` : ""}`, ...a.deductions.map((d) => `Less ${d.label}: ${mm(d.amount)}`), `*Net payable: ${mm(a.net)}*`].filter((x, i, arr) => x !== "" || arr[i - 1] !== "").join("\n");
+      try { if (navigator.share) await navigator.share({ title: billTitle(a), text }); else window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener"); } catch {}
+    };
+    $("bill-excel").onclick = (e) => withBusy(e.currentTarget, async () => {
+      const a = Q.billAbstract(q, billN); if (!a) return;
+      await loadXlsx();
+      const cur = q.currency, rows = [[company.name || ""], [billTitle(a)], [`Work: ${q.subject || ""}`], [`Client: ${q.client.name || ""}`], [],
+        ["Item No", "Description", "Unit", `Rate (${cur})`, "Tender qty", "Up to date", "Previous", "This bill", `Amount this bill (${cur})`]];
+      a.rows.forEach((r) => rows.push(r.heading ? [r.ref || "", r.description] : [r.ref || "", r.description, r.unit || "", r.rate, r.tenderQty, r.upto, r.before, r.thisQty, r.thisAmount]));
+      rows.push([], ["", "Work done to date", "", "", "", "", "", "", a.uptoGross], ["", "Less: earlier bills", "", "", "", "", "", "", -a.beforeGross], ["", "This bill (gross)", "", "", "", "", "", "", a.gross]);
+      if (a.tax) rows.push(["", `${q.taxLabel || "Tax"} @ ${a.taxRate}%`, "", "", "", "", "", "", a.tax], ["", "Bill amount", "", "", "", "", "", "", a.billAmount]);
+      a.deductions.forEach((d) => rows.push(["", `Less: ${d.label}`, "", "", "", "", "", "", -d.amount]));
+      rows.push(["", "NET PAYABLE", "", "", "", "", "", "", a.net], ["", Q.amountInWords(Math.max(0, a.net), cur)]);
+      const ws = XLSX.utils.aoa_to_sheet(rows); ws["!cols"] = [{ wch: 9 }, { wch: 60 }, { wch: 7 }, { wch: 11 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 16 }];
+      const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, `RA ${a.no}`); XLSX.writeFile(wb, `RA-bill-${a.no}-${(q.number || "").replace(/[^\w-]+/g, "_")}.xlsx`);
+    });
+    $("bill-pdf").onclick = (e) => {
+      if (!latinOnly()) { toast("This bill has non-English text — use ⬇ Excel or Share instead."); return; }
+      withBusy(e.currentTarget, async () => {
+        const a = Q.billAbstract(q, billN); if (!a) return;
+        await loadPdf();
+        const { jsPDF } = window.jspdf, pdf = new jsPDF({ unit: "pt", format: "a4", orientation: "landscape" });
+        const W = pdf.internal.pageSize.getWidth(), H = pdf.internal.pageSize.getHeight(), M = 32, CW = W - 2 * M, BLUE = [91, 33, 182], GREY = [100, 116, 139], INK = [15, 23, 42];
+        const clean = (v) => String(v == null ? "" : v).replace(/₹\s?/g, "Rs. ").replace(/−/g, "-");
+        const m = (n) => Q.money(n, q.currency, { pdf: true }), num = (n) => m(n).replace(/^\S+ /, "");
+        const font = (size, style = "normal", color = INK) => { pdf.setFont("helvetica", style); pdf.setFontSize(size); pdf.setTextColor(...color); };
+        let y = M;
+        font(14, "bold", BLUE); pdf.text(clean(company.name || ""), M, y + 10);
+        font(16, "bold", BLUE); pdf.text(clean(billTitle(a)), W - M, y + 10, { align: "right" });
+        font(9, "normal", GREY); pdf.text(pdf.splitTextToSize(clean(`Work: ${q.subject || ""}`), CW * 0.6), M, y + 26); pdf.text(clean(`Client: ${q.client.name || ""}   Quotation: ${q.number || ""}`), W - M, y + 26, { align: "right" });
+        y += 44;
+        const cols = [["Item", 44, "left"], ["Description", 0, "left"], ["Unit", 36, "left"], ["Rate", 60, "right"], ["Up to date", 58, "right"], ["Previous", 58, "right"], ["This bill", 58, "right"], ["Amount", 76, "right"]];
+        cols[1][1] = CW - cols.reduce((sum, c) => sum + c[1], 0);
+        const head = () => { pdf.setFillColor(...BLUE); pdf.rect(M, y, CW, 18, "F"); font(8, "bold", [255, 255, 255]); let x = M; cols.forEach(([l, w, al]) => { pdf.text(l, al === "right" ? x + w - 4 : x + 4, y + 12, { align: al }); x += w; }); y += 18; };
+        const need = (h) => { if (y + h > H - 40) { pdf.addPage(); y = M; head(); } };
+        head();
+        a.rows.forEach((r) => {
+          if (r.heading) { font(8, "bold"); const d = pdf.splitTextToSize(clean(r.description), CW - 54); need(d.length * 10 + 6); pdf.text(clean(r.ref || ""), M + 4, y + 10); pdf.text(d, M + 48, y + 10); y += d.length * 10 + 6; return; }
+          font(8); const d = pdf.splitTextToSize(clean(r.description), cols[1][1] - 8), rh = Math.max(16, d.length * 10 + 6); need(rh);
+          const cells = [clean(r.ref || ""), d, clean(r.unit), num(r.rate), String(r.upto), String(r.before), String(r.thisQty), num(r.thisAmount)];
+          let x = M; cells.forEach((c, k) => { const [, w, al] = cols[k]; pdf.text(c, al === "right" ? x + w - 4 : x + 4, y + 11, { align: al }); x += w; });
+          pdf.setDrawColor(226, 232, 240); pdf.line(M, y + rh, W - M, y + rh); y += rh;
+        });
+        const lines = [["Work done to date", m(a.uptoGross)], ["Less: earlier bills", `- ${m(a.beforeGross)}`], ["This bill (gross)", m(a.gross)], ...(a.tax ? [[`${clean(q.taxLabel || "Tax")} @ ${a.taxRate}%`, m(a.tax)], ["Bill amount", m(a.billAmount)]] : []), ...a.deductions.map((d) => [`Less: ${d.label}`, `- ${m(d.amount)}`])];
+        need(lines.length * 14 + 60); y += 10;
+        lines.forEach(([l, v]) => { font(9, "normal", GREY); pdf.text(clean(l), W - M - 260, y); font(9); pdf.text(v, W - M - 4, y, { align: "right" }); y += 14; });
+        pdf.setFillColor(...BLUE); pdf.rect(W - M - 270, y - 9, 270, 20, "F"); font(11, "bold", [255, 255, 255]); pdf.text("NET PAYABLE", W - M - 260, y + 5); pdf.text(m(a.net), W - M - 4, y + 5, { align: "right" }); y += 26;
+        font(8, "italic", GREY); pdf.text(clean(Q.amountInWords(Math.max(0, a.net), q.currency)), W - M, y, { align: "right" });
+        font(8, "normal", GREY); pdf.text("Contractor's signature", M, H - 30); pdf.text("Checked / measured by (Engineer)", W / 2, H - 30, { align: "center" }); pdf.text("Passed for payment", W - M, H - 30, { align: "right" });
+        pdf.save(`RA-bill-${a.no}-${(q.number || "").replace(/[^\w-]+/g, "_")}.pdf`);
+      });
+    };
+
+    // ---------- backup / restore ----------
+    const LAST_BACKUP = "cae-last-backup";
+    function backupNudge() {
+      const last = store.get(LAST_BACKUP, 0), has = quotes.length || loadBook().length || loadMats().length;
+      const days = last ? Math.floor((Date.now() - last) / 864e5) : null;
+      const el = $("backup-nudge");
+      const show = has && (days === null || days > 30);
+      el.classList.toggle("hidden", !show);
+      if (show) el.textContent = `💾 ${days === null ? "You have not saved a backup yet." : `Your last backup was ${days} days ago.`} Your quotations and rates are only on this phone — tap 💾 to save a backup.`;
+      $("backup-status").textContent = last ? `Last backup saved: ${new Date(last).toLocaleDateString()}` : "No backup saved from this phone yet.";
+    }
+    $("btn-backup").onclick = () => { togglePanel("backup"); backupNudge(); };
+    $("backup-save").onclick = (e) => withBusy(e.currentTarget, async () => {
+      clearTimeout(saveTimer); q.updated = Date.now(); quotes = [q, ...quotes.filter((x) => x.id !== q.id)]; store.set(KEY, quotes);
+      const data = Q.makeBackup({ quotes, company, ratebook: loadBook(), materials: loadMats() });
+      const name = `construction-ai-backup-${today()}.json`;
+      const file = new File([JSON.stringify(data)], name, { type: "application/json" });
+      let shared = false;
+      try { if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: "Construction AI Expert backup" }); shared = true; } } catch (err) { if (err && err.name === "AbortError") return; }
+      if (!shared) { const url = URL.createObjectURL(file); const link = Object.assign(document.createElement("a"), { href: url, download: name }); document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 5000); }
+      store.set(LAST_BACKUP, Date.now()); backupNudge();
+      toast(`Backup saved: ${quotes.length} quotations, ${loadBook().length} rates, ${loadMats().length} prices.`);
+    });
+    $("backup-file").addEventListener("change", async (e) => {
+      const f = e.target.files[0]; e.target.value = ""; if (!f) return;
+      try {
+        const b = Q.readBackup(await f.text());
+        if (!confirm(`Restore this backup (${b.quotes.length} quotations, ${b.ratebook.length} rates, ${b.materials.length} prices${b.at ? `, saved ${new Date(b.at).toLocaleDateString()}` : ""})? Nothing on this phone is deleted.`)) return;
+        const merged = Q.mergeBackup({ quotes, company, ratebook: loadBook(), materials: loadMats() }, b);
+        quotes = merged.quotes; company = merged.company;
+        if (!store.set(KEY, quotes) || !store.set(CO_KEY, company)) throw new Error("The phone storage is full — delete some old quotations and try again.");
+        saveBook(merged.ratebook); saveMats(merged.materials);
+        q = quotes.find((x) => x.id === q.id) || quotes[0] || blank(); fill(); renderSaved();
+        const c = merged.counts;
+        $("backup-status").textContent = `✓ Restored: ${c.quotesAdded} quotations added, ${c.quotesUpdated} updated, ${c.ratesAdded} rates and ${c.pricesAdded} prices added.`;
+      } catch (err) { $("backup-status").textContent = `⚠️ ${err.message}`; }
+    });
+
     // ---------- bid summary ----------
     function bidInputs() {
       const facts = Q.termsFacts(q.tenderTerms), saved = q.bid || {};
@@ -940,7 +1126,7 @@
         else await importTender([file]);
       } catch (err) { tStatus(`⚠️ ${err.message}`); }
     }
-    fill(); renderSaved(); $("book-count").textContent = loadBook().length; $("mat-count").textContent = loadMats().length;
+    fill(); renderSaved(); $("book-count").textContent = loadBook().length; $("mat-count").textContent = loadMats().length; backupNudge();
     if (waId) openFromWhatsApp(waId);
     window.addEventListener("beforeprint", autosizeAll);
   })();
