@@ -2,7 +2,7 @@
  * Pages: network first (always fresh when online), cached copy when offline.
  * Styles/scripts/images: cached copy at once, refreshed in the background.
  * The AI chat itself needs the internet and is never cached. */
-const VERSION = "cae-v3";
+const VERSION = "cae-v4";
 const CORE = [
   "/", "/index.html", "/expert.html", "/calculators.html", "/quotation.html", "/construction-faq.html", "/privacy.html", "/disclaimer.html",
   "/assets/site.css", "/assets/calc.js", "/assets/quote.js", "/assets/i18n.js", "/assets/app.js", "/assets/site-config.js", "/assets/logo.svg",
@@ -39,6 +39,16 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  // Scripts and styles: fresh first, so a new page never runs with an old script; the saved copy is for offline.
+  if (/\.(js|css|webmanifest)$/.test(url.pathname)) {
+    event.respondWith(caches.open(VERSION).then((cache) => fetch(request).then((response) => {
+      if (response.ok) cache.put(request, response.clone());
+      return response;
+    }).catch(async () => (await cache.match(request, { ignoreSearch: true })) || Response.error())));
+    return;
+  }
+
+  // Images and other files: the saved copy at once, refreshed in the background.
   event.respondWith(caches.open(VERSION).then(async (cache) => {
     const cached = await cache.match(request, { ignoreSearch: true });
     const fresh = fetch(request).then((response) => { if (response.ok) cache.put(request, response.clone()); return response; }).catch(() => cached);
