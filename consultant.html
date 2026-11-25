@@ -756,7 +756,7 @@
       const ul = $("sn-pending"); ul.replaceChildren();
       pending.forEach((p, i) => {
         const li = el("li", "flex gap-2 rounded-lg border border-slate-200 p-2");
-        const img = el("img", "h-16 w-16 shrink-0 rounded object-cover"); img.src = p.url; img.alt = "";
+        const img = el("img", "shrink-0 rounded"); img.style.cssText = "width:64px;height:64px;object-fit:cover"; img.src = p.url; img.alt = "";
         const box = el("div", "min-w-0 flex-1");
         const inp = el("input", "w-full rounded border border-slate-300 px-2 py-1 text-sm"); inp.placeholder = "Where? e.g. Grid C3, 1st floor slab"; inp.value = p.location; inp.oninput = () => { p.location = inp.value; };
         const x = el("button", "mt-1 text-xs text-red-700", "Remove"); x.onclick = () => { URL.revokeObjectURL(p.url); pending.splice(i, 1); renderPending(); };
@@ -814,7 +814,7 @@
         const tr = el("tr", `border-t border-slate-100 align-top ${s.status === "Closed" ? "opacity-50" : ""}`);
         tr.append(el("td", "p-1 tabular-nums", String(i + 1)));
         const ph = snagState.photos.find((p) => p.id === s.photo), tdp = el("td", "p-1");
-        if (ph) { const img = el("img", "h-14 w-14 rounded object-cover"); img.src = `data:image/jpeg;base64,${ph.thumb}`; img.alt = `Photo ${photoNo(ph.id)}`; tdp.append(img, el("div", "text-[10px] text-slate-500", `P${photoNo(ph.id)}`)); }
+        if (ph) { const img = el("img", "rounded"); img.style.cssText = "width:56px;height:56px;object-fit:cover"; img.src = `data:image/jpeg;base64,${ph.thumb}`; img.alt = `Photo ${photoNo(ph.id)}`; tdp.append(img, el("div", "text-[10px] text-slate-500", `P${photoNo(ph.id)}`)); }
         tr.append(tdp);
         const edit = (k, cls) => { const td = el("td", `p-1 ${cls}`, s[k]); td.contentEditable = "true"; td.addEventListener("blur", () => { if (s[k] !== td.textContent.trim()) { s[k] = td.textContent.trim(); saveSnags(); } }); return td; };
         tr.append(edit("location", "min-w-[7rem]"), edit("defect", "min-w-[10rem]"));
