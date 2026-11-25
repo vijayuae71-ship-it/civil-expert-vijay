@@ -463,3 +463,30 @@ test("backup carries the consultant work; restore adds new snags and members and
   assert.equal(m.counts.specKept, true);
   assert.equal(Q.mergeBackup(m, b).counts.snagsAdded, 0, "restoring twice adds nothing");
 });
+
+test("the backup is an Excel file: readable sheets, a hidden complete copy, and it restores exactly", () => {
+  const XLSX = require("xlsx");
+  const data = Q.makeBackup({
+    quotes: [{ id: "q1", number: "Q-7", date: "2026-11-25", currency: "INR", status: "won", client: { name: "KRIDL" }, subject: "Anganwadi", taxRate: 18,
+      items: [{ ref: "A", description: "Earthwork", heading: true }, { ref: "1", description: "PCC 1:4:8", unit: "cum", qty: 2, rate: 6000 }] }],
+    ratebook: [{ id: "R1", description: "PCC 1:4:8", unit: "cum", rate: 6000, currency: "INR", updated: "2026-11-20" }],
+    materials: [{ id: "M1", name: "Cement", make: "UltraTech", unit: "bag", price: 380, currency: "INR", supplier: "X" }],
+    consultant: { snags: { project: "School", by: "VK", photos: [{ id: "p1", thumb: "A".repeat(70000) }], snags: [{ id: "s1", photo: "p1", location: "C3", defect: "Honeycombing", severity: "Major", remedy: "Patch", status: "Open" }] },
+      bbs: [{ mark: "B1", type: "beam", main: "3-16" }], spec: "<h3>1. Earthwork</h3><p>Excavate &amp; dispose</p>" }
+  }, "2026-11-25T10:00:00Z");
+  const buf = XLSX.write(Q.backupWorkbook(XLSX, data), { bookType: "xlsx", type: "buffer" });
+  const wb = XLSX.read(buf, { type: "buffer" });
+  assert.deepEqual(wb.SheetNames, ["Read me", "Quotations", "Quotation items", "My rates", "Material prices", "Site snags", "BBS members", "Spec draft", "_data"]);
+  assert.equal(wb.Workbook.Sheets.find((s) => s.name === "_data").Hidden, 2, "the data sheet is very hidden");
+  const rows = (n) => XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, defval: "" });
+  assert.deepEqual(rows("Quotations")[1].slice(0, 7), ["Q-7", "2026-11-25", "KRIDL", "Anganwadi", "won", 1, 14160]);
+  assert.deepEqual(rows("Quotation items")[2], ["Q-7", "1", "PCC 1:4:8", "cum", 2, 6000, 12000]);
+  assert.deepEqual(rows("Site snags")[2].slice(0, 7), [1, "P1", "C3", "Honeycombing", "Major", "", "Patch"]);
+  assert.deepEqual(rows("Spec draft"), [["1. Earthwork"], ["Excavate & dispose"]]);
+  assert.ok(rows("_data").length >= 3, "a long backup is split over several cells");
+  // restore reads the complete copy, photos included
+  assert.deepEqual(Q.backupFromWorkbook(XLSX, wb), Q.readBackup(JSON.stringify(data)));
+  // an ordinary spreadsheet is refused
+  const plain = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(plain, XLSX.utils.aoa_to_sheet([["a"]]), "Sheet1");
+  assert.throws(() => Q.backupFromWorkbook(XLSX, plain), /not a Construction AI Expert backup/);
+});

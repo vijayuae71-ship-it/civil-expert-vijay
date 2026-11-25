@@ -517,6 +517,60 @@
   function makeBackup({ quotes = [], company = {}, ratebook = [], materials = [], consultant = null }, at = new Date().toISOString()) {
     return { app: "construction-ai-expert", kind: "backup", version: 1, at, quotes, company, ratebook, materials, consultant: normConsultant(consultant) };
   }
+  // ---------- the backup as an Excel workbook ----------
+  // Readable sheets for people (quotations, items, rates, prices, snags, BBS, spec draft) and one
+  // very hidden sheet "_data" with the complete backup as JSON in 30,000-character pieces (an Excel
+  // cell holds at most 32,767), which is what Restore reads. XLSX (SheetJS) is passed in.
+  const DATA_SHEET = "_data";
+  const htmlToText = (html) => String(html || "").replace(/<\/(p|h\d|li|div)>|<br\s*\/?>|<hr\s*\/?>/gi, "\n").replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, "&").replace(/\n{3,}/g, "\n\n").trim();
+  function backupSheets(backup) {
+    const b = backup || {}, c = normConsultant(b.consultant), sheets = [];
+    const quotes = b.quotes || [];
+    const n = { quotes: quotes.length, rates: (b.ratebook || []).length, prices: (b.materials || []).length, snags: c.snags.snags.length, members: c.bbs.length };
+    sheets.push({ name: "Read me", widths: [34, 60], rows: [
+      ["Construction AI Expert — backup"], [],
+      ["Saved", b.at ? String(b.at).slice(0, 16).replace("T", " ") : ""],
+      ["Quotations", n.quotes], ["My rates", n.rates], ["Material prices", n.prices], ["Site snags", n.snags], ["BBS members", n.members], ["Spec draft", c.spec.trim() ? "yes" : "no"], [],
+      ["To restore", "Open the app → Quotation → 💾 → Restore (or Consultants → Backup → Restore) and choose this file."],
+      ["Note", "You can read and print these sheets. Changes made here are not restored: Restore uses the complete copy saved inside this file."]
+    ] });
+    sheets.push({ name: "Quotations", widths: [16, 11, 28, 40, 11, 8, 14, 8, 11], rows: [["Number", "Date", "Client", "Subject", "Status", "Items", "Total", "Currency", "Valid until"],
+      ...quotes.map((q) => [q.number || "", q.date || "", (q.client && q.client.name) || "", q.subject || "", statusOf(q), (q.items || []).filter((x) => !x.heading).length, totals(q).total, q.currency || "", q.validUntil || ""])] });
+    sheets.push({ name: "Quotation items", widths: [16, 8, 60, 8, 10, 12, 14], rows: [["Quotation", "Item", "Description", "Unit", "Qty", "Rate", "Amount"],
+      ...quotes.flatMap((q) => (q.items || []).map((it) => (it.heading ? [q.number || "", it.ref || "", it.description || "", "", "", "", ""] : [q.number || "", it.ref || "", it.description || "", it.unit || "", Number(it.qty) || 0, Number(it.rate) || 0, round2((Number(it.qty) || 0) * (Number(it.rate) || 0))])))] });
+    sheets.push({ name: "My rates", widths: [60, 8, 12, 8, 11, 16], rows: [["Description", "Unit", "Rate", "Currency", "Updated", "From quotation"],
+      ...(b.ratebook || []).map((e) => [e.description || "", e.unit || "", Number(e.rate) || 0, e.currency || "", e.updated || "", e.from || ""])] });
+    sheets.push({ name: "Material prices", widths: [30, 16, 20, 8, 10, 8, 18, 22, 11], rows: [["Item", "Make", "Size / spec", "Unit", "Price", "Currency", "Price basis", "Supplier", "List date"],
+      ...(b.materials || []).map((m) => [m.name || "", m.make || "", m.spec || "", m.unit || "", Number(m.price) || 0, m.currency || "", m.priceBasis || "", m.supplier || "", m.listDate || ""])] });
+    const photoNo = (id) => c.snags.photos.findIndex((p) => p.id === id) + 1;
+    sheets.push({ name: "Site snags", widths: [5, 7, 24, 40, 10, 28, 50, 16, 9], rows: [[`Project: ${c.snags.project || "-"}`, "", `Inspected by: ${c.snags.by || "-"}`], ["No", "Photo", "Location / element", "Defect", "Severity", "Likely cause", "Remedy / remarks", "Reference", "Status"],
+      ...c.snags.snags.map((x, i) => [i + 1, photoNo(x.photo) ? `P${photoNo(x.photo)}` : "", x.location || "", x.defect || "", x.severity || "", x.cause || "", x.remedy || "", x.reference || "", x.status || ""])] });
+    sheets.push({ name: "BBS members", widths: [8, 9, 6, 10, 10, 10, 12, 14, 14], rows: [["Mark", "Type", "Nos", "L / H / lx", "B / ly", "D / t", "Main", "Top / dist.", "Stirrups / ties"],
+      ...c.bbs.map((m) => [m.mark || "", m.type || "", m.count || "", m.L || "", m.B || "", m.D || "", m.main || "", m.top || "", m.st || ""])] });
+    sheets.push({ name: "Spec draft", widths: [120], rows: htmlToText(c.spec).split("\n").map((l) => [l]) });
+    return sheets;
+  }
+  function backupWorkbook(XLSX, backup) {
+    const wb = XLSX.utils.book_new();
+    for (const sh of backupSheets(backup)) {
+      const ws = XLSX.utils.aoa_to_sheet(sh.rows.length ? sh.rows : [[""]]);
+      if (sh.widths) ws["!cols"] = sh.widths.map((w) => ({ wch: w }));
+      XLSX.utils.book_append_sheet(wb, ws, sh.name);
+    }
+    const json = JSON.stringify(backup), pieces = [];
+    for (let i = 0; i < json.length; i += 30000) pieces.push([json.slice(i, i + 30000)]);
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(pieces.length ? pieces : [[""]]), DATA_SHEET);
+    wb.Workbook = { Sheets: wb.SheetNames.map((name) => ({ name, Hidden: name === DATA_SHEET ? 2 : 0 })) };
+    return wb;
+  }
+  // A backup file's contents: the Excel workbook (its _data sheet) or an older .json backup.
+  function backupFromWorkbook(XLSX, wb) {
+    const ws = wb && wb.Sheets && wb.Sheets[DATA_SHEET];
+    if (!ws) throw new Error("This Excel file is not a Construction AI Expert backup.");
+    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: "" });
+    return readBackup(rows.map((r) => String(r[0] == null ? "" : r[0])).join(""));
+  }
   function readBackup(json) {
     let b; try { b = typeof json === "string" ? JSON.parse(json) : json; } catch { throw new Error("This is not a backup file."); }
     if (!b || b.app !== "construction-ai-expert" || b.kind !== "backup") throw new Error("This is not a Construction AI Expert backup file.");
@@ -786,7 +840,7 @@
     return `${major} ${words(whole, currency === "INR")}${frac ? ` and ${words(frac, false)} ${minor}` : ""} Only`;
   }
 
-  const api = { CONSULT_KEYS, normConsultant, consultantCount, mergeConsultant, tables, CURRENCIES, toNumber, money, detectCurrency, itemsFromAnswer, tenderItems, tenderItemsFromText, ratesFromText, shortsFromText, sourcesFromText, basisFromText, materialLine, materialsFromRows, materialsFromText, addMaterials, relevantMaterials, priceAgeDays, matLabel, rateRequests, similarRates, ownRateFor, addToRateBook, rateListFromRows, normUnit, fullDescription, termsFacts, bidSummary, workSummary, formatFill, pricedItems, matchItems, normRef, statusOf, STATUSES, defaultBillSettings, billAbstract, newBill, makeBackup, readBackup, mergeBackup, simplifyRequests, checkQuote, reviewMessage, totals, quoteNumber, shareText, amountInWords, isTotalRow };
+  const api = { backupSheets, backupWorkbook, backupFromWorkbook, htmlToText, CONSULT_KEYS, normConsultant, consultantCount, mergeConsultant, tables, CURRENCIES, toNumber, money, detectCurrency, itemsFromAnswer, tenderItems, tenderItemsFromText, ratesFromText, shortsFromText, sourcesFromText, basisFromText, materialLine, materialsFromRows, materialsFromText, addMaterials, relevantMaterials, priceAgeDays, matLabel, rateRequests, similarRates, ownRateFor, addToRateBook, rateListFromRows, normUnit, fullDescription, termsFacts, bidSummary, workSummary, formatFill, pricedItems, matchItems, normRef, statusOf, STATUSES, defaultBillSettings, billAbstract, newBill, makeBackup, readBackup, mergeBackup, simplifyRequests, checkQuote, reviewMessage, totals, quoteNumber, shareText, amountInWords, isTotalRow };
   if (typeof module === "object" && module.exports) module.exports = api;
   else root.QUOTE = api;
 })(typeof self !== "undefined" ? self : this);

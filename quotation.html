@@ -78,10 +78,10 @@
     <p id="backup-nudge" class="no-print hidden mt-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600"></p>
     <section id="backup" class="no-print hidden mt-3 rounded-xl border border-slate-300 bg-white p-3 shadow-sm">
       <div class="flex items-center justify-between gap-2"><p class="text-sm font-bold text-slate-800">💾 Backup and restore</p><button type="button" data-close="backup" class="rounded px-2 text-slate-400 hover:bg-slate-100" aria-label="Close backup">✕</button></div>
-      <p class="mt-0.5 text-xs text-slate-600">Your quotations, bills, company details and logo, My rates and Material prices are kept only on this phone. Save a backup file and keep it safe (send it to yourself on WhatsApp or save it to Drive). Restore it on a new phone, or after clearing the browser — nothing already here is lost; for anything changed in both places, the newer copy is kept.</p>
+      <p class="mt-0.5 text-xs text-slate-600">Your quotations, bills, company details and logo, My rates and Material prices are kept only on this phone. Save a backup (an Excel file you can also open and read) and keep it safe: send it to yourself on WhatsApp or save it to Drive. Restore it on a new phone, or after clearing the browser — nothing already here is lost; for anything changed in both places, the newer copy is kept.</p>
       <div class="mt-2 flex flex-wrap gap-2">
         <button type="button" id="backup-save" class="rounded-lg bg-blue-700 px-3 py-1.5 text-sm font-semibold text-white hover:bg-blue-800">⬇ Save backup</button>
-        <label class="cursor-pointer rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">⬆ Restore from backup<input id="backup-file" type="file" class="hidden" accept=".json,application/json"></label>
+        <label class="cursor-pointer rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">⬆ Restore from backup<input id="backup-file" type="file" class="hidden" accept=".xlsx,.json,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/json"></label>
       </div>
       <p id="backup-status" class="mt-2 text-xs text-slate-600"></p>
     </section>
@@ -1036,6 +1036,18 @@
       if (show) el.textContent = `💾 ${days === null ? "You have not saved a backup yet." : `Your last backup was ${days} days ago.`} Your quotations, rates and consultant work are only on this phone — tap 💾 to save a backup.`;
       $("backup-status").textContent = last ? `Last backup saved: ${new Date(last).toLocaleDateString()}` : "No backup saved from this phone yet.";
     }
+    // The backup is one Excel file: readable sheets plus the complete copy that Restore reads. Older .json backups still restore.
+    async function backupFile(data) {
+      await loadXlsx();
+      const out = XLSX.write(Q.backupWorkbook(XLSX, data), { bookType: "xlsx", type: "array" });
+      return new File([out], `construction-ai-backup-${today()}.xlsx`, { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    }
+    async function readBackupFile(f) {
+      if (/\.json$/i.test(f.name) || f.type === "application/json") return Q.readBackup(await f.text());
+      await loadXlsx();
+      let wb; try { wb = XLSX.read(await f.arrayBuffer(), { type: "array" }); } catch { throw new Error("This file could not be opened. Choose the backup .xlsx file."); }
+      return Q.backupFromWorkbook(XLSX, wb);
+    }
     // Consultant tools' work (snags, BBS members, spec draft) goes in the same backup file.
     const loadConsult = () => ({ snags: store.get(Q.CONSULT_KEYS.snags, null), bbs: store.get(Q.CONSULT_KEYS.bbs, []), spec: store.get(Q.CONSULT_KEYS.spec, "") });
     const saveConsult = (c) => store.set(Q.CONSULT_KEYS.snags, c.snags) && store.set(Q.CONSULT_KEYS.bbs, c.bbs) && store.set(Q.CONSULT_KEYS.spec, c.spec);
@@ -1044,8 +1056,7 @@
     $("backup-save").onclick = (e) => withBusy(e.currentTarget, async () => {
       clearTimeout(saveTimer); q.updated = Date.now(); quotes = [q, ...quotes.filter((x) => x.id !== q.id)]; store.set(KEY, quotes);
       const data = Q.makeBackup({ quotes, company, ratebook: loadBook(), materials: loadMats(), consultant: loadConsult() });
-      const name = `construction-ai-backup-${today()}.json`;
-      const file = new File([JSON.stringify(data)], name, { type: "application/json" });
+      const file = await backupFile(data), name = file.name;
       let shared = false;
       try { if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: "Construction AI Expert backup" }); shared = true; } } catch (err) { if (err && err.name === "AbortError") return; }
       if (!shared) { const url = URL.createObjectURL(file); const link = Object.assign(document.createElement("a"), { href: url, download: name }); document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 5000); }
@@ -1056,7 +1067,7 @@
     $("backup-file").addEventListener("change", async (e) => {
       const f = e.target.files[0]; e.target.value = ""; if (!f) return;
       try {
-        const b = Q.readBackup(await f.text());
+        const b = await readBackupFile(f);
         const extra = consultText(b.consultant);
         if (!confirm(`Restore this backup (${b.quotes.length} quotations, ${b.ratebook.length} rates, ${b.materials.length} prices${extra ? `, ${extra}` : ""}${b.at ? `, saved ${new Date(b.at).toLocaleDateString()}` : ""})? Nothing on this phone is deleted.`)) return;
         const merged = Q.mergeBackup({ quotes, company, ratebook: loadBook(), materials: loadMats(), consultant: loadConsult() }, b);
