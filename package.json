@@ -3,9 +3,10 @@
   "private": true,
   "description": "Construction AI Expert: AI construction answers for site workers and engineers (static site + Netlify functions)",
   "scripts": {
-    "build": "tailwindcss -i assets/tailwind.input.css -o assets/site.css --minify",
+    "build": "tailwindcss -i assets/tailwind.input.css -o assets/site.css --minify && node scripts/stamp-assets.js",
     "test": "node --test tests/*.test.js",
-    "eval": "node scripts/eval-answers.js"
+    "eval": "node scripts/eval-answers.js",
+    "build:css": "tailwindcss -i assets/tailwind.input.css -o assets/site.css --minify"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.6.0",

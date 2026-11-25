@@ -39,3 +39,15 @@ test("pages, sitemap and share links name the main address only", () => {
     assert.doesNotMatch(fs.readFileSync(path.join(root, f), "utf8"), /constructionaiexpert\.netlify\.app/, f);
   }
 });
+
+test("the build stamps asset links with a content fingerprint, so a new page never gets an old stylesheet", () => {
+  const { stamp } = require("../scripts/stamp-assets.js");
+  const out = stamp('<link rel="stylesheet" href="assets/site.css"><script src="assets/consult.js?v=old"></script><script src="assets/missing.js"></script><a href="consultant.html">x</a>');
+  assert.match(out, /href="assets\/site\.css\?v=[0-9a-f]{10}"/);
+  assert.match(out, /src="assets\/consult\.js\?v=[0-9a-f]{10}"/);
+  assert.doesNotMatch(out, /v=old/);
+  assert.match(out, /src="assets\/missing\.js"/, "a missing file is left alone");
+  assert.equal(stamp(out), out, "running it again changes nothing");
+  assert.match(require("../package.json").scripts.build, /stamp-assets\.js/);
+  assert.match(fs.readFileSync(path.join(root, "netlify.toml"), "utf8"), /command = "npm run build"/);
+});
