@@ -51,3 +51,16 @@ test("the build stamps asset links with a content fingerprint, so a new page nev
   assert.match(require("../package.json").scripts.build, /stamp-assets\.js/);
   assert.match(fs.readFileSync(path.join(root, "netlify.toml"), "utf8"), /command = "npm run build"/);
 });
+
+test("PDF text: lines jsPDF cannot write (Tamil, Hindi, Arabic, ≤) are drawn as pictures; plain lines stay text", () => {
+  const P = require("../assets/pdftext.js");
+  for (const t of ["Excavation 12 mm × 2 – “ok” • Rs. 1,200 €", "M25 – 0.5% ±"]) assert.equal(P.needsPicture(t), false, t);
+  for (const t of ["முற்றத்தில்", "सीमेंट प्लास्टर", "ಕವರ್ ಬ್ಲಾಕ್", "خرسانة", "≤ 0.05D", "混凝土"]) assert.equal(P.needsPicture(t), true, t);
+  // wrapping by words, and by characters inside a word that is too long (or text without spaces)
+  const cx = { measureText: (s) => ({ width: Array.from(s).length * 10 }) };
+  assert.deepEqual(P.wrap(cx, "aaa bbb ccc", 75), ["aaa bbb", "ccc"]);
+  assert.deepEqual(P.wrap(cx, "混凝土强度等级", 30), ["混凝土", "强度等", "级"]);
+  const html = fs.readFileSync(path.join(root, "expert.html"), "utf8");
+  assert.match(html, /src="assets\/pdftext\.js"/);
+  assert.match(fs.readFileSync(path.join(root, "sw.js"), "utf8"), /\/assets\/pdftext\.js/);
+});

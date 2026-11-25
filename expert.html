@@ -20,6 +20,7 @@
     <script src="assets/i18n.js"></script>
     <script src="assets/quote.js"></script>
     <script src="assets/progress.js"></script>
+    <script src="assets/pdftext.js"></script>
     <style>
         html, body { height: 100%; }
         body { display: flex; flex-direction: column; height: 100dvh; }
@@ -795,7 +796,12 @@
             const footer = () => { pdf.setFont('helvetica', 'normal'); pdf.setFontSize(7); pdf.setTextColor(100, 116, 139); pdf.text(`AI-generated general guidance only — verify with the responsible qualified engineer before use. Disclaimer: ${((window.SITE_CONFIG || {}).siteUrl || location.origin).replace(/^https?:\/\//, '')}/disclaimer`, M, H - 18); };
             const addPage = () => { footer(); pdf.addPage(); y = 40; };
             const need = h => { if (y + h > H - 38) addPage(); };
-            const line = (value, size = 10) => { pdf.setFont('helvetica', 'normal'); pdf.setFontSize(size); pdf.setTextColor(30, 41, 59); const ls = pdf.splitTextToSize(String(value || ''), CW); const h = Math.max(14, ls.length * (size + 3)); need(h); pdf.text(ls, M, y + size); y += h; };
+            // Tamil, Hindi, Arabic and other scripts: drawn by the phone as a picture (see assets/pdftext.js).
+            const PT = window.PdfText, pic = (value, width, opts) => (PT && PT.needsPicture(value) ? PT.picture(String(value), width, opts) : null);
+            const line = (value, size = 10) => {
+                const p = pic(value, CW, { size });
+                if (p) { need(p.h + 4); pdf.addImage(p.data, 'PNG', M, y, p.w, p.h); y += p.h + 4; return; }
+                pdf.setFont('helvetica', 'normal'); pdf.setFontSize(size); pdf.setTextColor(30, 41, 59); const ls = pdf.splitTextToSize(String(value || ''), CW); const h = Math.max(14, ls.length * (size + 3)); need(h); pdf.text(ls, M, y + size); y += h; };
             pdf.setFillColor(30, 64, 175); pdf.rect(0, 0, W, 64, 'F'); pdf.setTextColor(255, 255, 255); pdf.setFont('helvetica', 'bold'); pdf.setFontSize(17); pdf.text(TITLE, M, 34);
             pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8); pdf.text(`Generated: ${new Date().toLocaleString()}`, M, 51); y = 84;
             const table = rows => {
@@ -803,16 +809,20 @@
                 const weights = columnWeights(header), unit = CW / weights.reduce((a, b) => a + b, 0), widths = weights.map(w => w * unit);
                 const drawRow = (source, isHeader) => {
                     const cells = Array.from({ length: cols }, (_, c) => String(source[c] || '')), fs = isHeader ? 7.5 : 7, total = !isHeader && isTotalRow(cells);
-                    pdf.setFontSize(fs); const cl = cells.map((cell, c) => pdf.splitTextToSize(cell, Math.max(20, widths[c] - 8)));
-                    const rh = Math.max(18, ...cl.map(l => l.length * (fs + 2) + 8)); return { cells, cl, rh, fs, total, isHeader };
+                    pdf.setFontSize(fs); const cl = cells.map((cell, c) => pic(cell, Math.max(20, widths[c] - 8), { size: fs + 0.5, color: isHeader ? '#ffffff' : '#1e293b', bold: isHeader || total }) || pdf.splitTextToSize(cell, Math.max(20, widths[c] - 8)));
+                    const rh = Math.max(18, ...cl.map(l => (l.data ? l.h + 8 : l.length * (fs + 2) + 8))); return { cells, cl, rh, fs, total, isHeader };
                 };
-                const paint = r => { let x = M; r.cells.forEach((_, c) => { pdf.setDrawColor(203, 213, 225); pdf.setFillColor(...(r.isHeader ? [29, 78, 216] : r.total ? [219, 234, 254] : [255, 255, 255])); pdf.rect(x, y, widths[c], r.rh, 'FD'); pdf.setTextColor(...(r.isHeader ? [255, 255, 255] : [30, 41, 59])); pdf.setFont('helvetica', r.isHeader || r.total ? 'bold' : 'normal'); pdf.setFontSize(r.fs); pdf.text(r.cl[c], x + 4, y + r.fs + 3); x += widths[c]; }); y += r.rh; };
+                const paint = r => { let x = M; r.cells.forEach((_, c) => { pdf.setDrawColor(203, 213, 225); pdf.setFillColor(...(r.isHeader ? [29, 78, 216] : r.total ? [219, 234, 254] : [255, 255, 255])); pdf.rect(x, y, widths[c], r.rh, 'FD'); pdf.setTextColor(...(r.isHeader ? [255, 255, 255] : [30, 41, 59])); pdf.setFont('helvetica', r.isHeader || r.total ? 'bold' : 'normal'); pdf.setFontSize(r.fs); if (r.cl[c].data) pdf.addImage(r.cl[c].data, 'PNG', x + 4, y + 4, r.cl[c].w, r.cl[c].h); else pdf.text(r.cl[c], x + 4, y + r.fs + 3); x += widths[c]; }); y += r.rh; };
                 const head = drawRow(rows[0], true); need(head.rh + 20); paint(head);
                 rows.slice(1).forEach(src => { const r = drawRow(src, false); if (y + r.rh > H - 38) { addPage(); paint(head); } paint(r); });
                 y += 10;
             };
             blocks.forEach(b => {
-                if (b.type === 'heading') { need(30); pdf.setFillColor(37, 99, 235); pdf.rect(M, y, CW, 22, 'F'); pdf.setTextColor(255, 255, 255); pdf.setFont('helvetica', 'bold'); pdf.setFontSize(11); pdf.text(b.value, M + 7, y + 15); y += 29; }
+                if (b.type === 'heading') {
+                    const p = pic(b.value, CW - 14, { size: 11, color: '#ffffff', bold: true }), hh = p ? Math.max(22, p.h + 8) : 22;
+                    need(hh + 8); pdf.setFillColor(37, 99, 235); pdf.rect(M, y, CW, hh, 'F');
+                    if (p) pdf.addImage(p.data, 'PNG', M + 7, y + 4, p.w, p.h); else { pdf.setTextColor(255, 255, 255); pdf.setFont('helvetica', 'bold'); pdf.setFontSize(11); pdf.text(b.value, M + 7, y + 15); }
+                    y += hh + 7; }
                 else if (b.type === 'table') table(b.rows);
                 else line(b.type === 'bullet' ? `• ${b.value}` : b.value);
             });
