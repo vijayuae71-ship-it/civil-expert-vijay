@@ -300,6 +300,20 @@ CASES.push(
   }
 );
 
+const snagSample = [
+  { defect: "Honeycombing near the base of the column, about 120 × 90 mm", remedy: "Chip loose concrete to sound surface, apply bonding agent and polymer-modified repair mortar; cure for 7 days; verify depth on site" },
+  { defect: "No edge protection at open slab edge; worker standing near the edge", remedy: "Stop work at the edge now; install a guard rail 1 m high with a toe board before work resumes" },
+  { defect: "Cover blocks missing under bottom bars of beam B2", remedy: "Place 25 mm cover blocks at 1 m spacing before concreting; check cover" }
+];
+for (const [code, re, name] of [["hi", /[\u0900-\u097F]/, "Hindi"], ["kn", /[\u0C80-\u0CFF]/, "Kannada"]]) {
+  CASES.push({
+    group: "consultant", background: true, name: `Snag defects and remedies in ${name}, numbers and safety steps kept`,
+    body: { task: "snag-translate", message: CONS.translateMessage(snagSample, code) },
+    must: [check(`3 rows in ${name} script, each with defect and remedy`, (t) => { const r = CONS.translationsFromText(t, 3); return r.every((x) => x && re.test(x.defect) && re.test(x.remedy)); }),
+      /120 × 90|120 x 90/, /\b7\b/, /1 m\b|1m\b/, /25 mm|25mm/]
+  });
+}
+
 const longTender = { name: "sample-tender-boq-long.pdf", mimeType: "application/pdf", data: require("fs").readFileSync(require("path").join(__dirname, "fixtures", "sample-tender-boq-long.pdf")).toString("base64") };
 const LONG_EXPECTED = JSON.parse(require("fs").readFileSync(require("path").join(__dirname, "fixtures", "sample-tender-boq-long.json"), "utf8"));
 CASES.push({

@@ -195,6 +195,7 @@
         <div class="mt-2 grid gap-2 text-sm sm:grid-cols-2 grid-in">
           <label>Project / site<input id="sn-project" class="rounded border border-slate-300 px-2 py-1" placeholder="e.g. Anganwadi building, Mysuru"></label>
           <label>Inspected by<input id="sn-by" class="rounded border border-slate-300 px-2 py-1" placeholder="Name, firm"></label>
+          <label class="sm:col-span-2">Site team language (defects and remedies also in this language)<select id="sn-lang" class="rounded border border-slate-300 px-2 py-1"><option value="">English only</option></select></label>
         </div>
         <div class="mt-3 flex flex-wrap gap-2">
           <label class="cursor-pointer rounded-lg bg-blue-700 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800">📷 Take photo<input id="sn-camera" type="file" accept="image/*" capture="environment" class="hidden"></label>
@@ -206,7 +207,7 @@
         <p id="sn-status" class="mt-1 text-sm text-slate-600" role="status"></p>
       </div>
       <div id="sn-out" class="hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div class="flex flex-wrap items-center justify-between gap-2"><h2 class="font-bold text-slate-800">Snag list</h2><div class="flex flex-wrap gap-2"><button id="sn-xlsx" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-semibold">⬇ Excel</button><button id="sn-pdf" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-semibold">⬇ PDF with photos</button><button id="sn-clear" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-semibold text-red-700">Clear</button></div></div>
+        <div class="flex flex-wrap items-center justify-between gap-2"><h2 class="font-bold text-slate-800">Snag list</h2><div class="flex flex-wrap gap-2"><button id="sn-xlsx" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-semibold">⬇ Excel</button><button id="sn-pdf" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-semibold">⬇ PDF with photos</button><button id="sn-share" class="rounded-lg bg-emerald-700 px-3 py-1.5 text-sm font-semibold text-white hover:bg-emerald-800">📲 Share with site team</button><button id="sn-translate" class="hidden rounded-lg border border-blue-300 bg-blue-50 px-3 py-1.5 text-sm font-semibold text-blue-800">🌐 Translate list</button><button id="sn-clear" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-semibold text-red-700">Clear</button></div></div>
         <div id="sn-summary" class="mt-3 flex flex-wrap gap-2 text-sm"></div>
         <div class="mt-2 flex flex-wrap gap-1.5 text-xs" role="group" aria-label="Show"><button data-snf="all" class="snf rounded-full border px-2.5 py-1">All</button><button data-snf="open" class="snf rounded-full border px-2.5 py-1">Open</button><button data-snf="Critical" class="snf rounded-full border px-2.5 py-1">Critical</button></div>
         <div class="mt-2 overflow-x-auto"><table id="sn-table" class="min-w-full text-xs"></table></div>
@@ -768,8 +769,38 @@
     const pending = [];
     let snFilter = "all", snBusy = false;
     $("sn-project").value = snagState.project || ""; $("sn-by").value = snagState.by || "";
-    const saveSnags = () => { snagState.project = $("sn-project").value; snagState.by = $("sn-by").value; if (!store.set(SN_KEY, snagState)) toast("Phone storage is full: download the report, then clear old snags."); };
+    C.SITE_LANGUAGES.forEach(([code, name, own]) => $("sn-lang").append(new Option(`${own} — ${name}`, code)));
+    $("sn-lang").value = snagState.lang || "";
+    const saveSnags = () => { snagState.project = $("sn-project").value; snagState.by = $("sn-by").value; snagState.lang = $("sn-lang").value; if (!store.set(SN_KEY, snagState)) toast("Phone storage is full: download the report, then clear old snags."); };
     $("sn-project").addEventListener("change", saveSnags); $("sn-by").addEventListener("change", saveSnags);
+    $("sn-lang").addEventListener("change", () => { saveSnags(); renderSnags(); });
+    // Defects and remedies in the site team's language: one text-only AI job for the snags that need it.
+    const needsTranslation = () => { const code = $("sn-lang").value; return code ? snagState.snags.filter((x) => !(x.local && x.local.lang === code && x.local.remedy) && !/^no visible defect/i.test(x.defect)) : []; };
+    async function translateSnags() {
+      const code = $("sn-lang").value, todo = needsTranslation();
+      if (!code || !todo.length) return 0;
+      let done = 0;
+      for (let i = 0; i < todo.length; i += 25) {
+        const part = todo.slice(i, i + 25);
+        $("sn-status").textContent = `Writing the list in ${C.langName(code)}… about a minute.`;
+        const job = await aiJob({ task: "snag-translate", message: C.translateMessage(part, code) }, "sn-progress");
+        C.translationsFromText(job.reply, part.length).forEach((t, k) => { if (t && (t.defect || t.remedy)) { part[k].local = { lang: code, ...t }; done++; } });
+        saveSnags(); renderSnags();
+      }
+      return done;
+    }
+    $("sn-translate").addEventListener("click", async () => {
+      if (snBusy) return toast("Please wait for the current step.");
+      snBusy = true;
+      try { const n = await translateSnags(); $("sn-status").textContent = `✓ ${n} snag${n === 1 ? "" : "s"} written in ${C.langName($("sn-lang").value)}. Tap a line to correct it.`; }
+      catch (e) { $("sn-status").textContent = `⚠️ ${e.message}`; }
+      finally { snBusy = false; }
+    });
+    $("sn-share").addEventListener("click", async () => {
+      const text = C.snagShareText(orderedSnags(), { project: $("sn-project").value.trim(), date: today(), photoLabel: (id) => `P${photoNo(id)}` });
+      try { if (navigator.share) { await navigator.share({ text }); return; } } catch (e) { if (e && e.name === "AbortError") return; }
+      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener");
+    });
     const photoNo = (id) => snagState.photos.findIndex((p) => p.id === id) + 1;
     function renderPending() {
       const ul = $("sn-pending"); ul.replaceChildren();
@@ -813,13 +844,16 @@
           snagState.snags.push(...snags); found += snags.filter((s) => !/^no visible defect/i.test(s.defect)).length;
           pending.splice(0, batch.length); saveSnags(); renderPending(); renderSnags();
         }
-        $("sn-status").textContent = `✓ ${found} defect${found === 1 ? "" : "s"} found. Confirm each on site; tap a cell to correct it.`;
+        if ($("sn-lang").value && needsTranslation().length) await translateSnags();
+        $("sn-status").textContent = `✓ ${found} defect${found === 1 ? "" : "s"} found${$("sn-lang").value ? `, also in ${C.langName($("sn-lang").value)}` : ""}. Confirm each on site; tap a cell to correct it.`;
       } catch (e) { $("sn-status").textContent = `⚠️ ${e.message}`; }
       finally { snBusy = false; $("sn-run").disabled = false; }
     });
     const SEV_CLS = { Critical: "bg-red-100 text-red-800", Major: "bg-amber-100 text-amber-900", Minor: "bg-slate-100 text-slate-700" };
     function renderSnags() {
       $("sn-out").classList.toggle("hidden", !snagState.snags.length);
+      $("sn-translate").classList.toggle("hidden", !needsTranslation().length);
+      if ($("sn-lang").value) $("sn-translate").textContent = `🌐 Write in ${C.langName($("sn-lang").value)}`;
       const sum = C.snagSummary(snagState.snags), box = $("sn-summary"); box.replaceChildren();
       [[`${sum.open} open of ${sum.total}`, "bg-blue-50 text-blue-900"], [`🔴 ${sum.critical} critical`, SEV_CLS.Critical], [`🟠 ${sum.major} major`, SEV_CLS.Major], [`⚪ ${sum.minor} minor`, SEV_CLS.Minor]].forEach(([t, c]) => box.append(el("span", `rounded-full px-3 py-1 font-semibold ${c}`, t)));
       document.querySelectorAll(".snf").forEach((b) => { const on = b.dataset.snf === snFilter; b.classList.toggle("bg-blue-900", on); b.classList.toggle("text-white", on); });
@@ -836,9 +870,23 @@
         if (ph) { const img = el("img", "rounded"); img.style.cssText = "width:56px;height:56px;object-fit:cover"; img.src = `data:image/jpeg;base64,${ph.thumb}`; img.alt = `Photo ${photoNo(ph.id)}`; tdp.append(img, el("div", "text-[10px] text-slate-500", `P${photoNo(ph.id)}`)); }
         tr.append(tdp);
         const edit = (k, cls) => { const td = el("td", `p-1 ${cls}`, s[k]); td.contentEditable = "true"; td.addEventListener("blur", () => { if (s[k] !== td.textContent.trim()) { s[k] = td.textContent.trim(); saveSnags(); } }); return td; };
-        tr.append(edit("location", "min-w-[7rem]"), edit("defect", "min-w-[10rem]"));
+        // Defect and remedy: the English line, and under it the site team's language (both editable).
+        const code = $("sn-lang").value;
+        const pair = (k, cls) => {
+          const td = el("td", `p-1 ${cls}`), en = el("div", "", s[k]); en.contentEditable = "true";
+          en.addEventListener("blur", () => { if (s[k] !== en.textContent.trim()) { s[k] = en.textContent.trim(); saveSnags(); } });
+          td.append(en);
+          if (code && s.local && s.local.lang === code && s.local[k]) {
+            const lo = el("div", "mt-1 border-t border-dashed border-slate-200 pt-1 text-sm text-blue-900", s.local[k]); lo.contentEditable = "true"; lo.lang = code;
+            if (code === "ur" || code === "ar") lo.dir = "rtl";
+            lo.addEventListener("blur", () => { if (s.local[k] !== lo.textContent.trim()) { s.local[k] = lo.textContent.trim(); saveSnags(); } });
+            td.append(lo);
+          }
+          return td;
+        };
+        tr.append(edit("location", "min-w-[7rem]"), pair("defect", "min-w-[10rem]"));
         const tds = el("td", "p-1"), sev = el("select", `rounded px-1 py-0.5 font-semibold ${SEV_CLS[s.severity]}`); C.SEVERITY.forEach((v) => sev.append(new Option(v, v))); sev.value = s.severity; sev.setAttribute("aria-label", "Severity"); sev.onchange = () => { s.severity = sev.value; saveSnags(); renderSnags(); }; tds.append(sev); tr.append(tds);
-        tr.append(edit("remedy", "min-w-[14rem]"), edit("cause", "min-w-[8rem] text-slate-600"), edit("reference", "min-w-[5rem] text-slate-500"));
+        tr.append(pair("remedy", "min-w-[14rem]"), edit("cause", "min-w-[8rem] text-slate-600"), edit("reference", "min-w-[5rem] text-slate-500"));
         const tdst = el("td", "p-1"), st = el("select", "rounded border border-slate-300 px-1 py-0.5"); ["Open", "Closed"].forEach((v) => st.append(new Option(v, v))); st.value = s.status; st.setAttribute("aria-label", "Status"); st.onchange = () => { s.status = st.value; saveSnags(); renderSnags(); }; tdst.append(st); tr.append(tdst);
         const del = el("button", "px-1 text-red-700", "✕"); del.setAttribute("aria-label", "Delete this snag"); del.onclick = () => { snagState.snags = snagState.snags.filter((x) => x !== s); snagState.photos = snagState.photos.filter((p) => snagState.snags.some((x) => x.photo === p.id)); saveSnags(); renderSnags(); };
         const tdd = el("td"); tdd.append(del); tr.append(tdd);
@@ -867,18 +915,39 @@
         pdf.text(`Open: ${sum.open} of ${sum.total}   |   Critical ${sum.critical}   |   Major ${sum.major}   |   Minor ${sum.minor}`, M, y); y += 14;
         head();
         const SEVC = { Critical: [220, 38, 38], Major: [217, 119, 6], Minor: [100, 116, 139] };
+        // Hindi, Kannada and other scripts need letter shaping that the PDF maker cannot do: the phone draws
+        // those lines (with its own fonts) into a picture, and the picture goes into the PDF.
+        const code = $("sn-lang").value;
+        const textPicture = (text, widthPt) => {
+          const scale = 3, px = 8.5 * scale, lineH = px * 1.45, cv = document.createElement("canvas"), cx = cv.getContext("2d");
+          const font = `${px}px "Noto Sans", "Noto Sans Devanagari", "Noto Sans Kannada", "Noto Sans Tamil", "Noto Sans Telugu", "Noto Sans Malayalam", "Noto Sans Bengali", "Noto Sans Gujarati", "Noto Sans Gurmukhi", "Noto Naskh Arabic", sans-serif`;
+          cx.font = font;
+          const maxW = widthPt * scale, lines = [];
+          for (const para of String(text).split(/\n/)) {
+            let line = "";
+            for (const w of para.split(/\s+/)) { const t = line ? `${line} ${w}` : w; if (cx.measureText(t).width > maxW && line) { lines.push(line); line = w; } else line = t; }
+            if (line) lines.push(line);
+          }
+          cv.width = Math.ceil(maxW); cv.height = Math.ceil(lines.length * lineH + px * 0.5);
+          cx.font = font; cx.fillStyle = "#1e3a8a"; cx.textBaseline = "top";
+          const rtl = code === "ur" || code === "ar"; if (rtl) { cx.direction = "rtl"; cx.textAlign = "right"; }
+          lines.forEach((l, i) => cx.fillText(l, rtl ? cv.width : 0, i * lineH + 2));
+          return { data: cv.toDataURL("image/png"), h: cv.height / scale };
+        };
         orderedSnags().forEach((s, i) => {
           pdf.setFontSize(7.5);
           const ph = snagState.photos.find((p) => p.id === s.photo);
           const cells = [String(i + 1), "", s.location, s.defect, s.severity, s.cause, s.remedy, s.reference, s.status].map((v, k) => pdf.splitTextToSize(clean(v), ws[k] - 6));
-          const imgH = ph ? ws[1] * 0.75 - 4 : 0, h = Math.max(imgH + 14, Math.max(...cells.map((c) => c.length)) * 9 + 6);
+          const local = code && s.local && s.local.lang === code ? { 3: s.local.defect && textPicture(s.local.defect, ws[3] - 6), 6: s.local.remedy && textPicture(s.local.remedy, ws[6] - 6) } : {};
+          const cellH = (k) => cells[k].length * 9 + 6 + (local[k] ? local[k].h + 4 : 0);
+          const imgH = ph ? ws[1] * 0.75 - 4 : 0, h = Math.max(imgH + 14, ...cells.map((c, k) => cellH(k)));
           if (y + h > H - M - 20) { pdf.addPage(); y = M; head(); pdf.setFontSize(7.5); }
           if (i % 2) { pdf.setFillColor(248, 250, 252); pdf.rect(M, y, CW, h, "F"); }
           let x = M;
           cells.forEach((c, k) => {
             if (k === 1 && ph) { try { pdf.addImage(`data:image/jpeg;base64,${ph.thumb}`, "JPEG", x + 3, y + 3, ws[1] - 6, imgH); } catch {} pdf.setFontSize(6.5); pdf.text(`P${photoNo(ph.id)}`, x + 3, y + imgH + 11); pdf.setFontSize(7.5); }
             else if (k === 4) { pdf.setTextColor(...SEVC[s.severity]); pdf.setFont("helvetica", "bold"); pdf.text(c, x + 3, y + 10); pdf.setTextColor(15, 23, 42); pdf.setFont("helvetica", "normal"); }
-            else pdf.text(c, x + 3, y + 10);
+            else { pdf.text(c, x + 3, y + 10); if (local[k]) { try { pdf.addImage(local[k].data, "PNG", x + 3, y + c.length * 9 + 6, ws[k] - 6, local[k].h); } catch {} } }
             x += ws[k];
           });
           pdf.setDrawColor(226, 232, 240); pdf.line(M, y + h, M + CW, y + h); y += h;
