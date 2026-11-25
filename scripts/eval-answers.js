@@ -296,7 +296,7 @@ CASES.push(
   {
     group: "consultant", background: true, name: "Drafts tender conditions with NIT, LD cap, DLP and approved makes",
     body: { task: "spec-conditions", message: CONS.conditionsMessage({ name: "Anganwadi building", location: "Mysuru, Karnataka, India", cost: "Rs. 48 lakh", period: "6 months" }, sampleItems) },
-    must: [/Notice inviting tender/i, /48 lakh|48,00,000/, /6 months|six months/i, /liquidated damages/i, /defects? liability/i, /approved makes?/i, /\[confirm\]/, /arbitration/i]
+    must: [/Notice inviting tender/i, /48 lakh|48,00,000/, /\b6\b[^.\n]{0,25}months|six months/i, /liquidated damages/i, /defects? liability/i, /approved makes?/i, /\[confirm\]/, /arbitration/i]
   }
 );
 
