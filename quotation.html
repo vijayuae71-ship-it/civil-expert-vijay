@@ -57,6 +57,8 @@
       .q-head { display: grid; border-bottom: 2px solid #1e3a8a; padding: .35rem 0; font-size: .7rem; font-weight: 700; color: #1e3a8a; }
       .q-row .lbl, .q-row .c-a .lbl { display: none; }
       .q-empty-print { display: none !important; }
+      #paper.has-lh .co-block { display: none !important; }
+      #paper.has-lh header { justify-content: flex-end; }
     }
   </style>
 </head>
@@ -102,6 +104,7 @@
         <label class="cursor-pointer rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50" id="btn-terms">📑 Key tender terms<input id="terms-file" type="file" class="hidden" multiple accept=".pdf,image/*"></label>
         <button type="button" id="btn-check" class="rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-emerald-700">✅ Check before submitting</button>
         <button type="button" id="btn-excel" class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">⬇ Excel</button>
+        <label class="cursor-pointer rounded-lg border border-blue-500 bg-white px-3 py-1.5 text-sm font-semibold text-blue-800 hover:bg-blue-50">📤 Fill client's BOQ format<input id="fill-file" type="file" class="hidden" accept=".xlsx,.xlsm,.xls,.csv"></label>
         <button type="button" id="btn-book" class="rounded-lg border border-emerald-500 bg-white px-3 py-1.5 text-sm font-semibold text-emerald-800 hover:bg-emerald-50" aria-controls="ratebook">📒 My rates (<span id="book-count">0</span>)</button>
         <button type="button" id="btn-mats" class="rounded-lg border border-orange-400 bg-white px-3 py-1.5 text-sm font-semibold text-orange-800 hover:bg-orange-50" aria-controls="materials">📦 Material prices (<span id="mat-count">0</span>)</button>
         <button type="button" id="btn-bills" class="rounded-lg border border-violet-500 bg-white px-3 py-1.5 text-sm font-semibold text-violet-800 hover:bg-violet-50" aria-controls="bills">🧾 Running bills</button>
@@ -109,6 +112,16 @@
       </div>
       <label class="mt-2 flex items-center gap-2 text-xs font-semibold text-slate-600">Site location for rates <input id="rate-location" class="min-w-0 flex-1 rounded-md border border-slate-300 bg-white px-2 py-1 text-sm font-normal" placeholder="e.g. Whitefield, Bengaluru" maxlength="120"></label>
       <p id="tender-status" class="hidden mt-2 rounded-lg bg-white px-3 py-2 text-sm text-slate-700" role="status"></p>
+      <div id="fill-panel" class="hidden mt-2 rounded-lg border border-blue-200 bg-white p-3 text-sm" aria-live="polite">
+        <p class="font-bold text-blue-900">📤 Client's BOQ format</p>
+        <p id="fill-summary" class="mt-1 text-slate-700"></p>
+        <ul id="fill-issues" class="mt-2 space-y-1"></ul>
+        <div class="mt-2 flex flex-wrap items-center gap-2">
+          <button type="button" id="fill-download" class="rounded-lg bg-blue-700 px-3 py-1.5 text-sm font-semibold text-white hover:bg-blue-800">⬇ Download filled file</button>
+          <button type="button" id="fill-close" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm">Close</button>
+        </div>
+        <p id="fill-note" class="mt-2 text-xs text-slate-500"></p>
+      </div>
     </section>
     <section id="ratebook" class="no-print hidden mt-3 rounded-xl border border-emerald-300 bg-white p-3 shadow-sm">
       <div class="flex items-center justify-between gap-2"><p class="text-sm font-bold text-emerald-900">📒 My rates</p><button type="button" data-close="ratebook" class="rounded px-2 text-slate-400 hover:bg-slate-100" aria-label="Close my rates">✕</button></div>
@@ -204,8 +217,16 @@
     <p class="no-print mt-2 text-xs text-slate-500">Tap any text to edit it. Your quotations and company details are saved only on this phone or computer.</p>
 
     <article id="paper" class="mt-3 rounded-2xl border border-slate-200 bg-white p-4 sm:p-8 shadow-sm text-sm">
+      <div class="no-print mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+        <label class="cursor-pointer font-semibold text-blue-700 underline"><span id="lh-label">+ Letterhead (top image)</span><input id="lh-file" type="file" accept="image/*" class="hidden"></label>
+        <button type="button" id="lh-remove" class="hidden text-slate-500 underline">remove letterhead</button>
+        <label class="cursor-pointer font-semibold text-blue-700 underline"><span id="ft-label">+ Footer image</span><input id="ft-file" type="file" accept="image/*" class="hidden"></label>
+        <button type="button" id="ft-remove" class="hidden text-slate-500 underline">remove footer</button>
+      </div>
+      <img id="lh-img" alt="Letterhead" class="hidden mb-3 w-full">
       <header class="flex flex-col gap-4 sm:flex-row sm:justify-between border-b-2 border-blue-900 pb-4">
-        <div class="min-w-0 flex-1">
+        <div class="co-block min-w-0 flex-1">
+          <p class="lh-note no-print hidden mb-1 rounded bg-amber-50 px-2 py-1 text-xs text-amber-900">Not printed — your letterhead shows these. Still used for “For …” and WhatsApp text.</p>
           <div id="logo-box" class="mb-1 flex items-center gap-2">
             <img id="logo-img" alt="Company logo" class="hidden">
             <label class="no-print cursor-pointer text-xs font-semibold text-blue-700 underline"><span id="logo-label">+ Add logo</span><input id="logo-file" type="file" accept="image/*" class="hidden"></label>
@@ -267,12 +288,13 @@
         <textarea class="q-in leading-relaxed" rows="6" data-q="terms" aria-label="Terms and conditions"></textarea>
       </section>
 
-      <footer class="mt-8 flex justify-end">
+      <footer class="mt-8 flex flex-wrap justify-end">
         <div class="text-center">
           <p class="text-xs text-slate-500">For <span id="sign-company" class="font-semibold text-slate-700"></span></p>
           <div class="mt-10 w-48 border-t border-slate-400"></div>
           <p class="mt-1 text-xs text-slate-500">Authorised signatory</p>
         </div>
+        <img id="ft-img" alt="Footer" class="hidden mt-6 w-full">
       </footer>
     </article>
     <p class="no-print mt-3 text-xs text-slate-500">This tool only formats your quotation. You are responsible for its rates, quantities, taxes and terms. See the <a href="disclaimer.html" class="text-blue-700 underline">disclaimer</a>.</p>
@@ -390,6 +412,29 @@
       if (company.logo) { img.src = company.logo; img.classList.remove("hidden"); $("logo-label").textContent = "change logo"; $("logo-remove").classList.remove("hidden"); }
       else { img.removeAttribute("src"); img.classList.add("hidden"); $("logo-label").textContent = "+ Add logo"; $("logo-remove").classList.add("hidden"); }
       $("logo-box").classList.toggle("q-empty-print", !company.logo);
+      // Letterhead (top) and footer images: full width on the page and in the PDFs.
+      const lh = $("lh-img"), ft = $("ft-img");
+      if (company.letterhead) lh.src = company.letterhead; else lh.removeAttribute("src");
+      if (company.footerImg) ft.src = company.footerImg; else ft.removeAttribute("src");
+      lh.classList.toggle("hidden", !company.letterhead); ft.classList.toggle("hidden", !company.footerImg);
+      $("lh-label").textContent = company.letterhead ? "change letterhead" : "+ Letterhead (top image)";
+      $("ft-label").textContent = company.footerImg ? "change footer" : "+ Footer image";
+      $("lh-remove").classList.toggle("hidden", !company.letterhead); $("ft-remove").classList.toggle("hidden", !company.footerImg);
+      $("paper").classList.toggle("has-lh", Boolean(company.letterhead));
+      document.querySelector(".lh-note").classList.toggle("hidden", !company.letterhead);
+      document.querySelector(".co-block").classList.toggle("opacity-60", Boolean(company.letterhead));
+    }
+    // Shrink a picked image to a JPEG data URL (on a white background) that fits in the phone's storage.
+    function imageToJpeg(file, maxSide, done) {
+      const img = new Image(), url = URL.createObjectURL(file);
+      img.onload = () => {
+        const s = Math.min(1, maxSide / Math.max(img.width, img.height)), cv = document.createElement("canvas");
+        cv.width = Math.round(img.width * s); cv.height = Math.round(img.height * s);
+        const ctx = cv.getContext("2d"); ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, cv.width, cv.height); ctx.drawImage(img, 0, 0, cv.width, cv.height);
+        URL.revokeObjectURL(url); done(cv.toDataURL("image/jpeg", 0.85));
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); toast("Could not read that image. Use a JPG or PNG."); };
+      img.src = url;
     }
 
     // ---------- saving ----------
@@ -461,6 +506,18 @@
       img.src = url; e.target.value = "";
     });
     $("logo-remove").onclick = () => { delete company.logo; store.set(CO_KEY, company); showLogo(); };
+    for (const [input, key, label] of [["lh-file", "letterhead", "Letterhead"], ["ft-file", "footerImg", "Footer image"]]) {
+      $(input).addEventListener("change", (e) => {
+        const f = e.target.files[0]; e.target.value = ""; if (!f) return;
+        imageToJpeg(f, 1600, (data) => {
+          const before = company[key]; company[key] = data;
+          if (!store.set(CO_KEY, company)) { company[key] = before; toast(`${label} is too large to save on this phone. Try a smaller image.`); return; }
+          showLogo(); toast(`${label} added. It is used on the quotation, the PDF and running bills.`);
+        });
+      });
+    }
+    $("lh-remove").onclick = () => { delete company.letterhead; store.set(CO_KEY, company); showLogo(); };
+    $("ft-remove").onclick = () => { delete company.footerImg; store.set(CO_KEY, company); showLogo(); };
 
     // ---------- PDF ----------
     // jsPDF's built-in fonts cover Latin text only; quotations in other scripts use the browser's print → Save as PDF.
@@ -479,17 +536,28 @@
       let y = M;
       const font = (size, style = "normal", color = INK) => { pdf.setFont("helvetica", style); pdf.setFontSize(size); pdf.setTextColor(...color); };
       const wrap = (s, w) => pdf.splitTextToSize(clean(s), w);
-      // header
-      let left = M;
-      if (company.logo) { try { const p = pdf.getImageProperties(company.logo), h = 46, w = Math.min(120, p.width * h / p.height); pdf.addImage(company.logo, "JPEG", M, y, w, h); left = M + w + 12; } catch {} }
-      font(16, "bold", BLUE); const nameLines = wrap(company.name || "", 270 - (left - M)); pdf.text(nameLines, left, y + 14);
-      font(8.5, "normal", GREY);
-      let hy = y + 14 + Math.max(1, nameLines.length) * 18;
-      [company.address, [company.phone, company.email].filter(Boolean).join("  ·  "), company.taxId].filter(Boolean).forEach((s) => { const ls = wrap(s, 270 - (left - M)); pdf.text(ls, left, hy); hy += ls.length * 11; });
-      font(22, "bold", BLUE); pdf.text("QUOTATION", W - M, y + 18, { align: "right" });
-      font(9, "normal", INK);
-      [["No.", q.number], ["Date", nice(q.date)], ["Valid until", nice(q.validUntil)]].forEach(([l, v], i) => { if (!v) return; pdf.setTextColor(...GREY); pdf.text(l, W - M - 120, y + 36 + i * 13); pdf.setTextColor(...INK); pdf.text(clean(v), W - M, y + 36 + i * 13, { align: "right" }); });
-      y = Math.max(hy, y + 76) + 6; pdf.setDrawColor(...BLUE); pdf.setLineWidth(1.5); pdf.line(M, y, W - M, y); y += 18;
+      // header: the letterhead image (edge to edge) when there is one, else logo + typed company details
+      const imgH = (data, maxH) => { try { const p = pdf.getImageProperties(data); return Math.min(maxH, (W * p.height) / p.width); } catch { return 0; } };
+      const footH = company.footerImg ? imgH(company.footerImg, 80) : 0;
+      if (company.letterhead) {
+        const h = imgH(company.letterhead, 150);
+        if (h) { pdf.addImage(company.letterhead, "JPEG", 0, 0, W, h); y = h + 16; }
+        font(20, "bold", BLUE); pdf.text("QUOTATION", M, y + 14);
+        font(9, "normal", INK);
+        [["No.", q.number], ["Date", nice(q.date)], ["Valid until", nice(q.validUntil)]].forEach(([l, v], i) => { if (!v) return; pdf.setTextColor(...GREY); pdf.text(l, W - M - 120, y + 4 + i * 13); pdf.setTextColor(...INK); pdf.text(clean(v), W - M, y + 4 + i * 13, { align: "right" }); });
+        y += 44; pdf.setDrawColor(...BLUE); pdf.setLineWidth(1.5); pdf.line(M, y, W - M, y); y += 18;
+      } else {
+        let left = M;
+        if (company.logo) { try { const p = pdf.getImageProperties(company.logo), h = 46, w = Math.min(120, p.width * h / p.height); pdf.addImage(company.logo, "JPEG", M, y, w, h); left = M + w + 12; } catch {} }
+        font(16, "bold", BLUE); const nameLines = wrap(company.name || "", 270 - (left - M)); pdf.text(nameLines, left, y + 14);
+        font(8.5, "normal", GREY);
+        let hy = y + 14 + Math.max(1, nameLines.length) * 18;
+        [company.address, [company.phone, company.email].filter(Boolean).join("  ·  "), company.taxId].filter(Boolean).forEach((s) => { const ls = wrap(s, 270 - (left - M)); pdf.text(ls, left, hy); hy += ls.length * 11; });
+        font(22, "bold", BLUE); pdf.text("QUOTATION", W - M, y + 18, { align: "right" });
+        font(9, "normal", INK);
+        [["No.", q.number], ["Date", nice(q.date)], ["Valid until", nice(q.validUntil)]].forEach(([l, v], i) => { if (!v) return; pdf.setTextColor(...GREY); pdf.text(l, W - M - 120, y + 36 + i * 13); pdf.setTextColor(...INK); pdf.text(clean(v), W - M, y + 36 + i * 13, { align: "right" }); });
+        y = Math.max(hy, y + 76) + 6; pdf.setDrawColor(...BLUE); pdf.setLineWidth(1.5); pdf.line(M, y, W - M, y); y += 18;
+      }
       // client + subject
       font(7.5, "bold", GREY); pdf.text("QUOTATION FOR", M, y); if (q.subject) pdf.text("SUBJECT", M + CW / 2 + 10, y); y += 12;
       const cl = [q.client.name, q.client.phone, q.client.site].filter(Boolean);
@@ -500,9 +568,13 @@
       const refW = Math.min(60, Math.max(24, ...t.items.map((it) => String(it.ref || "").length * 5 + 12)));
       const cols = [["Item", refW, "left"], ["Description", 0, "left"], ["Unit", 40, "left"], ["Qty", 50, "right"], ["Rate", 68, "right"], ["Amount", 80, "right"]];
       cols[1][1] = CW - cols.reduce((s, c) => s + c[1], 0);
-      const footer = () => { const n = pdf.internal.getNumberOfPages(); font(7, "normal", GREY); pdf.text(`${q.number || ""}  ·  Page ${n}`, W - M, H - 20, { align: "right" }); };
+      const footer = () => {
+        const n = pdf.internal.getNumberOfPages();
+        if (footH) pdf.addImage(company.footerImg, "JPEG", 0, H - footH, W, footH);
+        font(7, "normal", GREY); pdf.text(`${q.number || ""}  ·  Page ${n}`, W - M, H - footH - (footH ? 6 : 20), { align: "right" });
+      };
       const head = () => { pdf.setFillColor(...BLUE); pdf.rect(M, y, CW, 20, "F"); font(8, "bold", [255, 255, 255]); let x = M; cols.forEach(([l, w, a]) => { pdf.text(l, a === "right" ? x + w - 5 : x + 5, y + 13, { align: a }); x += w; }); y += 20; };
-      const need = (h) => { if (y + h > H - 50) { footer(); pdf.addPage(); y = M; head(); } };
+      const need = (h) => { if (y + h > H - 50 - footH) { footer(); pdf.addPage(); y = M; head(); } };
       head();
       let serial = 0;
       t.items.forEach((it, i) => {
@@ -901,14 +973,18 @@
         const m = (n) => Q.money(n, q.currency, { pdf: true }), num = (n) => m(n).replace(/^\S+ /, "");
         const font = (size, style = "normal", color = INK) => { pdf.setFont("helvetica", style); pdf.setFontSize(size); pdf.setTextColor(...color); };
         let y = M;
-        font(14, "bold", BLUE); pdf.text(clean(company.name || ""), M, y + 10);
-        font(16, "bold", BLUE); pdf.text(clean(billTitle(a)), W - M, y + 10, { align: "right" });
+        const imgH = (data, maxH) => { try { const p = pdf.getImageProperties(data); return Math.min(maxH, (W * p.height) / p.width); } catch { return 0; } };
+        const footH = company.footerImg ? imgH(company.footerImg, 60) : 0;
+        const pageFoot = () => { if (footH) pdf.addImage(company.footerImg, "JPEG", 0, H - footH, W, footH); };
+        if (company.letterhead) { const h = imgH(company.letterhead, 110); if (h) { pdf.addImage(company.letterhead, "JPEG", 0, 0, W, h); y = h + 12; } }
+        else { font(14, "bold", BLUE); pdf.text(clean(company.name || ""), M, y + 10); }
+        font(16, "bold", BLUE); pdf.text(clean(billTitle(a)), company.letterhead ? M : W - M, y + 10, { align: company.letterhead ? "left" : "right" });
         font(9, "normal", GREY); pdf.text(pdf.splitTextToSize(clean(`Work: ${q.subject || ""}`), CW * 0.6), M, y + 26); pdf.text(clean(`Client: ${q.client.name || ""}   Quotation: ${q.number || ""}`), W - M, y + 26, { align: "right" });
         y += 44;
         const cols = [["Item", 44, "left"], ["Description", 0, "left"], ["Unit", 36, "left"], ["Rate", 60, "right"], ["Up to date", 58, "right"], ["Previous", 58, "right"], ["This bill", 58, "right"], ["Amount", 76, "right"]];
         cols[1][1] = CW - cols.reduce((sum, c) => sum + c[1], 0);
         const head = () => { pdf.setFillColor(...BLUE); pdf.rect(M, y, CW, 18, "F"); font(8, "bold", [255, 255, 255]); let x = M; cols.forEach(([l, w, al]) => { pdf.text(l, al === "right" ? x + w - 4 : x + 4, y + 12, { align: al }); x += w; }); y += 18; };
-        const need = (h) => { if (y + h > H - 40) { pdf.addPage(); y = M; head(); } };
+        const need = (h) => { if (y + h > H - 40 - footH) { pageFoot(); pdf.addPage(); y = M; head(); } };
         head();
         a.rows.forEach((r) => {
           if (r.heading) { font(8, "bold"); const d = pdf.splitTextToSize(clean(r.description), CW - 54); need(d.length * 10 + 6); pdf.text(clean(r.ref || ""), M + 4, y + 10); pdf.text(d, M + 48, y + 10); y += d.length * 10 + 6; return; }
@@ -922,7 +998,10 @@
         lines.forEach(([l, v]) => { font(9, "normal", GREY); pdf.text(clean(l), W - M - 260, y); font(9); pdf.text(v, W - M - 4, y, { align: "right" }); y += 14; });
         pdf.setFillColor(...BLUE); pdf.rect(W - M - 270, y - 9, 270, 20, "F"); font(11, "bold", [255, 255, 255]); pdf.text("NET PAYABLE", W - M - 260, y + 5); pdf.text(m(a.net), W - M - 4, y + 5, { align: "right" }); y += 26;
         font(8, "italic", GREY); pdf.text(clean(Q.amountInWords(Math.max(0, a.net), q.currency)), W - M, y, { align: "right" });
-        font(8, "normal", GREY); pdf.text("Contractor's signature", M, H - 30); pdf.text("Checked / measured by (Engineer)", W / 2, H - 30, { align: "center" }); pdf.text("Passed for payment", W - M, H - 30, { align: "right" });
+        need(50);
+        const sy = H - footH - 24;
+        font(8, "normal", GREY); pdf.text("Contractor's signature", M, sy); pdf.text("Checked / measured by (Engineer)", W / 2, sy, { align: "center" }); pdf.text("Passed for payment", W - M, sy, { align: "right" });
+        pageFoot();
         pdf.save(`RA-bill-${a.no}-${(q.number || "").replace(/[^\w-]+/g, "_")}.pdf`);
       });
     };
@@ -1088,6 +1167,134 @@
       } catch (err) { $("review-ai-status").textContent = `AI review could not run: ${err.message}`; }
       finally { tenderBusy = false; }
     };
+
+    // ---------- fill the client's / department's own BOQ format ----------
+    // .xlsx/.xlsm: only the rate (and plain amount) cells are changed inside the client's file, so its
+    // layout, formatting, formulas, other sheets and macros stay as they were. .xls/.csv cannot be edited
+    // in place: a filled .xlsx copy is made instead (same rows and values, without their formatting).
+    let fillJob = null;
+    const loadJsZip = () => loadScript("https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js", () => window.JSZip);
+    $("fill-close").onclick = () => { $("fill-panel").classList.add("hidden"); fillJob = null; };
+    $("fill-file").addEventListener("change", async (e) => {
+      const file = e.target.files[0]; e.target.value = ""; if (!file) return;
+      if (!q.items.some((it) => !it.heading && Number(it.rate) > 0)) { toast("Fill your rates first — the format is filled from this quotation's rates."); return; }
+      try {
+        await loadXlsx();
+        const buf = await file.arrayBuffer();
+        const wb = XLSX.read(buf, { type: "array" });
+        let best = null;
+        for (const name of wb.SheetNames) {
+          const ws = wb.Sheets[name]; if (!ws || !ws["!ref"]) continue;
+          const range = XLSX.utils.decode_range(ws["!ref"]);
+          const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: "", blankrows: true });
+          const r = Q.formatFill(rows, q.items);
+          if (!r.error && (!best || r.assignments.length > best.r.assignments.length)) best = { name, range, r };
+        }
+        if (!best) { const any = wb.SheetNames.map((n) => Q.formatFill(XLSX.utils.sheet_to_json(wb.Sheets[n] || {}, { header: 1, raw: true, defval: "" }), q.items)).find((x) => x.error); throw new Error(any?.error || "No BOQ table was found in this file."); }
+        if (!best.r.assignments.length) throw new Error("None of the format's lines matched this quotation's items. Check that the right quotation is open.");
+        fillJob = { file, buf, ext: (file.name.match(/\.(\w+)$/) || [])[1]?.toLowerCase() || "xlsx", wb, ...best };
+        showFill();
+      } catch (err) { tStatus(`⚠️ ${err.message || "Could not read this file."}`); }
+    });
+    function showFill() {
+      const { r, name, ext } = fillJob, A = r.assignments;
+      const byNo = A.filter((a) => a.how === "item number").length;
+      $("fill-summary").textContent = `Sheet “${name}”: ${A.length} line${A.length === 1 ? "" : "s"} filled (${byNo} by item number, ${A.length - byNo} by matching description). Total of filled amounts: ${Q.money(r.total, q.currency)}.`;
+      const ul = $("fill-issues"); ul.innerHTML = "";
+      const add = (icon, text) => ul.appendChild(li(`${icon} ${text}`));
+      const name1 = (x) => x.ref || `“${String(x.description).slice(0, 40)}”`;
+      const few = (arr) => arr.slice(0, 8).join(", ") + (arr.length > 8 ? ` and ${arr.length - 8} more` : "");
+      if (r.unmatchedRows.length) add("🔴", `${r.unmatchedRows.length} line${r.unmatchedRows.length === 1 ? " was" : "s were"} not filled — no sure match in your quotation: ${few(r.unmatchedRows.map(name1))}. Fill ${r.unmatchedRows.length === 1 ? "it" : "them"} by hand.`);
+      const noRate = A.filter((a) => a.noRate);
+      if (noRate.length) add("🔴", `No rate in your quotation for ${few(noRate.map(name1))}.`);
+      const qd = A.filter((a) => a.qtyDiffers);
+      if (qd.length) add("🟠", `Quantity in the format differs from your quotation for ${few(qd.map((a) => `${name1(a)} (${a.qty} vs ${q.items[a.itemIndex].qty})`))}. Amounts use the format's quantity.`);
+      const byText = A.filter((a) => a.how === "description");
+      if (byText.length) add("🟠", `Matched by description (check these): ${few(byText.map((a) => `${name1(a)} → your “${String(q.items[a.itemIndex].description).slice(0, 40)}”`))}.`);
+      if (r.unusedItems.length) add("🟠", `${r.unusedItems.length} of your quotation's items are not in this format: ${few(r.unusedItems.map((i) => name1(q.items[i])))}.`);
+      if (!ul.children.length) add("✅", "Every priced line in the format was filled.");
+      $("fill-note").textContent = ["xlsx", "xlsm"].includes(ext)
+        ? "Only the rate and amount cells are changed; the client's layout, formatting, formulas and other sheets stay as they were. Open the file and check it before submitting."
+        : `.${ext} files can't be edited in place, so you get a filled .xlsx copy with the same rows and values, but without the original formatting. For an e-tender portal, type these rates into the portal's own file.`;
+      $("fill-panel").classList.remove("hidden");
+      $("fill-panel").scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+    $("fill-download").onclick = (e) => withBusy(e.currentTarget, async () => {
+      if (!fillJob) return;
+      const { r, range, name, ext, file } = fillJob;
+      const cellRef = (row, col) => `${XLSX.utils.encode_col(range.s.c + col)}${range.s.r + row + 1}`;
+      const rateCells = r.assignments.filter((a) => a.rate > 0).map((a) => ({ ref: cellRef(a.row, r.col.rate), value: a.rate }));
+      const amountCells = r.col.amount === -1 ? [] : r.assignments.filter((a) => a.rate > 0).map((a) => ({ ref: cellRef(a.row, r.col.amount), value: a.amount, keepFormula: true }));
+      const base = file.name.replace(/\.[^.]+$/, "");
+      if (ext === "xlsx" || ext === "xlsm") {
+        const blob = await fillXlsxInPlace(fillJob.buf, name, [...rateCells, ...amountCells], ext);
+        downloadBlob(blob, `${base}-filled.${ext}`);
+      } else {
+        const ws = fillJob.wb.Sheets[name];
+        for (const c of [...rateCells, ...amountCells]) { const old = ws[c.ref]; if (c.keepFormula && old && old.f) continue; ws[c.ref] = { t: "n", v: c.value }; }
+        XLSX.writeFile(fillJob.wb, `${base}-filled.xlsx`);
+      }
+      toast("Filled file downloaded. Open it and check before submitting.");
+    });
+    function downloadBlob(blob, name) {
+      const url = URL.createObjectURL(blob), a = Object.assign(document.createElement("a"), { href: url, download: name });
+      document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 5000);
+    }
+    // Sets numbers in chosen cells of one sheet inside an .xlsx/.xlsm, leaving every other part of the file as it was.
+    async function fillXlsxInPlace(buf, sheetName, cells, ext) {
+      await loadJsZip();
+      const zip = await JSZip.loadAsync(buf);
+      const NS = "http://schemas.openxmlformats.org/spreadsheetml/2006/main", RNS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+      const parse = (s) => new DOMParser().parseFromString(s, "application/xml");
+      const wbDoc = parse(await zip.file("xl/workbook.xml").async("string"));
+      const sheetEl = [...wbDoc.getElementsByTagNameNS(NS, "sheet")].find((s) => s.getAttribute("name") === sheetName);
+      if (!sheetEl) throw new Error("Could not find that sheet in the file.");
+      const rid = sheetEl.getAttributeNS(RNS, "id") || sheetEl.getAttribute("r:id");
+      const relsDoc = parse(await zip.file("xl/_rels/workbook.xml.rels").async("string"));
+      const rel = [...relsDoc.getElementsByTagName("Relationship")].find((x) => x.getAttribute("Id") === rid);
+      const target = rel.getAttribute("Target").replace(/^\//, "");
+      const path = target.startsWith("xl/") ? target : `xl/${target}`;
+      const doc = parse(await zip.file(path).async("string"));
+      const sheetData = doc.getElementsByTagNameNS(NS, "sheetData")[0];
+      const colNum = (ref) => ref.replace(/\d+$/, "").split("").reduce((n, ch) => n * 26 + ch.charCodeAt(0) - 64, 0);
+      const rowNum = (ref) => Number(ref.match(/\d+$/)[0]);
+      let removedFormula = false;
+      for (const c of cells) {
+        const rn = rowNum(c.ref);
+        let row = [...sheetData.getElementsByTagNameNS(NS, "row")].find((x) => Number(x.getAttribute("r")) === rn);
+        if (!row) {
+          row = doc.createElementNS(NS, "row"); row.setAttribute("r", String(rn));
+          const after = [...sheetData.getElementsByTagNameNS(NS, "row")].find((x) => Number(x.getAttribute("r")) > rn);
+          sheetData.insertBefore(row, after || null);
+        }
+        let cell = [...row.getElementsByTagNameNS(NS, "c")].find((x) => x.getAttribute("r") === c.ref);
+        if (cell && c.keepFormula && cell.getElementsByTagNameNS(NS, "f").length) continue;   // the client's formula works it out
+        if (!cell) {
+          cell = doc.createElementNS(NS, "c"); cell.setAttribute("r", c.ref);
+          const after = [...row.getElementsByTagNameNS(NS, "c")].find((x) => colNum(x.getAttribute("r") || "A1") > colNum(c.ref));
+          row.insertBefore(cell, after || null);
+        }
+        if (cell.getElementsByTagNameNS(NS, "f").length) removedFormula = true;
+        while (cell.firstChild) cell.removeChild(cell.firstChild);
+        cell.removeAttribute("t");
+        const v = doc.createElementNS(NS, "v"); v.textContent = String(c.value); cell.appendChild(v);
+      }
+      zip.file(path, new XMLSerializer().serializeToString(doc), { createFolders: false });
+      // Ask Excel to recalculate the client's totals and formulas when the file is opened.
+      let calc = wbDoc.getElementsByTagNameNS(NS, "calcPr")[0];
+      if (!calc) { calc = wbDoc.createElementNS(NS, "calcPr"); wbDoc.documentElement.appendChild(calc); }
+      calc.setAttribute("fullCalcOnLoad", "1");
+      zip.file("xl/workbook.xml", new XMLSerializer().serializeToString(wbDoc), { createFolders: false });
+      if (removedFormula && zip.file("xl/calcChain.xml")) {   // a stale calculation chain makes Excel "repair" the file
+        zip.remove("xl/calcChain.xml");
+        for (const x of [...relsDoc.getElementsByTagName("Relationship")]) if (/calcChain$/.test(x.getAttribute("Type") || "")) x.parentNode.removeChild(x);
+        zip.file("xl/_rels/workbook.xml.rels", new XMLSerializer().serializeToString(relsDoc), { createFolders: false });
+        const ct = parse(await zip.file("[Content_Types].xml").async("string"));
+        for (const o of [...ct.getElementsByTagName("Override")]) if (o.getAttribute("PartName") === "/xl/calcChain.xml") o.parentNode.removeChild(o);
+        zip.file("[Content_Types].xml", new XMLSerializer().serializeToString(ct), { createFolders: false });
+      }
+      return zip.generateAsync({ type: "blob", mimeType: ext === "xlsm" ? "application/vnd.ms-excel.sheet.macroEnabled.12" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", compression: "DEFLATE" });
+    }
 
     $("btn-excel").onclick = (e) => {
       if (!checkReady()) return;
