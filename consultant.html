@@ -783,7 +783,7 @@
           $("sn-status").textContent = `Checking photos${batches.length > 1 ? ` — part ${b + 1} of ${batches.length}` : ""}… about a minute per part. Keep this page open.`;
           const attachments = [];
           for (const p of batch) attachments.push({ name: `photo-${attachments.length + 1}.jpg`, mimeType: "image/jpeg", data: await imageData(p.file, 1600, 0.85) });
-          const message = `Project / site: ${$("sn-project").value.trim() || "not given"}\nPhotos:\n${batch.map((p, i) => `${i + 1}. ${p.location.trim() ? `Location: ${p.location.trim()}` : "Location not given"}`).join("\n")}\n\nMake the snag list for these photos.`;
+          const message = `Project / site: ${$("sn-project").value.trim() || "not given"}\nPhotos:\n${batch.map((p, i) => `${i + 1}. ${p.location.trim() ? `Location: ${p.location.trim()}` : "(no location given: name the element only)"}`).join("\n")}\n\nMake the snag list for these photos.`;
           const job = await aiJob({ task: "site-snags", message, attachments }, "sn-progress");
           const snags = C.snagsFromText(job.reply, batch.map((p) => p.id));
           for (const p of batch) {
@@ -807,7 +807,7 @@
       const list = C.sortSnags(snagState.snags, snagState.photos.map((p) => p.id)).filter((s) => snFilter === "all" || (snFilter === "open" ? s.status !== "Closed" : s.severity === snFilter && s.status !== "Closed"));
       const t = $("sn-table"); t.replaceChildren();
       const hr = el("tr", "text-left text-slate-500 align-bottom");
-      ["No", "Photo", "Location / element", "Defect", "Severity", "Likely cause", "Remedy / remarks", "Ref.", "Status", ""].forEach((h) => hr.append(el("th", "p-1", h)));
+      ["No", "Photo", "Location / element", "Defect", "Severity", "Remedy / remarks", "Likely cause", "Ref.", "Status", ""].forEach((h) => hr.append(el("th", "p-1", h)));
       t.append(el("thead")); t.tHead.append(hr);
       const tb = el("tbody"); t.append(tb);
       list.forEach((s, i) => {
@@ -819,7 +819,7 @@
         const edit = (k, cls) => { const td = el("td", `p-1 ${cls}`, s[k]); td.contentEditable = "true"; td.addEventListener("blur", () => { if (s[k] !== td.textContent.trim()) { s[k] = td.textContent.trim(); saveSnags(); } }); return td; };
         tr.append(edit("location", "min-w-[7rem]"), edit("defect", "min-w-[10rem]"));
         const tds = el("td", "p-1"), sev = el("select", `rounded px-1 py-0.5 font-semibold ${SEV_CLS[s.severity]}`); C.SEVERITY.forEach((v) => sev.append(new Option(v, v))); sev.value = s.severity; sev.setAttribute("aria-label", "Severity"); sev.onchange = () => { s.severity = sev.value; saveSnags(); renderSnags(); }; tds.append(sev); tr.append(tds);
-        tr.append(edit("cause", "min-w-[8rem]"), edit("remedy", "min-w-[14rem]"), edit("reference", "min-w-[5rem] text-slate-500"));
+        tr.append(edit("remedy", "min-w-[14rem]"), edit("cause", "min-w-[8rem] text-slate-600"), edit("reference", "min-w-[5rem] text-slate-500"));
         const tdst = el("td", "p-1"), st = el("select", "rounded border border-slate-300 px-1 py-0.5"); ["Open", "Closed"].forEach((v) => st.append(new Option(v, v))); st.value = s.status; st.setAttribute("aria-label", "Status"); st.onchange = () => { s.status = st.value; saveSnags(); renderSnags(); }; tdst.append(st); tr.append(tdst);
         const del = el("button", "px-1 text-red-700", "✕"); del.setAttribute("aria-label", "Delete this snag"); del.onclick = () => { snagState.snags = snagState.snags.filter((x) => x !== s); snagState.photos = snagState.photos.filter((p) => snagState.snags.some((x) => x.photo === p.id)); saveSnags(); renderSnags(); };
         const tdd = el("td"); tdd.append(del); tr.append(tdd);

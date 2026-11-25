@@ -208,12 +208,13 @@ test("site snags: the AI table becomes snags on the right photos, critical first
   const reply = "| Photo | Location / element | Defect | Severity | Likely cause | Remedy | Reference |\n|---|---|---|---|---|---|---|\n" +
     "| 1 | Column C3 | Honeycombing at the base | Major | Poor compaction | Chip, clean and patch with repair mortar; verify depth on site | IS 456 cl 13.3 |\n" +
     "| Photo 2 | Slab edge | No edge protection | Critical – stop work | Guard rail missing | Install guard rail with toe board | IS 3696 |\n" +
-    "| 2 | Slab edge | No visible defect | Minor | | | |\n" +
+    "| 2 | Location not given – slab edge | No visible defect | Minor | | | |\n" +
     "| 3 | Beam | Crack | High | x | y | |";   // no photo 3 was sent
   const snags = C.snagsFromText(reply, ["pA", "pB"]);
   assert.deepEqual(snags.map((s) => [s.photo, s.severity, s.status]), [["pA", "Major", "Open"], ["pB", "Critical", "Open"], ["pB", "Minor", "Open"]]);
   assert.equal(snags[0].remedy, "Chip, clean and patch with repair mortar; verify depth on site");
   assert.equal(snags[0].reference, "IS 456 cl 13.3");
+  assert.equal(snags[2].location, "slab edge", "'Location not given' is dropped");
   const sorted = C.sortSnags(snags, ["pA", "pB"]);
   assert.deepEqual(sorted.map((s) => s.severity), ["Critical", "Major", "Minor"]);
   assert.deepEqual(C.snagSummary(snags), { total: 2, open: 2, critical: 1, major: 1, minor: 0 }, "'No visible defect' is not counted");
