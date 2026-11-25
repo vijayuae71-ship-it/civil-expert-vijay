@@ -147,6 +147,53 @@
   // and gets that item's rate; the amount uses the format's own quantity. Nothing is guessed: lines
   // without a confident match are reported, not filled.
   const normRef = (r) => String(r || "").toLowerCase().replace(/\s+/g, "").replace(/\.+$/, "");
+
+  // A priced BOQ (a bidder's offer, a contractor's bill): like tenderItems, but keeps rate and amount.
+  function pricedItems(rows) {
+    const found = findHeader(rows || []);
+    if (!found) return [];
+    const { col } = found, items = [];
+    for (const raw of rows.slice(found.index + 1)) {
+      const r = (raw || []).map(cellStr);
+      const description = r[col.desc] || "", ref = col.ref !== -1 ? r[col.ref] || "" : "";
+      if (!description || /^\d+$/.test(description) || isTotalRow([description, ref])) continue;
+      const qty = toNumber(r[col.qty]), unit = col.unit !== -1 ? r[col.unit] || "" : "";
+      const rate = col.rate !== -1 ? toNumber(r[col.rate]) : NaN, amount = col.amount !== -1 ? toNumber(r[col.amount]) : NaN;
+      if (!Number.isFinite(qty) || (qty === 0 && !unit)) items.push({ ref, description, heading: true });
+      else items.push({ ref, description, unit, qty, rate, amount });
+    }
+    while (items.length && items[items.length - 1].heading) items.pop();
+    return items;
+  }
+
+  // Which line of `base` each line of `other` is: by item number first, else by description (with its
+  // parent heading) and unit, only when every number in the specification agrees. → { map: {otherIdx: baseIdx}, unmatched: [otherIdx] }
+  function matchItems(base, other) {
+    const nums = (s) => tokens(s).filter((w) => /\d/.test(w));
+    const allIn = (list, text) => { const have = new Set(nums(text)); return list.every((w) => have.has(w)); };
+    const baseList = (base || []).map((it, i) => ({ it, i, full: it.heading ? "" : fullDescription(base, i) })).filter((x) => !x.it.heading && String(x.it.description || "").trim());
+    const byRef = new Map(baseList.filter((x) => normRef(x.it.ref)).map((x) => [normRef(x.it.ref), x]));
+    const used = new Set(), map = {}, unmatched = [];
+    (other || []).forEach((o, k) => {
+      if (o.heading || !String(o.description || "").trim()) return;
+      let hit = byRef.get(normRef(o.ref));
+      if (hit && used.has(hit.i)) hit = null;
+      if (!hit) {
+        const full = fullDescription(other, k);
+        let best = null;
+        for (const x of baseList) {
+          if (used.has(x.i)) continue;
+          if (o.unit && x.it.unit && normUnit(o.unit) !== normUnit(x.it.unit)) continue;
+          if (!allIn(nums(o.description), x.full) || !allIn(nums(x.it.description), full)) continue;
+          const score = Math.max(similarity(full, x.full), similarity(o.description, x.it.description)) + (Number(x.it.qty) === Number(o.qty) ? 0.1 : 0);
+          if (!best || score > best.score) best = { x, score };
+        }
+        if (best && best.score >= 0.75) hit = best.x;
+      }
+      if (hit) { used.add(hit.i); map[k] = hit.i; } else unmatched.push(k);
+    });
+    return { map, unmatched };
+  }
   function formatFill(rows, quoteItems) {
     const found = findHeader(rows || []);
     if (!found) return { error: "No BOQ table was found in this file. It needs columns such as Description, Quantity and Rate." };
@@ -709,7 +756,7 @@
     return `${major} ${words(whole, currency === "INR")}${frac ? ` and ${words(frac, false)} ${minor}` : ""} Only`;
   }
 
-  const api = { CURRENCIES, toNumber, money, detectCurrency, itemsFromAnswer, tenderItems, tenderItemsFromText, ratesFromText, shortsFromText, sourcesFromText, basisFromText, materialLine, materialsFromRows, materialsFromText, addMaterials, relevantMaterials, priceAgeDays, matLabel, rateRequests, similarRates, ownRateFor, addToRateBook, rateListFromRows, normUnit, fullDescription, termsFacts, bidSummary, workSummary, formatFill, statusOf, STATUSES, defaultBillSettings, billAbstract, newBill, makeBackup, readBackup, mergeBackup, simplifyRequests, checkQuote, reviewMessage, totals, quoteNumber, shareText, amountInWords, isTotalRow };
+  const api = { tables, CURRENCIES, toNumber, money, detectCurrency, itemsFromAnswer, tenderItems, tenderItemsFromText, ratesFromText, shortsFromText, sourcesFromText, basisFromText, materialLine, materialsFromRows, materialsFromText, addMaterials, relevantMaterials, priceAgeDays, matLabel, rateRequests, similarRates, ownRateFor, addToRateBook, rateListFromRows, normUnit, fullDescription, termsFacts, bidSummary, workSummary, formatFill, pricedItems, matchItems, normRef, statusOf, STATUSES, defaultBillSettings, billAbstract, newBill, makeBackup, readBackup, mergeBackup, simplifyRequests, checkQuote, reviewMessage, totals, quoteNumber, shareText, amountInWords, isTotalRow };
   if (typeof module === "object" && module.exports) module.exports = api;
   else root.QUOTE = api;
 })(typeof self !== "undefined" ? self : this);

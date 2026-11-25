@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Consultant Tools | Construction AI Expert</title>
+  <meta name="description" content="Tools for architects, structural engineers and PMCs: site snag list from photos, bid comparison, bar bending schedule, IS 456 check sheets, specification and tender writer, and running-bill certification.">
+  <meta name="theme-color" content="#1e3a8a">
+  <link rel="icon" href="assets/logo.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="assets/site.css">
+  <script src="assets/quote.js"></script>
+  <script src="assets/consult.js"></script>
+  <script src="assets/progress.js"></script>
+  <script src="assets/app.js" defer></script>
+  <style>
+    .tab[aria-selected="true"] { background: #1e3a8a; color: #fff; border-color: #1e3a8a; }
+    .doc h2 { font-size: 1.15rem; font-weight: 800; color: #1e3a8a; margin: 1.1rem 0 .4rem; }
+    .doc h3 { font-size: 1.02rem; font-weight: 800; color: #1e3a8a; margin: 1rem 0 .35rem; }
+    .doc h4 { font-weight: 700; margin: .8rem 0 .3rem; }
+    .doc p { margin: .35rem 0; }
+    .doc ol { list-style: none; padding-left: 0; margin: .3rem 0; }
+    .doc ol li { margin: .2rem 0 .2rem 2.2rem; text-indent: -2.2rem; }
+    .doc ol li .num { display: inline-block; min-width: 2.2rem; text-indent: 0; font-weight: 600; }
+    .doc ul { list-style: disc; padding-left: 1.4rem; margin: .3rem 0; }
+    .grid-in input, .grid-in select { width: 100%; min-width: 0; }
+    td.low { background: #fef3c7; } td.high { background: #fee2e2; } td.miss { color: #94a3b8; }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-900 font-sans">
+  <nav class="bg-white border-b border-slate-200"><div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3"><a href="index.html" class="flex min-w-0 items-center gap-2 font-bold leading-tight text-slate-800"><img src="assets/logo.svg" alt="" width="32" height="32" class="w-8 h-8"><span class="truncate">Construction AI Expert</span></a><div class="flex items-center gap-4 text-sm font-medium text-blue-700"><a href="expert.html" class="whitespace-nowrap hover:text-blue-900">Ask AI</a><a href="quotation.html" class="whitespace-nowrap hover:text-blue-900">Quotation</a><a href="consultant.html" class="whitespace-nowrap font-bold text-blue-900" aria-current="page">Consultants</a></div></div></nav>
+
+  <main class="max-w-5xl mx-auto px-3 sm:px-4 py-5">
+    <h1 class="text-2xl font-extrabold text-blue-900">Consultant tools</h1>
+    <p class="text-sm text-slate-600">For architects, structural engineers, quantity surveyors and PMCs. Your files are read on this phone; only PDFs and photos go to the AI.</p>
+    <p class="mt-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-950">⚠️ These are working aids. Every schedule, check, draft and certificate must be verified and signed by the responsible qualified consultant. They do not replace your design, judgement or approval.</p>
+
+    <div class="mt-4 flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Tools">
+      <button class="tab shrink-0 rounded-full border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold" role="tab" data-tab="snags">📷 Site snags</button>
+      <button class="tab shrink-0 rounded-full border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold" role="tab" data-tab="bids">📊 Bid comparison</button>
+      <button class="tab shrink-0 rounded-full border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold" role="tab" data-tab="bbs">🔩 Bar bending</button>
+      <button class="tab shrink-0 rounded-full border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold" role="tab" data-tab="checks">📐 IS 456 checks</button>
+      <button class="tab shrink-0 rounded-full border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold" role="tab" data-tab="specs">📝 Specs &amp; tender</button>
+      <button class="tab shrink-0 rounded-full border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold" role="tab" data-tab="bills">✅ Bill certification</button>
+    </div>
+
+    <!-- 1. Bid comparison -->
+    <section id="tab-bids" class="panel mt-4 space-y-4" hidden>
+      <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <h2 class="font-bold text-slate-800">1. Tender BOQ (the quantities every bid is compared on)</h2>
+        <div id="bids-src" class="mt-2"></div>
+      </div>
+      <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <h2 class="font-bold text-slate-800">2. Bids received (2 to 6)</h2>
+        <p class="text-xs text-slate-500">Each bidder's priced BOQ as Excel/CSV (read exactly), or PDF/photos (the AI copies it word for word).</p>
+        <div class="mt-2 grid gap-2 sm:grid-cols-[1fr_auto]">
+          <input id="bid-name" class="rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="Bidder name, e.g. ABC Constructions">
+          <label class="cursor-pointer rounded-lg bg-blue-700 px-3 py-2 text-center text-sm font-semibold text-white hover:bg-blue-800">+ Add bid file<input id="bid-file" type="file" accept=".xlsx,.xls,.xlsm,.csv,.pdf,image/*" multiple class="hidden"></label>
+        </div>
+        <div id="bid-progress" class="mt-2"></div>
+        <p id="bid-status" class="mt-1 text-sm text-slate-600" role="status"></p>
+        <ul id="bid-list" class="mt-2 space-y-1 text-sm"></ul>
+        <div class="mt-3 flex flex-wrap items-center gap-2 text-sm">
+          <label>Flag rates more than <input id="bid-pct" type="number" value="25" min="5" max="80" class="w-16 rounded border border-slate-300 px-2 py-1"> % from the median</label>
+          <button id="bid-run" class="rounded-lg bg-emerald-700 px-4 py-2 font-semibold text-white hover:bg-emerald-800">Compare bids</button>
+        </div>
+      </div>
+      <div id="bid-out" class="hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div class="flex flex-wrap items-center justify-between gap-2"><h2 class="font-bold text-slate-800">Comparative statement</h2><div class="flex gap-2"><button id="bid-xlsx" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-semibold">⬇ Excel</button><button id="bid-pdf" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-semibold">⬇ PDF</button></div></div>
+        <div id="bid-summary" class="mt-3 grid gap-2 sm:grid-cols-3"></div>
+        <div id="bid-reco" class="mt-3 rounded-lg bg-slate-50 p-3 text-sm"></div>
+        <p class="mt-3 text-xs text-slate-500">Amounts are recomputed on the tender quantities. Yellow: rate far below the median (check it can be done at that rate). Red: far above.</p>
+        <div class="mt-2 overflow-x-auto"><table id="bid-table" class="min-w-full text-xs"></table></div>
+      </div>
+    </section>
+
+    <!-- 2. Bar bending schedule -->
+    <section id="tab-bbs" class="panel mt-4 space-y-4" hidden>
+      <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <h2 class="font-bold text-slate-800">Members</h2>
+          <label class="cursor-pointer rounded-lg border border-blue-300 bg-blue-50 px-3 py-1.5 text-sm font-semibold text-blue-800">📄 Read from drawing (PDF/photo)<input id="bbs-file" type="file" accept=".pdf,image/*" multiple class="hidden"></label>
+        </div>
+        <p class="mt-1 text-xs text-slate-500">Sizes in mm. Bars: <b>3-16</b> = 3 bars of 16 mm, <b>2-16+1-12</b> mixed, <b>10@150</b> = 10 mm at 150 c/c. Beam: L = clear span, main = bottom, top = top bars. Column: L = height. Slab: L = lx, B = ly, main along lx, top = distribution. Footing: main along L, top = along B.</p>
+        <div id="bbs-progress" class="mt-2"></div>
+        <p id="bbs-status" class="mt-1 text-sm text-slate-600" role="status"></p>
+        <div class="mt-2 overflow-x-auto"><table class="min-w-full text-xs grid-in"><thead><tr class="text-left text-slate-500"><th class="p-1">Mark</th><th class="p-1">Type</th><th class="p-1">Nos</th><th class="p-1">L / H / lx</th><th class="p-1">B / ly</th><th class="p-1">D / t</th><th class="p-1">Main</th><th class="p-1">Top / dist.</th><th class="p-1">Stirrups / ties</th><th class="p-1">Crank</th><th></th></tr></thead><tbody id="bbs-rows"></tbody></table></div>
+        <button id="bbs-add" class="mt-2 rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-semibold">+ Add member</button>
+        <details class="mt-3 text-sm"><summary class="cursor-pointer font-semibold text-slate-700">Settings (cover, lap, wastage)</summary>
+          <div class="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4 grid-in">
+            <label>Cover beam (mm)<input id="bbs-cov-beam" type="number" value="25" class="rounded border border-slate-300 px-2 py-1"></label>
+            <label>Cover column<input id="bbs-cov-column" type="number" value="40" class="rounded border border-slate-300 px-2 py-1"></label>
+            <label>Cover slab<input id="bbs-cov-slab" type="number" value="20" class="rounded border border-slate-300 px-2 py-1"></label>
+            <label>Cover footing<input id="bbs-cov-footing" type="number" value="50" class="rounded border border-slate-300 px-2 py-1"></label>
+            <label>Support width (mm)<input id="bbs-support" type="number" value="230" class="rounded border border-slate-300 px-2 py-1"></label>
+            <label>Lap (× dia)<input id="bbs-lap" type="number" value="50" class="rounded border border-slate-300 px-2 py-1"></label>
+            <label>L-bend leg (× dia)<input id="bbs-leg" type="number" value="12" class="rounded border border-slate-300 px-2 py-1"></label>
+            <label>Wastage %<input id="bbs-waste" type="number" value="3" class="rounded border border-slate-300 px-2 py-1"></label>
+          </div>
+        </details>
+        <button id="bbs-run" class="mt-3 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">Make schedule</button>
+      </div>
+      <div id="bbs-out" class="hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div class="flex flex-wrap items-center justify-between gap-2"><h2 class="font-bold text-slate-800">Bar bending schedule</h2><div class="flex gap-2"><button id="bbs-xlsx" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-semibold">⬇ Excel</button><button id="bbs-pdf" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-semibold">⬇ PDF</button></div></div>
+        <p id="bbs-problems" class="mt-2 text-sm text-red-700"></p>
+        <div id="bbs-dia" class="mt-2 flex flex-wrap gap-2 text-sm"></div>
+        <div class="mt-3 overflow-x-auto"><table id="bbs-table" class="min-w-full text-xs"></table></div>
+        <p class="mt-2 text-xs text-slate-500">Bend deductions 90° = 2d, 135° = 3d; stirrup and tie hooks 10d; weight d²/162 kg/m. Curtailment, extra bars at supports, chairs and development lengths are not included: add them as separate members or check against the drawing.</p>
+      </div>
+    </section>
+
+    <!-- 3. IS 456 checks -->
+    <section id="tab-checks" class="panel mt-4 space-y-4" hidden>
+      <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div class="flex flex-wrap items-center gap-2 text-sm">
+          <label class="font-semibold">Member <select id="chk-type" class="rounded border border-slate-300 px-2 py-1"><option value="slab">Slab</option><option value="beam">Beam</option><option value="column">Column</option><option value="footing">Isolated footing</option></select></label>
+          <input id="chk-name" class="rounded border border-slate-300 px-2 py-1" placeholder="Mark, e.g. S1">
+        </div>
+        <div id="chk-form" class="mt-3 grid grid-cols-2 gap-2 text-sm sm:grid-cols-4 grid-in"></div>
+        <button id="chk-run" class="mt-3 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">Check</button>
+      </div>
+      <div id="chk-out" class="hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div class="flex flex-wrap items-center justify-between gap-2"><h2 class="font-bold text-slate-800" id="chk-title">Check sheet</h2><div class="flex gap-2"><button id="chk-add" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-semibold">+ Add to sheet</button><button id="chk-pdf" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-semibold">⬇ PDF (<span id="chk-count">0</span>)</button></div></div>
+        <ul id="chk-list" class="mt-3 space-y-2 text-sm"></ul>
+        <p class="mt-3 text-xs text-slate-500">Preliminary checks to IS 456:2000 for sizing and review. They are not a design: loads, analysis, detailing, ductile detailing (IS 13920) and serviceability must be done and signed by the structural engineer.</p>
+      </div>
+    </section>
+
+    <!-- 4. Spec & tender writer -->
+    <section id="tab-specs" class="panel mt-4 space-y-4" hidden>
+      <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <h2 class="font-bold text-slate-800">1. BOQ</h2>
+        <div id="specs-src" class="mt-2"></div>
+        <h2 class="mt-4 font-bold text-slate-800">2. Project</h2>
+        <div class="mt-2 grid gap-2 text-sm sm:grid-cols-2 grid-in">
+          <label>Name of work<input id="sp-name" class="rounded border border-slate-300 px-2 py-1"></label>
+          <label>Client<input id="sp-client" class="rounded border border-slate-300 px-2 py-1"></label>
+          <label>Location / country<input id="sp-location" class="rounded border border-slate-300 px-2 py-1" placeholder="e.g. Mysuru, India"></label>
+          <label>Estimated cost<input id="sp-cost" class="rounded border border-slate-300 px-2 py-1"></label>
+          <label>Completion period<input id="sp-period" class="rounded border border-slate-300 px-2 py-1" placeholder="e.g. 9 months"></label>
+          <label>Contract type<input id="sp-contractType" class="rounded border border-slate-300 px-2 py-1" placeholder="item rate / lump sum / FIDIC"></label>
+          <label class="sm:col-span-2">Approved makes / client standards<input id="sp-makes" class="rounded border border-slate-300 px-2 py-1"></label>
+          <label class="sm:col-span-2">Other notes (EMD, LD, DLP, payment terms you want)<textarea id="sp-notes" rows="2" class="w-full rounded border border-slate-300 px-2 py-1"></textarea></label>
+        </div>
+        <div class="mt-3 flex flex-wrap gap-2">
+          <button id="sp-items" class="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">Write technical specifications</button>
+          <button id="sp-conds" class="rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800">Write tender conditions</button>
+        </div>
+        <div id="sp-progress" class="mt-2"></div>
+        <p id="sp-status" class="mt-1 text-sm text-slate-600" role="status"></p>
+      </div>
+      <div id="sp-out" class="hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div class="flex flex-wrap items-center justify-between gap-2"><h2 class="font-bold text-slate-800">Draft (tap to edit)</h2><div class="flex flex-wrap gap-2"><button id="sp-copy" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-semibold">📋 Copy</button><button id="sp-word" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-semibold">⬇ Word</button><button id="sp-print" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-semibold">🖨 Print / PDF</button><button id="sp-clear" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-semibold text-red-700">Clear</button></div></div>
+        <div id="sp-doc" class="doc mt-3 rounded-lg border border-slate-200 p-3 text-sm leading-relaxed" contenteditable="true"></div>
+      </div>
+    </section>
+
+    <!-- 5. Bill certification -->
+    <section id="tab-bills" class="panel mt-4 space-y-4" hidden>
+      <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <h2 class="font-bold text-slate-800">1. Agreement (agreed rates and quantities)</h2>
+        <div id="bills-src" class="mt-2"></div>
+        <h2 class="mt-4 font-bold text-slate-800">2. Contractor's running bill</h2>
+        <p class="text-xs text-slate-500">Excel/CSV with columns such as Description, Qty up to date, Previous qty, Rate, Amount — or PDF/photos (the AI copies it).</p>
+        <label class="mt-2 inline-block cursor-pointer rounded-lg bg-blue-700 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800">Choose bill file<input id="bill-file" type="file" accept=".xlsx,.xls,.xlsm,.csv,.pdf,image/*" multiple class="hidden"></label>
+        <div id="bill-progress" class="mt-2"></div>
+        <p id="bill-status" class="mt-1 text-sm text-slate-600" role="status"></p>
+        <details class="mt-3 text-sm" open><summary class="cursor-pointer font-semibold text-slate-700">Rules and deductions</summary>
+          <div class="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4 grid-in">
+            <label>Deviation limit %<input id="bl-dev" type="number" value="25" class="rounded border border-slate-300 px-2 py-1"></label>
+            <label>GST / VAT on bill %<input id="bl-tax" type="number" value="0" class="rounded border border-slate-300 px-2 py-1"></label>
+            <label>Security / retention %<input id="bl-sd" type="number" value="2.5" class="rounded border border-slate-300 px-2 py-1"></label>
+            <label>Income tax TDS %<input id="bl-it" type="number" value="2" class="rounded border border-slate-300 px-2 py-1"></label>
+            <label>GST TDS %<input id="bl-gst" type="number" value="0" class="rounded border border-slate-300 px-2 py-1"></label>
+            <label>Labour cess %<input id="bl-cess" type="number" value="1" class="rounded border border-slate-300 px-2 py-1"></label>
+            <label>Other deduction<input id="bl-other-label" class="rounded border border-slate-300 px-2 py-1" placeholder="e.g. Recovery of cement"></label>
+            <label>Amount<input id="bl-other" type="number" value="0" class="rounded border border-slate-300 px-2 py-1"></label>
+          </div>
+        </details>
+        <button id="bill-run" class="mt-3 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">Check bill</button>
+      </div>
+      <div id="bill-out" class="hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div class="flex flex-wrap items-center justify-between gap-2"><h2 class="font-bold text-slate-800">Certification</h2><div class="flex gap-2"><button id="bill-xlsx" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-semibold">⬇ Excel</button><button id="bill-pdf" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-semibold">⬇ PDF</button></div></div>
+        <div id="bill-summary" class="mt-3 grid gap-2 sm:grid-cols-4"></div>
+        <p class="mt-3 text-xs text-slate-500">Enter measured (MB) quantities to date where you have them; the certified quantity never exceeds the MB quantity, and quantities above the agreement + deviation limit are held back until a deviation is approved.</p>
+        <div class="mt-2 overflow-x-auto"><table id="bill-table" class="min-w-full text-xs"></table></div>
+        <div id="bill-abstract" class="mt-4 max-w-md text-sm"></div>
+      </div>
+    </section>
+    <!-- 6. Site snag list -->
+    <section id="tab-snags" class="panel mt-4 space-y-4" hidden>
+      <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <h2 class="font-bold text-slate-800">Site inspection photos</h2>
+        <p class="text-xs text-slate-500">Take or choose photos; add where each one is. The AI lists every visible defect with its severity, likely cause and remedy. Photos are kept small on this phone for the report.</p>
+        <div class="mt-2 grid gap-2 text-sm sm:grid-cols-2 grid-in">
+          <label>Project / site<input id="sn-project" class="rounded border border-slate-300 px-2 py-1" placeholder="e.g. Anganwadi building, Mysuru"></label>
+          <label>Inspected by<input id="sn-by" class="rounded border border-slate-300 px-2 py-1" placeholder="Name, firm"></label>
+        </div>
+        <div class="mt-3 flex flex-wrap gap-2">
+          <label class="cursor-pointer rounded-lg bg-blue-700 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800">📷 Take photo<input id="sn-camera" type="file" accept="image/*" capture="environment" class="hidden"></label>
+          <label class="cursor-pointer rounded-lg border border-blue-300 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-800">🖼 Choose photos<input id="sn-file" type="file" accept="image/*" multiple class="hidden"></label>
+        </div>
+        <ul id="sn-pending" class="mt-3 grid gap-2 sm:grid-cols-2"></ul>
+        <button id="sn-run" class="mt-3 hidden rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">Find defects</button>
+        <div id="sn-progress" class="mt-2"></div>
+        <p id="sn-status" class="mt-1 text-sm text-slate-600" role="status"></p>
+      </div>
+      <div id="sn-out" class="hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div class="flex flex-wrap items-center justify-between gap-2"><h2 class="font-bold text-slate-800">Snag list</h2><div class="flex flex-wrap gap-2"><button id="sn-xlsx" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-semibold">⬇ Excel</button><button id="sn-pdf" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-semibold">⬇ PDF with photos</button><button id="sn-clear" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-semibold text-red-700">Clear</button></div></div>
+        <div id="sn-summary" class="mt-3 flex flex-wrap gap-2 text-sm"></div>
+        <div class="mt-2 flex flex-wrap gap-1.5 text-xs" role="group" aria-label="Show"><button data-snf="all" class="snf rounded-full border px-2.5 py-1">All</button><button data-snf="open" class="snf rounded-full border px-2.5 py-1">Open</button><button data-snf="Critical" class="snf rounded-full border px-2.5 py-1">Critical</button></div>
+        <div class="mt-2 overflow-x-auto"><table id="sn-table" class="min-w-full text-xs"></table></div>
+        <p class="mt-2 text-xs text-slate-500">Found from photos only: confirm each item on site (crack width and depth, hollowness, strength need measurement or testing). You can edit any cell — tap it.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="border-t border-slate-200 bg-white">
+    <p class="max-w-5xl mx-auto px-4 py-6 text-sm leading-relaxed text-slate-500">Working aids only. They are not a substitute for design, checking, statutory requirements, or review and approval by the responsible qualified consultant. <a href="disclaimer.html" class="text-blue-700 hover:underline">Disclaimer &amp; terms</a> · <a href="privacy.html" class="text-blue-700 hover:underline">Privacy notice</a></p>
+  </footer>
+  <div id="toast" role="status" class="pointer-events-none fixed bottom-20 left-1/2 z-20 -translate-x-1/2 rounded-full bg-slate-900 px-4 py-2 text-sm text-white opacity-0 transition-opacity"></div>
+
+  <script>
+  (() => {
+    const Q = window.QUOTE, C = window.CONSULT, $ = (id) => document.getElementById(id);
+    const store = {
+      get(k, d) { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch { return d; } },
+      set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { return false; } }
+    };
+    const toast = (msg) => { const t = $("toast"); t.textContent = msg; t.style.opacity = 1; clearTimeout(toast.h); toast.h = setTimeout(() => t.style.opacity = 0, 2600); };
+    const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; };
+    const fmt = (n, dp = 2) => (Number.isFinite(Number(n)) && n !== "" && n !== null ? Number(n).toLocaleString("en-IN", { maximumFractionDigits: dp }) : "—");
+    const today = () => { const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); };
+    const safeName = (s) => String(s || "").replace(/[^\w-]+/g, "_").slice(0, 40);
+    const num = (id) => { const v = Number($(id).value); return Number.isFinite(v) ? v : 0; };
+
+    // ---- tabs ----
+    const TABS = ["snags", "bids", "bbs", "checks", "specs", "bills"];
+    function showTab(name) {
+      if (!TABS.includes(name)) name = "snags";
+      document.querySelectorAll(".tab").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === name)));
+      document.querySelectorAll(".panel").forEach((p) => { p.hidden = p.id !== `tab-${name}`; });
+      try { history.replaceState(null, "", `#${name}`); } catch {}
+    }
+    document.querySelectorAll(".tab").forEach((b) => b.addEventListener("click", () => showTab(b.dataset.tab)));
+    showTab(location.hash.slice(1));
+
+    // ---- libraries, loaded when needed ----
+    const loaders = {};
+    const loadScript = (src, ready) => ready() ? Promise.resolve() : (loaders[src] ||= new Promise((ok, fail) => { const s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = () => { delete loaders[src]; fail(new Error("Could not load a needed tool. Check your internet connection.")); }; document.head.appendChild(s); }));
+    const loadXlsx = () => loadScript("https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js", () => window.XLSX);
+    const loadPdf = () => loadScript("https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js", () => window.jspdf);
+
+    // ---- AI jobs in the background, with a progress bar ----
+    const JOB_PROGRESS = {
+      "priced-boq": { expectedMs: 70000, steps: [[0, "Reading the pages"], [20, "Finding the priced BOQ"], [45, "Copying items, rates and amounts"], [80, "Checking item numbers"]] },
+      "bill-items": { expectedMs: 70000, steps: [[0, "Reading the bill"], [25, "Copying quantities and amounts"], [80, "Checking item numbers"]] },
+      "bbs-members": { expectedMs: 60000, steps: [[0, "Reading the drawing"], [30, "Finding members and bars"], [70, "Writing the member list"]] },
+      "spec-items": { expectedMs: 150000, steps: [[0, "Reading the BOQ"], [15, "Grouping items by trade"], [35, "Writing materials and workmanship"], [65, "Writing testing and measurement"], [88, "Finishing"]] },
+      "site-snags": { expectedMs: 60000, steps: [[0, "Looking at the photos"], [25, "Finding defects"], [55, "Working out causes and remedies"], [85, "Writing the snag list"]] },
+      "spec-conditions": { expectedMs: 120000, steps: [[0, "Reading the project details"], [15, "Writing the notice inviting tender"], [40, "Writing conditions of contract"], [75, "Approved makes and documents"]] }
+    };
+    const uuid = () => (crypto.randomUUID ? crypto.randomUUID() : Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, "0")).join(""));
+    async function aiJob(payload, box) {
+      const spec = JOB_PROGRESS[payload.task], bar = box && window.Progress ? Progress.start($(box), spec) : null;
+      try { const job = await aiJobRun(payload); bar && bar.done(); return job; } catch (e) { bar && bar.stop(); throw e; }
+    }
+    async function aiJobRun(payload) {
+      const jobId = uuid();
+      const res = await fetch("/.netlify/functions/chat-start", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...payload, jobId, audience: "engineer", language: "en" }) });
+      if (res.status !== 202) { let e = {}; try { e = await res.json(); } catch {} throw new Error(e.error || "Could not start. Please try again."); }
+      const until = Date.now() + 10 * 60 * 1000; let misses = 0;
+      while (Date.now() < until) {
+        await new Promise((r) => setTimeout(r, 4000));
+        let job;
+        try { job = await (await fetch(`/.netlify/functions/chat-status?id=${jobId}`, { cache: "no-store" })).json(); misses = 0; }
+        catch { if (++misses > 5) throw new Error("Connection lost. Please try again."); continue; }
+        if (job.status === "done") return job;
+        if (job.status === "error") throw new Error(job.error || "The AI could not finish. Please try again.");
+      }
+      throw new Error("This is taking too long. Please try again with fewer pages.");
+    }
+    const fileData = (file) => new Promise((ok, fail) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(",")[1]); r.onerror = () => fail(new Error(`Could not read ${file.name}.`)); r.readAsDataURL(file); });
+    async function imageData(file, maxPx = 2200, quality = 0.88) {
+      let bmp; try { bmp = await createImageBitmap(file); } catch { throw new Error(`${file.name}: this photo format could not be opened. Please use JPEG.`); }
+      const sc = Math.min(1, maxPx / Math.max(bmp.width, bmp.height)), cv = document.createElement("canvas");
+      cv.width = Math.round(bmp.width * sc); cv.height = Math.round(bmp.height * sc); cv.getContext("2d").drawImage(bmp, 0, 0, cv.width, cv.height);
+      return cv.toDataURL("image/jpeg", quality).split(",")[1];
+    }
+    async function attachmentsOf(files) {
+      const out = [];
+      for (const f of files) {
+        if (/^image\//.test(f.type)) out.push({ name: f.name.replace(/\.[^.]+$/, "") + ".jpg", mimeType: "image/jpeg", data: await imageData(f) });
+        else if (/\.pdf$/i.test(f.name) || f.type === "application/pdf") {
+          if (f.size > 4 * 1024 * 1024) throw new Error(`${f.name} is larger than 4 MB. Send only the needed pages, or photos of them.`);
+          out.push({ name: f.name, mimeType: "application/pdf", data: await fileData(f) });
+        }
+      }
+      if (!out.length) throw new Error("Please choose an Excel, CSV or PDF file, or photos.");
+      if (out.reduce((n, a) => n + a.data.length * 0.75, 0) > 4.5 * 1024 * 1024) throw new Error("These files are too large together (about 4 MB in total). Send only the needed pages.");
+      return out;
+    }
+    // A long table copied by the AI in parts: each part continues after the last row it got.
+    async function aiTable(task, files, { box, status, first, none }) {
+      const attachments = await attachmentsOf(files);
+      let header = null; const body = [];
+      for (let part = 1; part <= 12; part++) {
+        status(`Reading${part > 1 ? ` — part ${part} (${body.length} rows so far)` : ""}… about 1–3 minutes per part. Keep this page open.`);
+        const last = body[body.length - 1];
+        const message = last ? `Continue: copy the rows that come after item ${last[0] ? `"${last[0]}" ` : ""}"${String(last[1] || "").slice(0, 120)}". Use the same table header.` : first;
+        const job = await aiJob({ task, message, attachments }, box);
+        if (none.test(job.reply) && !body.length) throw new Error("Nothing to copy was found in this file. Send the pages with the table.");
+        const rows = C.tableRows(job.reply);
+        if (rows.length < 2) break;
+        header ||= rows[0];
+        const fresh = rows.slice(1).filter((r) => !body.some((b) => b[0] === r[0] && b[1] === r[1]));
+        body.push(...fresh);
+        if (!job.truncated || !fresh.length) break;
+      }
+      return header ? [header, ...body] : [];
+    }
+    async function sheetRows(file) {
+      await loadXlsx();
+      const wb = XLSX.read(await file.arrayBuffer(), { type: "array" });
+      return wb.SheetNames.map((n) => XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, raw: true, defval: "" }));
+    }
+    // Excel/CSV read on the phone exactly as written; PDF/photos copied by the AI.
+    async function readTable(files, { parse, task, box, status, first, none }) {
+      const sheet = files.find((f) => /\.(xlsx|xlsm|xls|csv)$/i.test(f.name));
+      if (sheet) {
+        const found = (await sheetRows(sheet)).map(parse).filter((items) => items.some((x) => !x.heading));
+        if (!found.length) throw new Error(`${sheet.name}: no table was found. It needs columns such as Description, Unit, Quantity and Rate.`);
+        return found.sort((a, b) => b.length - a.length)[0];
+      }
+      return parse(await aiTable(task, files, { box, status, first, none }));
+    }
+    function saveXlsx(rows, name, widths) {
+      const ws = XLSX.utils.aoa_to_sheet(rows), wb = XLSX.utils.book_new();
+      if (widths) ws["!cols"] = widths.map((w) => ({ wch: w }));
+      XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+      XLSX.writeFile(wb, name);
+    }
+    // A simple landscape PDF table, wrapping long text and breaking pages.
+    async function savePdf({ title, subtitle, cols, rows, after = [], file }) {
+      await loadPdf();
+      const { jsPDF } = window.jspdf, pdf = new jsPDF({ unit: "pt", format: "a4", orientation: "landscape" });
+      const M = 30, W = pdf.internal.pageSize.getWidth(), H = pdf.internal.pageSize.getHeight(), CW = W - 2 * M;
+      const clean = (s) => String(s == null ? "" : s).replace(/₹\s?/g, "Rs. ").replace(/[−–—]/g, "-").replace(/[²]/g, "2").replace(/[³]/g, "3").replace(/[×]/g, "x").replace(/[≤]/g, "<=").replace(/[≥]/g, ">=").replace(/[√]/g, "sqrt").replace(/[τ]/g, "tau").replace(/[φØ]/g, "dia ").replace(/[✅]/g, "OK").replace(/[⚠️]/g, "").replace(/[^\x00-\xFF]/g, "");
+      const total = cols.reduce((a, c) => a + c.w, 0), ws = cols.map((c) => (c.w / total) * CW);
+      let y = M;
+      const head = () => {
+        pdf.setFont("helvetica", "bold"); pdf.setFontSize(7.5); pdf.setFillColor(30, 58, 138); pdf.setTextColor(255);
+        const hl = cols.map((c, i) => pdf.splitTextToSize(clean(c.h), ws[i] - 4)), hh = Math.max(...hl.map((l) => l.length)) * 9 + 6;
+        pdf.rect(M, y, CW, hh, "F"); let x = M; hl.forEach((l, i) => { pdf.text(l, x + 2, y + 9); x += ws[i]; }); y += hh; pdf.setTextColor(15, 23, 42); pdf.setFont("helvetica", "normal");
+      };
+      pdf.setFont("helvetica", "bold"); pdf.setFontSize(14); pdf.setTextColor(30, 58, 138); pdf.text(clean(title), M, y + 10); y += 22;
+      if (subtitle) { pdf.setFont("helvetica", "normal"); pdf.setFontSize(8.5); pdf.setTextColor(100, 116, 139); const l = pdf.splitTextToSize(clean(subtitle), CW); pdf.text(l, M, y); y += l.length * 11 + 4; }
+      head();
+      pdf.setFontSize(7.5);
+      rows.forEach((r, ri) => {
+        const ls = r.map((v, i) => pdf.splitTextToSize(clean(v), ws[i] - 4)), h = Math.max(1, ...ls.map((l) => l.length)) * 9 + 4;
+        if (y + h > H - M) { pdf.addPage(); y = M; head(); pdf.setFontSize(7.5); }
+        if (ri % 2) { pdf.setFillColor(241, 245, 249); pdf.rect(M, y, CW, h, "F"); }
+        let x = M; ls.forEach((l, i) => { if (cols[i].right) pdf.text(l, x + ws[i] - 2, y + 9, { align: "right" }); else pdf.text(l, x + 2, y + 9); x += ws[i]; }); y += h;
+      });
+      y += 10; pdf.setFontSize(9);
+      for (const [label, value, bold] of after) {
+        if (y > H - M - 12) { pdf.addPage(); y = M; }
+        pdf.setFont("helvetica", bold ? "bold" : "normal"); pdf.text(clean(label), M, y); if (value !== undefined && value !== "") pdf.text(clean(value), M + 330, y, { align: "right" }); y += 13;
+      }
+      y += 8; if (y > H - M - 20) { pdf.addPage(); y = M; }
+      pdf.setFont("helvetica", "italic"); pdf.setFontSize(7.5); pdf.setTextColor(100, 116, 139);
+      pdf.text(pdf.splitTextToSize(`Prepared ${today()} with Construction AI Expert. A working aid: to be verified and signed by the responsible qualified consultant.`, CW), M, y);
+      pdf.save(file);
+    }
+
+    // ---- choosing a BOQ: a saved quotation, or a file ----
+    function boqSource(prefix, { needRates = false, label = "BOQ" } = {}) {
+      const box = $(`${prefix}-src`), state = { items: [], currency: "INR", label: "" };
+      const quotes = store.get("cae-quotes-v1", []).filter((q) => (q.items || []).some((x) => !x.heading));
+      const sel = el("select", "w-full rounded-lg border border-slate-300 px-2 py-2 text-sm");
+      sel.append(new Option(quotes.length ? `Choose a saved quotation (${quotes.length})…` : "No saved quotations on this phone", ""));
+      quotes.forEach((q) => sel.append(new Option(`${q.number || "Quotation"} — ${(q.subject || q.client?.name || "").slice(0, 50)} (${q.items.filter((x) => !x.heading).length} items)`, q.id)));
+      const file = el("label", "cursor-pointer rounded-lg border border-blue-300 bg-blue-50 px-3 py-2 text-center text-sm font-semibold text-blue-800", "📄 or upload Excel / PDF / photos");
+      const input = el("input"); input.type = "file"; input.multiple = true; input.accept = ".xlsx,.xls,.xlsm,.csv,.pdf,image/*"; input.className = "hidden"; file.append(input);
+      const prog = el("div", "mt-2"); prog.id = `${prefix}-src-progress`;
+      const status = el("p", "mt-1 text-sm text-slate-600"); status.setAttribute("role", "status");
+      const row = el("div", "grid gap-2 sm:grid-cols-[1fr_auto]"); row.append(sel, file);
+      box.append(row, prog, status);
+      const setItems = (items, currency, lbl) => {
+        state.items = items; state.currency = currency || state.currency; state.label = lbl;
+        const n = items.filter((x) => !x.heading).length, priced = items.filter((x) => !x.heading && Number(x.rate) > 0).length;
+        status.textContent = n ? `✓ ${lbl}: ${n} items${needRates ? `, ${priced} with rates` : ""}.` : "";
+        if (needRates && n && priced < n) status.textContent += ` ⚠️ ${n - priced} items have no rate.`;
+      };
+      sel.addEventListener("change", () => {
+        const q = quotes.find((x) => x.id === sel.value);
+        if (q) setItems(q.items.map((x) => ({ ...x })), q.currency, q.number || "Saved quotation"); else setItems([], null, "");
+      });
+      input.addEventListener("change", async (e) => {
+        const files = Array.from(e.target.files || []).slice(0, 5); e.target.value = "";
+        if (!files.length) return;
+        sel.value = "";
+        try {
+          const items = await readTable(files, { parse: Q.pricedItems, task: "priced-boq", box: prog.id, status: (t) => { status.textContent = t; }, first: `Copy the complete ${label} from the attached document.`, none: /NO BOQ FOUND/ });
+          if (!items.some((x) => !x.heading)) throw new Error("No BOQ items were found.");
+          setItems(items, Q.detectCurrency ? (Q.detectCurrency(items.map((x) => x.description).join(" ")) || state.currency) : state.currency, files[0].name);
+        } catch (err) { status.textContent = `⚠️ ${err.message}`; }
+      });
+      return state;
+    }
+
+    // =============== 1. Bid comparison ===============
+    const bidBase = boqSource("bids", { label: "tender BOQ" });
+    const bids = [];
+    let bidBusy = false, lastCmp = null;
+    const bidStatus = (t) => { $("bid-status").textContent = t; };
+    function renderBidList() {
+      const ul = $("bid-list"); ul.replaceChildren();
+      bids.forEach((b, i) => {
+        const li = el("li", "flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-1.5");
+        li.append(el("span", "", `${i + 1}. ${b.name} — ${b.items.filter((x) => !x.heading).length} items (${b.source})`));
+        const x = el("button", "text-red-700", "✕"); x.setAttribute("aria-label", `Remove ${b.name}`); x.onclick = () => { bids.splice(i, 1); renderBidList(); };
+        li.append(x); ul.append(li);
+      });
+    }
+    $("bid-file").addEventListener("change", async (e) => {
+      const files = Array.from(e.target.files || []).slice(0, 5); e.target.value = "";
+      if (!files.length) return;
+      if (bidBusy) return toast("Please wait for the current file.");
+      if (bids.length >= 6) return toast("Up to 6 bids can be compared.");
+      const name = $("bid-name").value.trim() || files[0].name.replace(/\.[^.]+$/, "");
+      bidBusy = true;
+      try {
+        const items = await readTable(files, { parse: Q.pricedItems, task: "priced-boq", box: "bid-progress", status: bidStatus, first: "Copy the complete priced BOQ from the attached bid.", none: /NO BOQ FOUND/ });
+        if (!items.some((x) => !x.heading && Number(x.rate) > 0)) throw new Error("No rates were found in this bid.");
+        bids.push({ name, items, source: files.map((f) => f.name).join(", ").slice(0, 60) });
+        $("bid-name").value = ""; bidStatus(`✓ ${name} added.`); renderBidList();
+      } catch (err) { bidStatus(`⚠️ ${err.message}`); }
+      finally { bidBusy = false; }
+    });
+    $("bid-run").addEventListener("click", () => {
+      if (!bidBase.items.some((x) => !x.heading)) return toast("Choose the tender BOQ first.");
+      if (bids.length < 2) return toast("Add at least 2 bids.");
+      const pct = Math.max(5, num("bid-pct") || 25);
+      lastCmp = C.compareBids(bidBase.items, bids, { lowPct: pct, highPct: pct });
+      renderComparison(lastCmp, pct);
+    });
+    function renderComparison(cmp, pct) {
+      const cur = bidBase.currency, m = (n) => Q.money(n, cur);
+      $("bid-out").classList.remove("hidden");
+      const sum = $("bid-summary"); sum.replaceChildren();
+      cmp.bidders.slice().sort((a, b) => (a.rank || 99) - (b.rank || 99) || a.corrected - b.corrected).forEach((b) => {
+        const card = el("div", `rounded-xl border p-3 ${b.rank === 1 ? "border-emerald-400 bg-emerald-50" : "border-slate-200"}`);
+        card.append(el("p", "text-xs font-bold text-slate-500", b.rank ? `L${b.rank}` : "Incomplete"), el("p", "font-bold", b.name), el("p", "text-lg font-extrabold tabular-nums", m(b.corrected)));
+        const notes = [b.quoted !== b.corrected ? `quoted ${m(b.quoted)}` : "", b.missing ? `${b.missing} not quoted` : "", b.noRate ? `${b.noRate} without rate` : "", b.arithmetic ? `${b.arithmetic} arithmetic errors` : "", b.qtyChanged ? `${b.qtyChanged} qty changed` : "", b.extra ? `${b.extra} extra items` : "", b.low ? `${b.low} very low rates` : "", b.high ? `${b.high} very high rates` : ""].filter(Boolean);
+        card.append(el("p", "text-xs text-slate-600", notes.join(" · ") || "No problems found"));
+        sum.append(card);
+      });
+      const reco = $("bid-reco"); reco.replaceChildren();
+      const L1 = cmp.lowest;
+      if (!L1) reco.append(el("p", "", "No bid is complete (every item quoted with a rate). Ask the bidders to clarify the missing items before ranking."));
+      else {
+        const second = cmp.bidders.find((b) => b.rank === 2);
+        reco.append(el("p", "font-semibold", `Lowest complete bid (L1): ${L1.name} — ${m(L1.corrected)}${second ? `, ${fmt(((second.corrected - L1.corrected) / second.corrected) * 100, 1)}% below L2 (${second.name})` : ""}.`));
+        const checks = [];
+        if (L1.low) checks.push(`${L1.low} of ${L1.name}'s rates are more than ${pct}% below the median — ask for a rate analysis or confirmation that they can be executed at those rates (unbalanced bid).`);
+        if (L1.arithmetic) checks.push(`${L1.arithmetic} arithmetic errors in ${L1.name}'s bid were corrected using the quoted rate × tender quantity.`);
+        if (L1.qtyChanged) checks.push(`${L1.name} changed ${L1.qtyChanged} tender quantities; the comparison uses the tender quantities.`);
+        if (L1.extra) checks.push(`${L1.name} added ${L1.extra} items not in the tender BOQ; they are not counted.`);
+        const inc = cmp.bidders.filter((b) => !b.rank);
+        if (inc.length) checks.push(`Not ranked (incomplete): ${inc.map((b) => `${b.name} (${b.missing + b.noRate} items)`).join(", ")}.`);
+        if (checks.length) { const ul = el("ul", "mt-1 list-disc pl-5"); checks.forEach((c) => ul.append(el("li", "", c))); reco.append(ul); }
+        reco.append(el("p", "mt-1 text-xs text-slate-500", "Also check technical compliance, approved makes, deviations and the bidders' qualifications before recommending award."));
+      }
+      const t = $("bid-table"); t.replaceChildren();
+      const hr = el("tr", "text-left text-slate-500 align-bottom");
+      ["Item", "Description", "Unit", "Qty", ...cmp.bidders.map((b) => b.name), "Median"].forEach((h, i) => hr.append(el("th", `p-1 ${i >= 3 ? "text-right" : ""}`, h)));
+      t.append(el("thead")); t.tHead.append(hr);
+      const tb = el("tbody"); t.append(tb);
+      cmp.rows.forEach((r) => {
+        const tr = el("tr", "border-t border-slate-100 align-top");
+        tr.append(el("td", "p-1", r.ref || ""), el("td", "p-1 min-w-[14rem]", r.description.slice(0, 160)), el("td", "p-1", r.unit || ""), el("td", "p-1 text-right tabular-nums", fmt(r.qty)));
+        r.cells.forEach((c) => {
+          const td = el("td", `p-1 text-right tabular-nums whitespace-nowrap ${c.missing ? "miss" : c.flag || ""}`);
+          if (c.missing) td.textContent = "not quoted";
+          else { td.append(el("div", "font-semibold", fmt(c.rate))); td.append(el("div", "text-slate-500", fmt(c.amount, 0))); const n = [c.flag ? `${c.vsMedianPct > 0 ? "+" : ""}${Math.round(c.vsMedianPct)}%` : "", c.arithmetic ? "arith." : "", c.qtyDiffers ? `qty ${fmt(c.bidQty)}` : ""].filter(Boolean).join(" "); if (n) td.append(el("div", "text-[10px] text-red-700", n)); }
+          tr.append(td);
+        });
+        tr.append(el("td", "p-1 text-right tabular-nums text-slate-500", fmt(r.median)));
+        tb.append(tr);
+      });
+      const foot = el("tr", "border-t-2 border-slate-300 font-bold");
+      foot.append(el("td", "p-1"), el("td", "p-1", "Corrected total"), el("td"), el("td"));
+      cmp.bidders.forEach((b) => foot.append(el("td", "p-1 text-right tabular-nums whitespace-nowrap", `${fmt(b.corrected, 0)}${b.rank ? ` (L${b.rank})` : ""}`)));
+      foot.append(el("td")); tb.append(foot);
+    }
+    $("bid-xlsx").addEventListener("click", async () => { if (!lastCmp) return; try { await loadXlsx(); saveXlsx(C.comparisonSheet(lastCmp, { title: `Comparative statement — ${bidBase.label}` }), `Comparative-statement-${today()}.xlsx`, [8, 50, 8, 10]); } catch (e) { toast(e.message); } });
+    $("bid-pdf").addEventListener("click", async () => {
+      if (!lastCmp) return;
+      try {
+        const cols = [{ h: "Item", w: 5 }, { h: "Description", w: 26 }, { h: "Unit", w: 5 }, { h: "Qty", w: 7, right: true }, ...lastCmp.bidders.map((b) => ({ h: `${b.name} rate / amount`, w: 12, right: true })), { h: "Median", w: 7, right: true }];
+        const rows = lastCmp.rows.map((r) => [r.ref || "", r.description.slice(0, 220), r.unit || "", fmt(r.qty), ...r.cells.map((c) => (c.missing ? "not quoted" : `${fmt(c.rate)}\n${fmt(c.amount, 0)}${c.flag ? `\n${c.vsMedianPct > 0 ? "+" : ""}${Math.round(c.vsMedianPct)}% vs median` : ""}${c.arithmetic ? "\narithmetic error" : ""}`)), fmt(r.median)]);
+        const after = lastCmp.bidders.slice().sort((a, b) => (a.rank || 99) - (b.rank || 99)).map((b) => [`${b.rank ? `L${b.rank}` : "Incomplete"} — ${b.name}`, Q.money(b.corrected, bidBase.currency, { pdf: true }), b.rank === 1]);
+        await savePdf({ title: "Comparative statement of bids", subtitle: `Tender BOQ: ${bidBase.label}. Amounts recomputed on tender quantities. Rates more than ${num("bid-pct") || 25}% from the median are marked.`, cols, rows, after: [["Corrected totals", ""], ...after], file: `Comparative-statement-${today()}.pdf` });
+      } catch (e) { toast(e.message); }
+    });
+
+    // =============== 2. Bar bending schedule ===============
+    const BBS_KEY = "cae-bbs-v1";
+    let members = store.get(BBS_KEY, null) || [{ mark: "B1", type: "beam", count: "4", L: "4000", B: "230", D: "450", main: "3-16", top: "2-12", st: "8@150" }];
+    let lastBbs = null;
+    const FIELDS = ["mark", "type", "count", "L", "B", "D", "main", "top", "st"];
+    function renderMembers() {
+      const tb = $("bbs-rows"); tb.replaceChildren();
+      members.forEach((m, i) => {
+        const tr = el("tr");
+        FIELDS.forEach((f) => {
+          const td = el("td", "p-0.5");
+          let inp;
+          if (f === "type") { inp = el("select", "rounded border border-slate-300 px-1 py-1"); ["beam", "column", "slab", "footing"].forEach((t) => inp.append(new Option(t, t))); inp.value = m.type || "beam"; }
+          else { inp = el("input", "rounded border border-slate-300 px-1 py-1"); inp.value = m[f] || ""; inp.size = f === "mark" ? 4 : f === "count" ? 2 : 6; if (["count", "L", "B", "D"].includes(f)) inp.inputMode = "numeric"; }
+          inp.setAttribute("aria-label", `${f} of member ${i + 1}`);
+          inp.addEventListener("input", () => { m[f] = inp.value; store.set(BBS_KEY, members); });
+          td.append(inp); tr.append(td);
+        });
+        const ck = el("input"); ck.type = "checkbox"; ck.checked = !!m.cranked; ck.setAttribute("aria-label", `Cranked bars, member ${i + 1}`); ck.onchange = () => { m.cranked = ck.checked; store.set(BBS_KEY, members); };
+        const tdc = el("td", "p-0.5 text-center"); tdc.append(ck); tr.append(tdc);
+        const del = el("button", "px-1 text-red-700", "✕"); del.setAttribute("aria-label", `Remove member ${i + 1}`); del.onclick = () => { members.splice(i, 1); store.set(BBS_KEY, members); renderMembers(); };
+        const tdd = el("td"); tdd.append(del); tr.append(tdd);
+        tb.append(tr);
+      });
+    }
+    renderMembers();
+    $("bbs-add").addEventListener("click", () => { const last = members[members.length - 1] || {}; members.push({ mark: "", type: last.type || "beam", count: "1" }); store.set(BBS_KEY, members); renderMembers(); });
+    $("bbs-file").addEventListener("change", async (e) => {
+      const files = Array.from(e.target.files || []).slice(0, 5); e.target.value = "";
+      if (!files.length) return;
+      try {
+        $("bbs-status").textContent = "Reading the drawing… about 1–2 minutes. Keep this page open.";
+        const job = await aiJob({ task: "bbs-members", message: "List the members and reinforcement shown in the attached structural drawing.", attachments: await attachmentsOf(files) }, "bbs-progress");
+        if (/NO MEMBERS FOUND/.test(job.reply)) throw new Error("No reinforcement details were found. Send the beam/column/slab/footing schedule or sections.");
+        const rows = C.memberRowsFromText(job.reply);
+        if (!rows.length) throw new Error("The drawing could not be read. Try a clearer photo of the schedule.");
+        members = rows.map((r) => ({ ...r, cranked: /crank|bent/i.test(r.notes || "") }));
+        store.set(BBS_KEY, members); renderMembers();
+        const notes = rows.filter((r) => r.notes).map((r) => `${r.mark}: ${r.notes}`);
+        $("bbs-status").textContent = `✓ ${rows.length} members read. Check every size and bar against the drawing before making the schedule.${notes.length ? ` Notes — ${notes.join("; ")}` : ""}`;
+      } catch (err) { $("bbs-status").textContent = `⚠️ ${err.message}`; }
+    });
+    $("bbs-run").addEventListener("click", () => {
+      const cover = { beam: num("bbs-cov-beam"), column: num("bbs-cov-column"), slab: num("bbs-cov-slab"), footing: num("bbs-cov-footing") };
+      const list = members.map((r) => C.memberFromRow({ ...r, cover: cover[r.type], support: num("bbs-support") }));
+      lastBbs = C.bbs(list, { lapD: num("bbs-lap") || 50, legD: num("bbs-leg") || 12, wastagePct: num("bbs-waste") });
+      $("bbs-out").classList.remove("hidden");
+      $("bbs-problems").textContent = lastBbs.problems.join(" ");
+      const dia = $("bbs-dia"); dia.replaceChildren();
+      Object.keys(lastBbs.byDia).map(Number).sort((a, b) => a - b).forEach((d) => dia.append(el("span", "rounded-full bg-slate-100 px-3 py-1 tabular-nums", `Ø${d}: ${fmt(lastBbs.byDia[d])} kg`)));
+      dia.append(el("span", "rounded-full bg-emerald-100 px-3 py-1 font-bold tabular-nums", `Total ${fmt(lastBbs.totalKg)} kg · with ${lastBbs.settings.wastagePct}% wastage ${fmt(lastBbs.withWastage)} kg`));
+      const t = $("bbs-table"); t.replaceChildren();
+      const hr = el("tr", "text-left text-slate-500");
+      ["Bar mark", "Bar", "Shape", "Ø", "Nos/member", "Members", "Total", "Cut length (mm)", "Length (m)", "kg"].forEach((h, i) => hr.append(el("th", `p-1 ${i >= 3 ? "text-right" : ""}`, h)));
+      t.append(el("thead")); t.tHead.append(hr);
+      const tb = el("tbody"); t.append(tb);
+      lastBbs.bars.forEach((b) => {
+        const tr = el("tr", "border-t border-slate-100");
+        tr.title = b.formula;
+        [b.barMark, b.label, b.shape].forEach((v) => tr.append(el("td", "p-1", v)));
+        [b.dia, b.perMember, b.members, b.total, b.cutMm, b.totalM, b.kg].forEach((v) => tr.append(el("td", "p-1 text-right tabular-nums", fmt(v))));
+        tb.append(tr);
+      });
+    });
+    $("bbs-xlsx").addEventListener("click", async () => { if (!lastBbs) return; try { await loadXlsx(); saveXlsx(C.bbsSheet(lastBbs), `BBS-${today()}.xlsx`, [10, 8, 20, 26, 8, 10, 8, 8, 12, 12, 10, 40]); } catch (e) { toast(e.message); } });
+    $("bbs-pdf").addEventListener("click", async () => {
+      if (!lastBbs) return;
+      try {
+        const cols = [{ h: "Bar mark", w: 7 }, { h: "Bar", w: 12 }, { h: "Shape", w: 16 }, { h: "Dia (mm)", w: 5, right: true }, { h: "Nos / member", w: 6, right: true }, { h: "Members", w: 6, right: true }, { h: "Total bars", w: 6, right: true }, { h: "Cutting length (mm)", w: 8, right: true }, { h: "Total length (m)", w: 8, right: true }, { h: "Weight (kg)", w: 7, right: true }, { h: "Cutting length formula", w: 22 }];
+        const rows = lastBbs.bars.map((b) => [b.barMark, b.label, b.shape, b.dia, b.perMember, b.members, b.total, fmt(b.cutMm, 0), fmt(b.totalM), fmt(b.kg), b.formula]);
+        const after = [["Summary by diameter", ""], ...Object.keys(lastBbs.byDia).map(Number).sort((a, b) => a - b).map((d) => [`Dia ${d} mm (${fmt(C.kgPerM(d), 3)} kg/m)`, `${fmt(lastBbs.byDia[d])} kg`]), ["Total", `${fmt(lastBbs.totalKg)} kg`, true], [`With ${lastBbs.settings.wastagePct}% wastage`, `${fmt(lastBbs.withWastage)} kg`, true]];
+        await savePdf({ title: "Bar bending schedule", subtitle: `Bend deductions 90° = ${lastBbs.settings.bend90D}d, 135° = ${lastBbs.settings.bend135D}d; hooks ${lastBbs.settings.stirrupHookD}d; lap ${lastBbs.settings.lapD}d; weight d²/162 kg/m. Check against the structural drawings.`, cols, rows, after, file: `BBS-${today()}.pdf` });
+      } catch (e) { toast(e.message); }
+    });
+
+    // =============== 3. IS 456 checks ===============
+    const SUPPORT = [["simple", "Simply supported"], ["continuous", "Continuous"], ["cantilever", "Cantilever"]];
+    const CHECK_FORMS = {
+      slab: [["spanMm", "Effective span (mm)", 3600], ["support", "Support", "simple", SUPPORT], ["mf", "Modification factor (Fig 4)", 1.3], ["providedD", "Overall depth D (mm)", 125], ["coverMm", "Clear cover (mm)", 20], ["barDia", "Main bar dia (mm)", 10]],
+      beam: [["spanMm", "Effective span (mm)", 5000], ["support", "Support", "simple", SUPPORT], ["mf", "Modification factor (Fig 4)", 1.1], ["b", "Width b (mm)", 230], ["D", "Overall depth D (mm)", 450], ["coverMm", "Clear cover (mm)", 25], ["barDia", "Main bar dia (mm)", 16], ["bars", "No. of tension bars", 3], ["fy", "fy (N/mm²)", 500]],
+      column: [["b", "Width b (mm)", 300], ["D", "Depth D (mm)", 300], ["lexMm", "Effective length lex (mm)", 3000], ["leyMm", "Effective length ley (mm)", 3000], ["fck", "fck (N/mm²)", 25], ["fy", "fy (N/mm²)", 500], ["nBars", "No. of bars", 4], ["barDia", "Bar dia (mm)", 16], ["tieDia", "Tie dia (mm)", 8], ["tieSpacing", "Tie spacing (mm)", 150], ["PuKN", "Factored axial load Pu (kN)", 1000]],
+      footing: [["PkN", "Service column load P (kN)", 800], ["sbc", "Safe bearing capacity (kN/m²)", 200], ["selfWtPct", "Self weight + soil (%)", 10], ["L", "Footing length L (mm)", 2100], ["B", "Footing width B (mm)", 2100], ["D", "Footing depth D (mm)", 450], ["coverMm", "Clear cover (mm)", 50], ["barDia", "Bar dia (mm)", 12], ["colB", "Column b (mm)", 300], ["colD", "Column D (mm)", 300], ["fck", "fck (N/mm²)", 25]]
+    };
+    const RUN = { slab: C.slabCheck, beam: C.beamCheck, column: C.columnCheck, footing: C.footingCheck };
+    const sheet = [];
+    let lastCheck = null;
+    function renderCheckForm() {
+      const t = $("chk-type").value, f = $("chk-form"); f.replaceChildren();
+      CHECK_FORMS[t].forEach(([k, label, dflt, options]) => {
+        const lab = el("label", "", label);
+        let inp;
+        if (options) { inp = el("select", "block rounded border border-slate-300 px-2 py-1"); options.forEach(([v, l]) => inp.append(new Option(l, v))); inp.value = dflt; }
+        else { inp = el("input", "block rounded border border-slate-300 px-2 py-1"); inp.type = "number"; inp.step = "any"; inp.value = dflt; }
+        inp.dataset.k = k; lab.append(inp); f.append(lab);
+      });
+    }
+    $("chk-type").addEventListener("change", renderCheckForm);
+    renderCheckForm();
+    $("chk-run").addEventListener("click", () => {
+      const t = $("chk-type").value, input = {};
+      $("chk-form").querySelectorAll("[data-k]").forEach((i) => { input[i.dataset.k] = i.tagName === "SELECT" ? i.value : Number(i.value); });
+      const out = RUN[t](input);
+      lastCheck = { type: t, name: $("chk-name").value.trim() || t, input, out };
+      $("chk-out").classList.remove("hidden");
+      $("chk-title").textContent = `${lastCheck.name} — ${t} check`;
+      const ul = $("chk-list"); ul.replaceChildren();
+      out.results.forEach((r) => {
+        const li = el("li", `rounded-lg border p-2 ${r.ok ? "border-emerald-200 bg-emerald-50" : "border-amber-300 bg-amber-50"}`);
+        li.append(el("p", "font-semibold", `${r.ok ? "✅ OK" : "⚠️ Check"} — ${r.name}`), el("p", "text-slate-700", r.text), el("p", "text-xs text-slate-500", r.clause));
+        ul.append(li);
+      });
+    });
+    $("chk-add").addEventListener("click", () => { if (!lastCheck) return; sheet.push(lastCheck); $("chk-count").textContent = sheet.length; toast(`Added ${lastCheck.name} to the sheet`); });
+    $("chk-pdf").addEventListener("click", async () => {
+      const list = sheet.length ? sheet : lastCheck ? [lastCheck] : [];
+      if (!list.length) return;
+      try {
+        const rows = list.flatMap((c) => c.out.results.map((r, i) => [i ? "" : `${c.name} (${c.type})`, r.name, r.ok ? "OK" : "CHECK", r.text, r.clause]));
+        const after = list.map((c) => [`${c.name}: ${Object.entries(c.input).map(([k, v]) => `${k} ${v}`).join(", ")}`, ""]);
+        await savePdf({ title: "Preliminary structural check sheet — IS 456:2000", subtitle: "Preliminary checks for sizing and review only; not a structural design. Loads, analysis, detailing and IS 13920 ductile detailing are by the structural engineer.", cols: [{ h: "Member", w: 10 }, { h: "Check", w: 14 }, { h: "Result", w: 6 }, { h: "Working", w: 52 }, { h: "Clause", w: 12 }], rows, after: [["Inputs", ""], ...after], file: `IS456-checks-${today()}.pdf` });
+      } catch (e) { toast(e.message); }
+    });
+
+    // =============== 4. Spec & tender writer ===============
+    const specBase = boqSource("specs", { label: "BOQ" });
+    const SP_KEY = "cae-spec-draft-v1";
+    const doc = $("sp-doc");
+    const spStatus = (t) => { $("sp-status").textContent = t; };
+    const project = () => Object.fromEntries(["name", "client", "location", "cost", "period", "contractType", "makes", "notes"].map((k) => [k, $(`sp-${k}`).value]));
+    const saveDoc = () => store.set(SP_KEY, doc.innerHTML);
+    const savedDoc = store.get(SP_KEY, "");
+    if (savedDoc) { doc.innerHTML = savedDoc; $("sp-out").classList.remove("hidden"); }
+    doc.addEventListener("input", saveDoc);
+    let spBusy = false;
+    async function writeSpec(kind) {
+      if (spBusy) return toast("Please wait for the current draft.");
+      const items = specBase.items;
+      if (kind === "items" && !items.some((x) => !x.heading)) return toast("Choose the BOQ first.");
+      spBusy = true;
+      try {
+        $("sp-out").classList.remove("hidden");
+        if (kind === "conds") {
+          spStatus("Writing the tender conditions… about 2 minutes. Keep this page open.");
+          const job = await aiJob({ task: "spec-conditions", message: C.conditionsMessage(project(), items) }, "sp-progress");
+          doc.insertAdjacentHTML("beforeend", `<hr>${C.mdToHtml(job.reply)}`);
+        } else {
+          // Long BOQs go in parts of about 30 items, so each part fits in one answer.
+          const idx = items.map((x, i) => (x.heading ? -1 : i)).filter((i) => i >= 0), parts = [];
+          for (let i = 0; i < idx.length; i += 30) parts.push(idx.slice(i, i + 30));
+          for (let p = 0; p < parts.length; p++) {
+            spStatus(`Writing the specifications${parts.length > 1 ? ` — part ${p + 1} of ${parts.length}` : ""}… about 2–3 minutes per part. Keep this page open.`);
+            const from = parts[p][0], to = parts[p][parts[p].length - 1];
+            const slice = items.slice(0, to + 1).map((x, i) => (i < from && !x.heading ? null : x)).filter(Boolean);
+            const job = await aiJob({ task: "spec-items", message: C.specMessage(project(), slice) + (p ? " Continue the trade numbering from the earlier parts; do not repeat the first line." : "") }, "sp-progress");
+            doc.insertAdjacentHTML("beforeend", (p || doc.innerHTML.trim() ? "<hr>" : "") + C.mdToHtml(job.reply));
+            saveDoc();
+          }
+        }
+        saveDoc();
+        spStatus("✓ Draft ready below. Tap the text to edit it; items marked [confirm] need your decision.");
+      } catch (e) { spStatus(`⚠️ ${e.message}`); }
+      finally { spBusy = false; }
+    }
+    $("sp-items").addEventListener("click", () => writeSpec("items"));
+    $("sp-conds").addEventListener("click", () => writeSpec("conds"));
+    $("sp-copy").addEventListener("click", async () => { try { await navigator.clipboard.writeText(doc.innerText); toast("Copied"); } catch { toast("Could not copy — select the text and copy it."); } });
+    const docHtml = (title) => `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title><style>body{font-family:Calibri,Arial,sans-serif;font-size:11pt;line-height:1.4;margin:2cm}h2,h3{color:#1e3a8a}ol{list-style:none;padding-left:0}li{margin:3pt 0}.num{font-weight:bold;display:inline-block;min-width:2.2em}</style></head><body>${doc.innerHTML}</body></html>`;
+    $("sp-word").addEventListener("click", () => {
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob(["﻿", docHtml("Specifications")], { type: "application/msword" }));
+      a.download = `Specifications-${safeName($("sp-name").value) || today()}.doc`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    });
+    $("sp-print").addEventListener("click", () => { const w = window.open("", "_blank"); if (!w) return toast("Allow pop-ups to print."); w.document.write(docHtml("Specifications")); w.document.close(); w.focus(); setTimeout(() => w.print(), 300); });
+    $("sp-clear").addEventListener("click", () => { if (!confirm("Clear the draft?")) return; doc.innerHTML = ""; saveDoc(); });
+
+    // =============== 5. Bill certification ===============
+    const agreement = boqSource("bills", { needRates: true, label: "agreement BOQ with rates" });
+    let billLines = [], billName = "", mb = {}, lastCert = null;
+    const billStatus = (t) => { $("bill-status").textContent = t; };
+    $("bill-file").addEventListener("change", async (e) => {
+      const files = Array.from(e.target.files || []).slice(0, 5); e.target.value = "";
+      if (!files.length) return;
+      try {
+        billLines = await readTable(files, { parse: C.billItems, task: "bill-items", box: "bill-progress", status: billStatus, first: "Copy the complete running bill from the attached document.", none: /NO BILL FOUND/ });
+        if (!billLines.some((x) => !x.heading)) throw new Error("No bill items were found. The bill needs columns for quantity up to date and rate.");
+        billName = files[0].name; mb = {};
+        billStatus(`✓ ${billName}: ${billLines.filter((x) => !x.heading).length} items.`);
+      } catch (err) { billStatus(`⚠️ ${err.message}`); }
+    });
+    const certify = () => C.certifyBill(agreement.items, billLines, { mb, deviationPct: num("bl-dev"), taxRate: num("bl-tax"), settings: { sdPct: num("bl-sd"), itPct: num("bl-it"), gstTdsPct: num("bl-gst"), cessPct: num("bl-cess"), otherLabel: $("bl-other-label").value.trim(), otherAmount: num("bl-other") } });
+    $("bill-run").addEventListener("click", () => {
+      if (!agreement.items.some((x) => !x.heading)) return toast("Choose the agreement BOQ first.");
+      if (!billLines.some((x) => !x.heading)) return toast("Choose the contractor's bill first.");
+      renderCert();
+    });
+    function renderCert() {
+      lastCert = certify();
+      const cur = agreement.currency, m = (n) => Q.money(n, cur), c = lastCert;
+      $("bill-out").classList.remove("hidden");
+      const sum = $("bill-summary"); sum.replaceChildren();
+      [["Claimed to date", m(c.claimedUpto)], ["Certified to date", m(c.certifiedUpto)], ["Claimed − certified", m(c.cut)], ["Net payable (this bill)", m(c.net)]].forEach(([l, v], i) => {
+        const d = el("div", `rounded-xl border p-3 ${i === 3 ? "border-emerald-400 bg-emerald-50" : "border-slate-200"}`); d.append(el("p", "text-xs text-slate-500", l), el("p", "text-lg font-extrabold tabular-nums", v)); sum.append(d);
+      });
+      const t = $("bill-table"); t.replaceChildren();
+      const hr = el("tr", "text-left text-slate-500 align-bottom");
+      ["Item", "Description", "Agreed qty", "Agreed rate", "Claimed qty", "Claimed rate", "MB qty to date", "Certified qty", "Certified", "Remarks"].forEach((h, i) => hr.append(el("th", `p-1 ${i >= 2 && i <= 8 ? "text-right" : ""}`, h)));
+      t.append(el("thead")); t.tHead.append(hr);
+      const tb = el("tbody"); t.append(tb);
+      c.lines.forEach((l) => {
+        const tr = el("tr", `border-t border-slate-100 align-top ${l.extra ? "bg-red-50" : l.reasons.length ? "bg-amber-50" : ""}`);
+        tr.append(el("td", "p-1", l.ref || ""), el("td", "p-1 min-w-[12rem]", l.description.slice(0, 140)));
+        [l.agreedQty, l.agreedRate, l.claimedQty, l.claimedRate].forEach((v) => tr.append(el("td", "p-1 text-right tabular-nums", fmt(v))));
+        const tdm = el("td", "p-1 text-right");
+        if (l.ai !== undefined) { const inp = el("input", "w-20 rounded border border-slate-300 px-1 py-0.5 text-right"); inp.type = "number"; inp.step = "any"; inp.value = mb[l.ai] ?? ""; inp.setAttribute("aria-label", `MB quantity for ${l.ref || l.description.slice(0, 30)}`); inp.addEventListener("change", () => { if (inp.value === "") delete mb[l.ai]; else mb[l.ai] = Number(inp.value); renderCert(); }); tdm.append(inp); }
+        tr.append(tdm, el("td", "p-1 text-right tabular-nums", fmt(l.allowedQty)), el("td", "p-1 text-right tabular-nums font-semibold", fmt(l.certified)), el("td", "p-1 text-[11px] text-red-800", l.reasons.join(" ")));
+        tb.append(tr);
+      });
+      const ab = $("bill-abstract"); ab.replaceChildren();
+      const line = (l, v, bold) => { const p = el("div", `flex justify-between gap-4 border-b border-slate-100 py-1 ${bold ? "font-bold" : ""}`); p.append(el("span", "", l), el("span", "tabular-nums", v)); ab.append(p); };
+      line("Certified up to date", m(c.certifiedUpto)); line("Less: certified in previous bills", m(c.certifiedPrev)); line("Gross amount of this bill", m(c.gross), true);
+      if (c.tax) line(`Add: GST / VAT @ ${num("bl-tax")}%`, m(c.tax));
+      c.deductions.forEach((d) => line(`Less: ${d.label}`, m(d.amount)));
+      line("Net payable", m(c.net), true);
+      ab.append(el("p", "mt-2 text-xs text-slate-500", `${c.flagged} items flagged. Previous bills are valued at the lower of the claimed and agreement rate. Recoveries (advances, materials issued) go in “Other deduction”.`));
+    }
+    $("bill-xlsx").addEventListener("click", async () => { if (!lastCert) return; try { await loadXlsx(); saveXlsx(C.certificateSheet(lastCert, { title: `Bill certification — ${billName}` }), `Bill-certification-${today()}.xlsx`, [8, 50, 8, 10, 10, 10, 10, 12, 10, 10, 12, 10, 60]); } catch (e) { toast(e.message); } });
+    $("bill-pdf").addEventListener("click", async () => {
+      if (!lastCert) return;
+      try {
+        const c = lastCert, cur = agreement.currency, m = (n) => Q.money(n, cur, { pdf: true });
+        const cols = [{ h: "Item", w: 5 }, { h: "Description", w: 22 }, { h: "Agreed qty", w: 6, right: true }, { h: "Agreed rate", w: 7, right: true }, { h: "Claimed qty", w: 6, right: true }, { h: "Claimed amount", w: 8, right: true }, { h: "Certified qty", w: 6, right: true }, { h: "Certified amount", w: 8, right: true }, { h: "Remarks", w: 26 }];
+        const rows = c.lines.map((l) => [l.ref || "", l.description.slice(0, 200), fmt(l.agreedQty), fmt(l.agreedRate), fmt(l.claimedQty), fmt(l.claimed, 0), fmt(l.allowedQty), fmt(l.certified, 0), l.reasons.join(" ")]);
+        const after = [["Claimed up to date", m(c.claimedUpto)], ["Certified up to date", m(c.certifiedUpto)], ["Less: certified in previous bills", m(c.certifiedPrev)], ["Gross amount of this bill", m(c.gross), true], ...(c.tax ? [["Add: GST / VAT", m(c.tax)]] : []), ...c.deductions.map((d) => [`Less: ${d.label}`, m(d.amount)]), ["Net payable", m(c.net), true], ["", ""], ["Certified by: ____________________   Date: __________", ""]];
+        await savePdf({ title: "Running bill — certification", subtitle: `Bill: ${billName}. Agreement: ${agreement.label}. Deviation limit ${num("bl-dev")}%. Quantities limited to measured (MB) quantities where entered.`, cols, rows, after, file: `Bill-certification-${today()}.pdf` });
+      } catch (e) { toast(e.message); }
+    });
+
+    // =============== 6. Site snag list ===============
+    const SN_KEY = "cae-snags-v1";
+    const snagState = store.get(SN_KEY, null) || { project: "", by: "", photos: [], snags: [] };
+    const pending = [];
+    let snFilter = "all", snBusy = false;
+    $("sn-project").value = snagState.project || ""; $("sn-by").value = snagState.by || "";
+    const saveSnags = () => { snagState.project = $("sn-project").value; snagState.by = $("sn-by").value; if (!store.set(SN_KEY, snagState)) toast("Phone storage is full: download the report, then clear old snags."); };
+    $("sn-project").addEventListener("change", saveSnags); $("sn-by").addEventListener("change", saveSnags);
+    const photoNo = (id) => snagState.photos.findIndex((p) => p.id === id) + 1;
+    function renderPending() {
+      const ul = $("sn-pending"); ul.replaceChildren();
+      pending.forEach((p, i) => {
+        const li = el("li", "flex gap-2 rounded-lg border border-slate-200 p-2");
+        const img = el("img", "h-16 w-16 shrink-0 rounded object-cover"); img.src = p.url; img.alt = "";
+        const box = el("div", "min-w-0 flex-1");
+        const inp = el("input", "w-full rounded border border-slate-300 px-2 py-1 text-sm"); inp.placeholder = "Where? e.g. Grid C3, 1st floor slab"; inp.value = p.location; inp.oninput = () => { p.location = inp.value; };
+        const x = el("button", "mt-1 text-xs text-red-700", "Remove"); x.onclick = () => { URL.revokeObjectURL(p.url); pending.splice(i, 1); renderPending(); };
+        box.append(el("p", "truncate text-xs text-slate-500", p.file.name), inp, x); li.append(img, box); ul.append(li);
+      });
+      $("sn-run").classList.toggle("hidden", !pending.length);
+      $("sn-run").textContent = `Find defects in ${pending.length} photo${pending.length === 1 ? "" : "s"}`;
+    }
+    const addPhotos = (e) => {
+      const files = Array.from(e.target.files || []).filter((f) => /^image\//.test(f.type)); e.target.value = "";
+      if (pending.length + files.length > 20) toast("Up to 20 photos at a time.");
+      files.slice(0, 20 - pending.length).forEach((file) => pending.push({ id: uuid(), file, url: URL.createObjectURL(file), location: "" }));
+      renderPending();
+    };
+    $("sn-camera").addEventListener("change", addPhotos); $("sn-file").addEventListener("change", addPhotos);
+    $("sn-run").addEventListener("click", async () => {
+      if (snBusy || !pending.length) return;
+      snBusy = true; $("sn-run").disabled = true;
+      const batches = []; for (let i = 0; i < pending.length; i += 4) batches.push(pending.slice(i, i + 4));
+      let found = 0;
+      try {
+        for (let b = 0; b < batches.length; b++) {
+          const batch = batches[b];
+          $("sn-status").textContent = `Checking photos${batches.length > 1 ? ` — part ${b + 1} of ${batches.length}` : ""}… about a minute per part. Keep this page open.`;
+          const attachments = [];
+          for (const p of batch) attachments.push({ name: `photo-${attachments.length + 1}.jpg`, mimeType: "image/jpeg", data: await imageData(p.file, 1600, 0.85) });
+          const message = `Project / site: ${$("sn-project").value.trim() || "not given"}\nPhotos:\n${batch.map((p, i) => `${i + 1}. ${p.location.trim() ? `Location: ${p.location.trim()}` : "Location not given"}`).join("\n")}\n\nMake the snag list for these photos.`;
+          const job = await aiJob({ task: "site-snags", message, attachments }, "sn-progress");
+          const snags = C.snagsFromText(job.reply, batch.map((p) => p.id));
+          for (const p of batch) {
+            snagState.photos.push({ id: p.id, name: p.file.name, location: p.location.trim(), date: today(), thumb: await imageData(p.file, 480, 0.6) });
+            URL.revokeObjectURL(p.url);
+          }
+          snags.forEach((s) => { s.id = uuid(); if (!s.location) s.location = batch.find((p) => p.id === s.photo)?.location || ""; });
+          snagState.snags.push(...snags); found += snags.filter((s) => !/^no visible defect/i.test(s.defect)).length;
+          pending.splice(0, batch.length); saveSnags(); renderPending(); renderSnags();
+        }
+        $("sn-status").textContent = `✓ ${found} defect${found === 1 ? "" : "s"} found. Confirm each on site; tap a cell to correct it.`;
+      } catch (e) { $("sn-status").textContent = `⚠️ ${e.message}`; }
+      finally { snBusy = false; $("sn-run").disabled = false; }
+    });
+    const SEV_CLS = { Critical: "bg-red-100 text-red-800", Major: "bg-amber-100 text-amber-900", Minor: "bg-slate-100 text-slate-700" };
+    function renderSnags() {
+      $("sn-out").classList.toggle("hidden", !snagState.snags.length);
+      const sum = C.snagSummary(snagState.snags), box = $("sn-summary"); box.replaceChildren();
+      [[`${sum.open} open of ${sum.total}`, "bg-blue-50 text-blue-900"], [`🔴 ${sum.critical} critical`, SEV_CLS.Critical], [`🟠 ${sum.major} major`, SEV_CLS.Major], [`⚪ ${sum.minor} minor`, SEV_CLS.Minor]].forEach(([t, c]) => box.append(el("span", `rounded-full px-3 py-1 font-semibold ${c}`, t)));
+      document.querySelectorAll(".snf").forEach((b) => { const on = b.dataset.snf === snFilter; b.classList.toggle("bg-blue-900", on); b.classList.toggle("text-white", on); });
+      const list = C.sortSnags(snagState.snags, snagState.photos.map((p) => p.id)).filter((s) => snFilter === "all" || (snFilter === "open" ? s.status !== "Closed" : s.severity === snFilter && s.status !== "Closed"));
+      const t = $("sn-table"); t.replaceChildren();
+      const hr = el("tr", "text-left text-slate-500 align-bottom");
+      ["No", "Photo", "Location / element", "Defect", "Severity", "Likely cause", "Remedy / remarks", "Ref.", "Status", ""].forEach((h) => hr.append(el("th", "p-1", h)));
+      t.append(el("thead")); t.tHead.append(hr);
+      const tb = el("tbody"); t.append(tb);
+      list.forEach((s, i) => {
+        const tr = el("tr", `border-t border-slate-100 align-top ${s.status === "Closed" ? "opacity-50" : ""}`);
+        tr.append(el("td", "p-1 tabular-nums", String(i + 1)));
+        const ph = snagState.photos.find((p) => p.id === s.photo), tdp = el("td", "p-1");
+        if (ph) { const img = el("img", "h-14 w-14 rounded object-cover"); img.src = `data:image/jpeg;base64,${ph.thumb}`; img.alt = `Photo ${photoNo(ph.id)}`; tdp.append(img, el("div", "text-[10px] text-slate-500", `P${photoNo(ph.id)}`)); }
+        tr.append(tdp);
+        const edit = (k, cls) => { const td = el("td", `p-1 ${cls}`, s[k]); td.contentEditable = "true"; td.addEventListener("blur", () => { if (s[k] !== td.textContent.trim()) { s[k] = td.textContent.trim(); saveSnags(); } }); return td; };
+        tr.append(edit("location", "min-w-[7rem]"), edit("defect", "min-w-[10rem]"));
+        const tds = el("td", "p-1"), sev = el("select", `rounded px-1 py-0.5 font-semibold ${SEV_CLS[s.severity]}`); C.SEVERITY.forEach((v) => sev.append(new Option(v, v))); sev.value = s.severity; sev.setAttribute("aria-label", "Severity"); sev.onchange = () => { s.severity = sev.value; saveSnags(); renderSnags(); }; tds.append(sev); tr.append(tds);
+        tr.append(edit("cause", "min-w-[8rem]"), edit("remedy", "min-w-[14rem]"), edit("reference", "min-w-[5rem] text-slate-500"));
+        const tdst = el("td", "p-1"), st = el("select", "rounded border border-slate-300 px-1 py-0.5"); ["Open", "Closed"].forEach((v) => st.append(new Option(v, v))); st.value = s.status; st.setAttribute("aria-label", "Status"); st.onchange = () => { s.status = st.value; saveSnags(); renderSnags(); }; tdst.append(st); tr.append(tdst);
+        const del = el("button", "px-1 text-red-700", "✕"); del.setAttribute("aria-label", "Delete this snag"); del.onclick = () => { snagState.snags = snagState.snags.filter((x) => x !== s); snagState.photos = snagState.photos.filter((p) => snagState.snags.some((x) => x.photo === p.id)); saveSnags(); renderSnags(); };
+        const tdd = el("td"); tdd.append(del); tr.append(tdd);
+        tb.append(tr);
+      });
+    }
+    document.querySelectorAll(".snf").forEach((b) => b.addEventListener("click", () => { snFilter = b.dataset.snf; renderSnags(); }));
+    renderSnags();
+    const orderedSnags = () => C.sortSnags(snagState.snags, snagState.photos.map((p) => p.id));
+    $("sn-xlsx").addEventListener("click", async () => { try { await loadXlsx(); saveXlsx(C.snagSheet(orderedSnags(), { title: `Snag list — ${$("sn-project").value || "site"} — ${today()}`, photoLabel: (id) => `P${photoNo(id)}` }), `Snag-list-${today()}.xlsx`, [5, 7, 22, 40, 10, 28, 50, 16, 9]); } catch (e) { toast(e.message); } });
+    $("sn-clear").addEventListener("click", () => { if (!confirm("Delete the whole snag list and its photos from this phone?")) return; snagState.photos = []; snagState.snags = []; saveSnags(); renderSnags(); });
+    $("sn-pdf").addEventListener("click", async () => {
+      try {
+        await loadPdf();
+        const { jsPDF } = window.jspdf, pdf = new jsPDF({ unit: "pt", format: "a4", orientation: "landscape" });
+        const M = 28, W = pdf.internal.pageSize.getWidth(), H = pdf.internal.pageSize.getHeight(), CW = W - 2 * M;
+        const clean = (v) => String(v == null ? "" : v).replace(/[−–—]/g, "-").replace(/[×]/g, "x").replace(/[≤]/g, "<=").replace(/[≥]/g, ">=").replace(/[^\x00-\xFF]/g, "");
+        const cols = [["No", 22], ["Photo", 78], ["Location", 80], ["Defect", 140], ["Severity", 50], ["Likely cause", 95], ["Remedy / remarks", 195], ["Ref.", 60], ["Status", 40]];
+        const scale = CW / cols.reduce((a, c) => a + c[1], 0), ws = cols.map((c) => c[1] * scale);
+        let y = M;
+        const head = () => { pdf.setFont("helvetica", "bold"); pdf.setFontSize(8); pdf.setFillColor(30, 58, 138); pdf.rect(M, y, CW, 16, "F"); pdf.setTextColor(255); let x = M; cols.forEach((c, i) => { pdf.text(c[0], x + 3, y + 11); x += ws[i]; }); y += 16; pdf.setTextColor(15, 23, 42); pdf.setFont("helvetica", "normal"); };
+        const sum = C.snagSummary(snagState.snags);
+        pdf.setFont("helvetica", "bold"); pdf.setFontSize(15); pdf.setTextColor(30, 58, 138); pdf.text("Site inspection - snag list", M, y + 10); y += 24;
+        pdf.setFont("helvetica", "normal"); pdf.setFontSize(9); pdf.setTextColor(71, 85, 105);
+        pdf.text(clean(`${$("sn-project").value || "Project / site: -"}   |   Date: ${today()}   |   Inspected by: ${$("sn-by").value || "-"}`), M, y); y += 13;
+        pdf.text(`Open: ${sum.open} of ${sum.total}   |   Critical ${sum.critical}   |   Major ${sum.major}   |   Minor ${sum.minor}`, M, y); y += 14;
+        head();
+        const SEVC = { Critical: [220, 38, 38], Major: [217, 119, 6], Minor: [100, 116, 139] };
+        orderedSnags().forEach((s, i) => {
+          pdf.setFontSize(7.5);
+          const ph = snagState.photos.find((p) => p.id === s.photo);
+          const cells = [String(i + 1), "", s.location, s.defect, s.severity, s.cause, s.remedy, s.reference, s.status].map((v, k) => pdf.splitTextToSize(clean(v), ws[k] - 6));
+          const imgH = ph ? ws[1] * 0.75 - 4 : 0, h = Math.max(imgH + 14, Math.max(...cells.map((c) => c.length)) * 9 + 6);
+          if (y + h > H - M - 20) { pdf.addPage(); y = M; head(); pdf.setFontSize(7.5); }
+          if (i % 2) { pdf.setFillColor(248, 250, 252); pdf.rect(M, y, CW, h, "F"); }
+          let x = M;
+          cells.forEach((c, k) => {
+            if (k === 1 && ph) { try { pdf.addImage(`data:image/jpeg;base64,${ph.thumb}`, "JPEG", x + 3, y + 3, ws[1] - 6, imgH); } catch {} pdf.setFontSize(6.5); pdf.text(`P${photoNo(ph.id)}`, x + 3, y + imgH + 11); pdf.setFontSize(7.5); }
+            else if (k === 4) { pdf.setTextColor(...SEVC[s.severity]); pdf.setFont("helvetica", "bold"); pdf.text(c, x + 3, y + 10); pdf.setTextColor(15, 23, 42); pdf.setFont("helvetica", "normal"); }
+            else pdf.text(c, x + 3, y + 10);
+            x += ws[k];
+          });
+          pdf.setDrawColor(226, 232, 240); pdf.line(M, y + h, M + CW, y + h); y += h;
+        });
+        y += 14; if (y > H - M - 30) { pdf.addPage(); y = M; }
+        pdf.setFontSize(9); pdf.text("Inspected by: ______________________      Contractor's acknowledgement: ______________________      Date: __________", M, y); y += 16;
+        pdf.setFont("helvetica", "italic"); pdf.setFontSize(7.5); pdf.setTextColor(100, 116, 139);
+        pdf.text("Prepared from site photos with Construction AI Expert. Each item to be confirmed on site by the responsible consultant; crack widths, hollowness and strength need measurement or testing.", M, y);
+        pdf.save(`Snag-list-${today()}.pdf`);
+      } catch (e) { toast(e.message); }
+    });
+  })();
+  </script>
+</body>
+</html>

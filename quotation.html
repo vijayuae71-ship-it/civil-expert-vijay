@@ -15,6 +15,7 @@
   <link rel="stylesheet" href="assets/site.css">
   <script src="assets/site-config.js"></script>
   <script src="assets/quote.js"></script>
+  <script src="assets/progress.js"></script>
   <script src="assets/app.js" defer></script>
   <style>
     .q-in { width: 100%; min-width: 0; border: 1px solid transparent; border-radius: .375rem; padding: .2rem .35rem; background: transparent; font: inherit; color: inherit; }
@@ -112,6 +113,7 @@
       </div>
       <label class="mt-2 flex items-center gap-2 text-xs font-semibold text-slate-600">Site location for rates <input id="rate-location" class="min-w-0 flex-1 rounded-md border border-slate-300 bg-white px-2 py-1 text-sm font-normal" placeholder="e.g. Whitefield, Bengaluru" maxlength="120"></label>
       <p id="tender-status" class="hidden mt-2 rounded-lg bg-white px-3 py-2 text-sm text-slate-700" role="status"></p>
+      <div id="tender-progress" class="mt-2 text-slate-700"></div>
       <div id="fill-panel" class="hidden mt-2 rounded-lg border border-blue-200 bg-white p-3 text-sm" aria-live="polite">
         <p class="font-bold text-blue-900">📤 Client's BOQ format</p>
         <p id="fill-summary" class="mt-1 text-slate-700"></p>
@@ -147,6 +149,7 @@
         <label class="grid min-w-0 gap-0.5">Price list date<input id="mat-date" type="date" class="w-full min-w-0 rounded-md border border-slate-300 px-2 py-1 text-sm font-normal"></label>
       </div>
       <p id="mat-status" class="hidden mt-2 rounded-lg bg-orange-50 px-3 py-2 text-sm text-slate-700" role="status"></p>
+      <div id="mat-progress" class="mt-2 text-slate-700"></div>
       <input id="mat-search" type="search" class="mt-2 w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm" placeholder="Search (e.g. cement, TMT 12 mm, Finolex)">
       <div id="mat-list" class="mt-2 divide-y divide-slate-100"></div>
       <p id="mat-more" class="mt-1 text-xs text-slate-500"></p>
@@ -206,6 +209,7 @@
       <p id="review-summary" class="mt-1 text-sm font-semibold"></p>
       <ul id="review-auto" class="mt-2 space-y-1.5 text-sm"></ul>
       <p id="review-ai-status" class="mt-3 text-xs text-slate-500"></p>
+      <div id="review-progress" class="mt-1 text-slate-700"></div>
       <ul id="review-ai" class="mt-1 space-y-1.5 text-sm"></ul>
       <p class="mt-3 text-xs text-slate-500">The check helps you spot mistakes; it does not replace reading the tender yourself.</p>
     </section>
@@ -636,7 +640,22 @@
     const loadXlsx = () => loadScript("https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js", () => window.XLSX);
     const uuid = () => (crypto.randomUUID ? crypto.randomUUID() : Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, "0")).join(""));
     // Long AI work runs in the background (chat-start → chat-background); we check back every 4 seconds.
+    // A progress bar for each kind of AI job: about how long it usually takes, and its steps.
+    const JOB_PROGRESS = {
+      "tender-items": { box: "tender-progress", expectedMs: 70000, steps: [[0, "Reading the pages"], [20, "Finding the BOQ table"], [45, "Copying the items word for word"], [80, "Checking item numbers"]] },
+      "price-list": { box: "mat-progress", expectedMs: 50000, steps: [[0, "Reading the price list"], [30, "Copying products and prices"], [80, "Checking prices"]] },
+      "tender-rates": { box: "tender-progress", expectedMs: 40000, steps: [[0, "Reading the items"], [25, "Working out rates"], [60, "Comparing with your rates and prices"], [85, "Finishing"]] },
+      "tender-simplify": { box: "tender-progress", expectedMs: 30000, steps: [[0, "Reading the specifications"], [40, "Writing them in plain words"]] },
+      "tender-terms": { box: "tender-progress", expectedMs: 35000, steps: [[0, "Reading the conditions"], [45, "Picking out the key terms"]] },
+      "tender-check": { box: "review-progress", expectedMs: 40000, steps: [[0, "Checking your rates"], [35, "Checking tax, validity and payment terms"], [75, "Writing the list"]] }
+    };
     async function aiJob(payload) {
+      const spec = JOB_PROGRESS[payload.task], holder = spec && $(spec.box);
+      const bar = holder && window.Progress ? Progress.start(holder, spec) : null;
+      try { const job = await aiJobRun(payload); bar && bar.done(); return job; }
+      catch (e) { bar && bar.stop(); throw e; }
+    }
+    async function aiJobRun(payload) {
       const jobId = uuid();
       const res = await fetch("/.netlify/functions/chat-start", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...payload, jobId, audience: "engineer", language: "en" }) });
       if (res.status !== 202) { let e = {}; try { e = await res.json(); } catch {} throw new Error(e.error || "Could not start. Please try again."); }

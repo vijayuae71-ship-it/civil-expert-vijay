@@ -169,3 +169,21 @@ test("a refusal, empty reply or error from the cheaper model is retried on the m
   assert.deepEqual(calls, ["claude-haiku-5-5", chat.MODEL]);
   assert.equal((await ask(JOB)).status, "done");
 });
+
+test("consultant tasks: copying bids and bills runs on the cheaper model; drawings and drafting on the main model", async () => {
+  const pdf = { name: "t.pdf", mimeType: "application/pdf", data: "AA==" };
+  for (const [task, cheap, re, long] of [
+    ["priced-boq", true, /PRICED bill of quantities/, false],
+    ["bill-items", true, /running-account \(RA \/ interim\) bill/, false],
+    ["bbs-members", false, /bar bending schedule/, false],
+    ["site-snags", false, /snag list from site photos/, false],
+    ["spec-items", false, /technical specifications section/, true],
+    ["spec-conditions", false, /Notice inviting tender/i, true]
+  ]) {
+    const calls = fakeClaude(chat, "| No | x |\n|---|---|\n| 1 | x |");
+    const { res } = await runJob(memoryStore(), { task, message: long ? "Items:\n" + "1. RCC M25 (unit: cum)\n".repeat(600) : "Copy", attachments: long ? undefined : [pdf] });
+    assert.equal(res.statusCode, 202, task);
+    assert.match(systemText(calls[0]), re, task);
+    assert.equal(calls[0].model, cheap ? "claude-haiku-5-5" : chat.MODEL, task);
+  }
+});

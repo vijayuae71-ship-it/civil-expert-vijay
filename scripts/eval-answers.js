@@ -256,6 +256,50 @@ CASES.push({
   })]
 });
 
+// ---------- consultant tools (group "consultant"): bids, bills, drawings, specifications ----------
+const CONS = require("../assets/consult.js");
+const fixture = (file, mimeType) => ({ name: file, mimeType, data: require("fs").readFileSync(require("path").join(__dirname, "fixtures", file)).toString("base64") });
+CASES.push(
+  {
+    group: "consultant", background: true, name: "Copies a priced bid exactly, keeping the bidder's arithmetic error",
+    body: { task: "priced-boq", message: "Copy the complete priced BOQ from the attached bid.", attachments: [fixture("sample-priced-bid.pdf", "application/pdf")] },
+    must: [check("5 items with rates 310, 6150, 7850, 78.5, 285 and item 3's amount as printed (139110)", (t) => {
+      const it = Q.pricedItems(CONS.tableRows(t)).filter((x) => !x.heading);
+      return it.length === 5 && JSON.stringify(it.map((x) => x.rate)) === "[310,6150,7850,78.5,285]" && it[2].amount === 139110;
+    })],
+    mustNot: [/193,?110/]
+  },
+  {
+    group: "consultant", background: true, name: "Copies an RA bill with previous and up-to-date quantities",
+    body: { task: "bill-items", message: "Copy the complete running bill from the attached document.", attachments: [fixture("sample-ra-bill.pdf", "application/pdf")] },
+    must: [check("3 items: up to date 86.4 / 22.5 / 2250, previous 86.4 / 10 / 900", (t) => {
+      const it = CONS.billItems(CONS.tableRows(t)).filter((x) => !x.heading);
+      return it.length === 3 && JSON.stringify(it.map((x) => [x.qty, x.prev])) === "[[86.4,86.4],[22.5,10],[2250,900]]";
+    })]
+  },
+  {
+    group: "consultant", background: true, name: "Reads beams and columns with their bars from a schedule drawing",
+    body: { task: "bbs-members", message: "List the members and reinforcement shown in the attached structural drawing.", attachments: [fixture("sample-member-schedule.png", "image/png")] },
+    must: [check("B1, B2 and C1 read with sizes, counts and bars (B2 bottom 2-20 + 1-16)", (t) => {
+      const m = Object.fromEntries(CONS.membersFromText(t).map((x) => [x.mark, x]));
+      const b1 = m.B1, b2 = m.B2, c1 = m.C1;
+      return b1 && b2 && c1 && b1.count === 4 && b1.length === 4000 && b1.width === 230 && b1.depth === 450 && b1.bottom.n === 3 && b1.bottom.dia === 16 && b1.stirrup.dia === 8 && b1.stirrup.spacing === 150
+        && b2.depth === 600 && b2.bottom.n === 3 && JSON.stringify(b2.bottom.parts.map((p) => p.dia).sort()) === "[16,20]" && b2.stirrup.spacing === 125
+        && c1.count === 6 && c1.height === 3200 && c1.main.n === 4 && c1.tie.spacing === 150;
+    })]
+  },
+  {
+    group: "consultant", background: true, name: "Writes technical specifications by trade with codes, testing and measurement",
+    body: { task: "spec-items", message: CONS.specMessage({ name: "Anganwadi building", location: "Mysuru, Karnataka, India" }, sampleItems) },
+    must: [/Draft for the consultant's review/, /IS\s?456/, /IS\s?1786|Fe[\s-]?500D/, /cube|compressive strength/i, /Mode of measurement/i, /slump/i, /\[confirm\]|approved make/i]
+  },
+  {
+    group: "consultant", background: true, name: "Drafts tender conditions with NIT, LD cap, DLP and approved makes",
+    body: { task: "spec-conditions", message: CONS.conditionsMessage({ name: "Anganwadi building", location: "Mysuru, Karnataka, India", cost: "Rs. 48 lakh", period: "6 months" }, sampleItems) },
+    must: [/Notice inviting tender/i, /48 lakh|48,00,000/, /6 months|six months/i, /liquidated damages/i, /defects? liability/i, /approved makes?/i, /\[confirm\]/, /arbitration/i]
+  }
+);
+
 const longTender = { name: "sample-tender-boq-long.pdf", mimeType: "application/pdf", data: require("fs").readFileSync(require("path").join(__dirname, "fixtures", "sample-tender-boq-long.pdf")).toString("base64") };
 const LONG_EXPECTED = JSON.parse(require("fs").readFileSync(require("path").join(__dirname, "fixtures", "sample-tender-boq-long.json"), "utf8"));
 CASES.push({
