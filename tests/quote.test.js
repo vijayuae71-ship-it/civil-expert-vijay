@@ -426,3 +426,12 @@ test("client's format: matched by item number, then by description with the same
   assert.match(Q.formatFill([["Item", "Description", "Qty", "Unit"], ["1", "x", 1, "m"]], items).error, /no Rate column/);
   assert.match(Q.formatFill([["a"], ["b"]], items).error, /No BOQ table/);
 });
+
+// ---------- progress bar ----------
+test("progress estimate rises, slows, never passes 95% by itself; steps follow the %", () => {
+  const P = require("../assets/progress.js");
+  const at = (s) => Math.round(P.estimate(s * 1000, 60000));
+  assert.deepEqual([at(0), at(15), at(30), at(60), at(120), at(600)], [0, 31, 52, 76, 91, 95]);
+  const steps = [[0, "Reading"], [20, "Quantities"], [50, "Writing"], [80, "Checking"]];
+  assert.deepEqual([5, 20, 60, 95].map((p) => P.stepFor(p, steps)), ["Reading", "Quantities", "Writing", "Checking"]);
+});

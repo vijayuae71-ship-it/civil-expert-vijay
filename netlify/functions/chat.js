@@ -330,7 +330,7 @@ Retain technical units, numbers, equations, and construction terminology accurat
       }
     }
 
-    const answer = await askClaude({ system, messages: [...conversationTurns, { role: "user", content: userContent }], maxTokens: fullBoq ? 16000 : 8000, timeout: fullBoq ? BOQ_TIMEOUT_MS : undefined });
+    const answer = await askClaude({ system, messages: [...conversationTurns, { role: "user", content: userContent }], maxTokens: fullBoq ? 16000 : 8000, timeout: background ? BOQ_TIMEOUT_MS : undefined });
     if (answer.refused) {
       return { statusCode: 200, headers, body: JSON.stringify({ reply: "I can't help with this request. Please ask it as a construction or site-work question." }) };
     }
@@ -346,7 +346,7 @@ Retain technical units, numbers, equations, and construction terminology accurat
             system: repairInstruction,
             messages: [{ role: "user", content: `Construction request to quote: ${message.trim()}${relevantDubaiRmcCostingContext(message) ? `\n\n${relevantDubaiRmcCostingContext(message)}` : ""}` }],
             maxTokens: 4000,
-            timeout: fullBoq ? BOQ_TIMEOUT_MS : undefined
+            timeout: background ? BOQ_TIMEOUT_MS : undefined
           });
           if (!repaired.refused && repaired.text && !isIncompleteQuote(repaired.text, selectedLanguage)) reply = repaired.text;
         } catch (repairError) {

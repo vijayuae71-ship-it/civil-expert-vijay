@@ -19,6 +19,7 @@
     <script src="assets/site-config.js"></script>
     <script src="assets/i18n.js"></script>
     <script src="assets/quote.js"></script>
+    <script src="assets/progress.js"></script>
     <style>
         html, body { height: 100%; }
         body { display: flex; flex-direction: column; height: 100dvh; }
@@ -566,7 +567,11 @@
                 if (wantsFullBoq(text, payload)) {
                     // A full itemised BOQ takes 1–3 minutes to write: it runs in the background and we check back.
                     typing.querySelector('.ml-2').textContent = t('preparingBoq');
-                    data = await backgroundAnswer(payload);
+                    const bubble = typing.firstElementChild; bubble.style.flexWrap = 'wrap';
+                    const holder = document.createElement('div'); holder.style.width = '100%'; holder.style.minWidth = '220px'; bubble.appendChild(holder);
+                    const bar = window.Progress ? Progress.start(holder, { expectedMs: 75000, steps: [[0, t('stepReading')], [20, t('stepQuantities')], [50, t('stepWriting')], [80, t('stepChecking')]] }) : null;
+                    try { data = await backgroundAnswer(payload); bar && bar.done(); }
+                    catch (e) { bar && bar.stop(); throw e; }
                 } else {
                     const res = await fetch('/.netlify/functions/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
                     try { data = await res.json(); } catch {}

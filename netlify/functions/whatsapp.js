@@ -25,6 +25,7 @@ const CONVERSATION_IDLE_MS = 24 * 3600e3;   // after a day of silence, start a f
 const IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const SHEET_TYPES = new Set(["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.ms-excel", "application/vnd.ms-excel.sheet.macroenabled.12", "text/csv"]);
 const IMPORT_DAYS = 7;   // forwarded tenders and price lists are kept this long for the Quotation link
+const SLOW_NOTICE_MS = Number(process.env.WHATSAPP_SLOW_NOTICE_MS) || 15000;   // "⏳ Working on your answer" after this long
 
 // ---------- test hooks ----------
 let fetchImpl = (...args) => fetch(...args);
@@ -36,7 +37,7 @@ function openStores(event) {
   try {
     const { getStore, connectLambda } = require("@netlify/blobs");
     if (event?.blobs) connectLambda(event);
-    return { seen: getStore("wa-seen"), conversations: getStore("wa-conversations"), imports: getStore("wa-imports") };
+    return { seen: getStore("wa-seen"), conversations: getStore("wa-conversations"), imports: getStore("wa-imports"), jobs: getStore("wa-jobs") };
   } catch {
     return {};
   }
@@ -186,7 +187,7 @@ function command(text) {
   return null;
 }
 
-async function handleMessage(event, stores, msg) {
+async function handleMessage(event, stores, msg, { background = false } = {}) {
   const from = msg.from;
   const key = userKey(from);
   const conversation = await loadConversation(stores.conversations, key);
@@ -240,12 +241,21 @@ async function handleMessage(event, stores, msg) {
   if (conversation.isNew) await sendText(from, WELCOME);
   if (!attachment) await markReadAndTyping(msg.id);
 
-  const response = await chat.handler({
-    httpMethod: "POST",
-    blobs: event.blobs,
-    headers: { host: event.headers?.host || "whatsapp", "x-nf-client-connection-ip": `wa-${key}` },
-    body: JSON.stringify({ message: text.slice(0, 4000), history: conversation.turns, attachment, language: "auto", audience: conversation.audience, channel: "whatsapp" })
-  });
+  // While the answer is prepared: keep "typing…" showing (WhatsApp clears it after about 25 s), and if it
+  // takes a while, say so once — WhatsApp messages can't be edited, so no stream of % updates.
+  const typing = setInterval(() => { markReadAndTyping(msg.id); }, 20000);
+  const slow = background ? setTimeout(() => { sendText(from, "⏳ Working on your answer — this can take 1–2 minutes.").catch(() => {}); }, SLOW_NOTICE_MS) : null;
+  let response;
+  try {
+    const request = {
+      httpMethod: "POST",
+      blobs: event.blobs,
+      headers: { host: event.headers?.host || "whatsapp", "x-nf-client-connection-ip": `wa-${key}` },
+      body: JSON.stringify({ message: text.slice(0, 4000), history: conversation.turns, attachment, language: "auto", audience: conversation.audience, channel: "whatsapp" })
+    };
+    // In the background job the AI may take longer (long BOQs, PDFs) than a webhook call is allowed.
+    response = background ? await chat.run(request, { background: true }) : await chat.handler(request);
+  } finally { clearInterval(typing); if (slow) clearTimeout(slow); }
   let data = {};
   try { data = JSON.parse(response.body); } catch {}
   if (response.statusCode !== 200 || !data.reply) return sendText(from, data.error || "Sorry, I could not answer right now. Please try again in a minute.", msg.id);
@@ -284,6 +294,7 @@ exports.handler = async (event) => {
     if (!msg?.id || !msg.from) continue;
     if (!(await firstTimeSeen(stores.seen, msg.id))) continue;
     console.log(JSON.stringify({ type: "whatsapp_message", kind: msg.type, user: userKey(msg.from).slice(0, 8) }));
+    if (await toBackground(event, stores, msg)) continue;   // answered by whatsapp-background.js
     try { await handleMessage(event, stores, msg); }
     catch (error) {
       console.error("WhatsApp handling error:", error?.message || error);
@@ -293,7 +304,31 @@ exports.handler = async (event) => {
   return { statusCode: 200, body: "ok" };
 };
 
+// Meta wants a quick 200, but an answer can take a minute or more. The message is kept as a job and
+// whatsapp-background.js (a Netlify background function, up to 15 minutes) answers it. Only the job's
+// random id is sent there, so nobody can make the bot message a number by calling that function.
+// If the hand-over fails, the message is answered here as before.
+async function toBackground(event, stores, msg) {
+  if (!stores.jobs) return false;
+  const id = crypto.randomBytes(12).toString("hex");
+  try {
+    await stores.jobs.setJSON(`job/${id}`, { msg, at: new Date().toISOString() });
+    const host = event.headers?.host || event.headers?.Host;
+    if (!host) throw new Error("no host");
+    const res = await fetchImpl(`${/^localhost(:\d+)?$/.test(host) ? "http" : "https"}://${host}/.netlify/functions/whatsapp-background`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
+    if (res.status === 202 || res.ok) return true;
+    throw new Error(`background ${res.status}`);
+  } catch (e) {
+    console.error("WhatsApp background hand-over failed, answering inline:", e?.message || e);
+    await stores.jobs.delete(`job/${id}`).catch(() => {});
+    return false;
+  }
+}
+
 exports.setForTests = setForTests;
+exports.openStores = openStores;
+exports.processMessage = handleMessage;
+exports.sendText = (...args) => sendText(...args);
 exports.command = command;
 exports.userKey = userKey;
 exports.WELCOME = WELCOME;

@@ -27,7 +27,7 @@ window.I18N = {
     consultTitle: "Request an expert review", consultText: "For project-specific review, mix design, plant setup, estimates or site problems. We try to reply within a few days; this is not a guaranteed or paid service.",
     name: "Name", contact: "Phone / WhatsApp or email", location: "Location", topic: "Topic", needHelp: "What do you need help with?", sendRequest: "Send request", consultPrivacy: "Your details are used only to reply to this request.",
     savedAnswer: "⚡ Saved answer to this exact question. Tap 👎 if it doesn't fit and it will be refreshed.",
-    installApp: "📲 Install app", waAsk: "💬 Prefer WhatsApp? Ask the expert there", quotation: "Quotation", preparingBoq: "Preparing the full itemised BOQ — this takes 1–3 minutes…"
+    installApp: "📲 Install app", waAsk: "💬 Prefer WhatsApp? Ask the expert there", quotation: "Quotation", preparingBoq: "Preparing the full itemised BOQ — this takes 1–3 minutes…", stepReading: "Reading your question", stepQuantities: "Working out quantities", stepWriting: "Writing the BOQ", stepChecking: "Checking totals"
   },
   hi: {
     welcomeTitle: "निर्माण से जुड़ा कोई भी सवाल पूछें",
@@ -54,7 +54,7 @@ window.I18N = {
     consultTitle: "विशेषज्ञ समीक्षा का अनुरोध", consultText: "प्रोजेक्ट की समीक्षा, मिक्स डिज़ाइन, प्लांट सेटअप, एस्टीमेट या साइट की समस्या के लिए। हम कुछ दिनों में जवाब देने की कोशिश करते हैं; यह गारंटी वाली या पेड सेवा नहीं है।",
     name: "नाम", contact: "फ़ोन / WhatsApp या ईमेल", location: "जगह", topic: "विषय", needHelp: "आपको किस बारे में मदद चाहिए?", sendRequest: "अनुरोध भेजें", consultPrivacy: "आपकी जानकारी केवल इस अनुरोध का जवाब देने के लिए इस्तेमाल होती है।",
     savedAnswer: "⚡ इसी सवाल का सेव किया हुआ जवाब। अगर आपके काम का नहीं है तो 👎 दबाएँ, यह नया बन जाएगा।",
-    installApp: "📲 ऐप इंस्टॉल करें", waAsk: "💬 WhatsApp पसंद है? वहाँ पूछें", quotation: "कोटेशन", preparingBoq: "पूरा आइटम-वार BOQ तैयार हो रहा है — 1–3 मिनट लगेंगे…"
+    installApp: "📲 ऐप इंस्टॉल करें", waAsk: "💬 WhatsApp पसंद है? वहाँ पूछें", quotation: "कोटेशन", preparingBoq: "पूरा आइटम-वार BOQ तैयार हो रहा है — 1–3 मिनट लगेंगे…", stepReading: "आपका प्रश्न पढ़ रहे हैं", stepQuantities: "मात्राएँ निकाल रहे हैं", stepWriting: "BOQ लिख रहे हैं", stepChecking: "कुल जोड़ जाँच रहे हैं"
   },
   ur: {
     welcomeTitle: "تعمیر سے متعلق کوئی بھی سوال پوچھیں",
@@ -81,7 +81,7 @@ window.I18N = {
     consultTitle: "ماہر کے جائزے کی درخواست", consultText: "پروجیکٹ کے جائزے، مکس ڈیزائن، پلانٹ سیٹ اپ، تخمینے یا سائٹ کے مسائل کے لیے۔ ہم چند دنوں میں جواب دینے کی کوشش کرتے ہیں؛ یہ ضمانت شدہ یا ادا شدہ سروس نہیں ہے۔",
     name: "نام", contact: "فون / WhatsApp یا ای میل", location: "مقام", topic: "موضوع", needHelp: "آپ کو کس چیز میں مدد چاہیے؟", sendRequest: "درخواست بھیجیں", consultPrivacy: "آپ کی معلومات صرف اس درخواست کا جواب دینے کے لیے استعمال ہوتی ہیں۔",
     savedAnswer: "⚡ اسی سوال کا محفوظ جواب۔ اگر یہ آپ کے کام کا نہ ہو تو 👎 دبائیں، نیا جواب بنے گا۔",
-    installApp: "📲 ایپ انسٹال کریں", waAsk: "💬 WhatsApp پسند ہے؟ وہاں پوچھیں", quotation: "کوٹیشن", preparingBoq: "مکمل آئٹم وار BOQ تیار ہو رہا ہے — 1–3 منٹ لگیں گے…"
+    installApp: "📲 ایپ انسٹال کریں", waAsk: "💬 WhatsApp پسند ہے؟ وہاں پوچھیں", quotation: "کوٹیشن", preparingBoq: "مکمل آئٹم وار BOQ تیار ہو رہا ہے — 1–3 منٹ لگیں گے…", stepReading: "آپ کا سوال پڑھ رہے ہیں", stepQuantities: "مقداریں نکال رہے ہیں", stepWriting: "BOQ لکھ رہے ہیں", stepChecking: "کل میزان جانچ رہے ہیں"
   },
   ar: {
     welcomeTitle: "اسأل أي سؤال عن البناء",
@@ -108,7 +108,7 @@ window.I18N = {
     consultTitle: "طلب مراجعة خبير", consultText: "لمراجعة المشاريع، تصميم الخلطات، إعداد المحطات، التقديرات أو مشاكل الموقع. نحاول الرد خلال أيام قليلة؛ هذه ليست خدمة مضمونة أو مدفوعة.",
     name: "الاسم", contact: "الهاتف / واتساب أو البريد الإلكتروني", location: "الموقع", topic: "الموضوع", needHelp: "بماذا تحتاج المساعدة؟", sendRequest: "إرسال الطلب", consultPrivacy: "تُستخدم بياناتك فقط للرد على هذا الطلب.",
     savedAnswer: "⚡ إجابة محفوظة لهذا السؤال نفسه. اضغط 👎 إذا لم تناسب حالتك وسيتم تحديثها.",
-    installApp: "📲 ثبّت التطبيق", waAsk: "💬 تفضّل واتساب؟ اسأل هناك", quotation: "عرض سعر", preparingBoq: "جارٍ إعداد جدول الكميات (BOQ) المفصّل كاملًا — يستغرق 1–3 دقائق…"
+    installApp: "📲 ثبّت التطبيق", waAsk: "💬 تفضّل واتساب؟ اسأل هناك", quotation: "عرض سعر", preparingBoq: "جارٍ إعداد جدول الكميات (BOQ) المفصّل كاملًا — يستغرق 1–3 دقائق…", stepReading: "قراءة سؤالك", stepQuantities: "حساب الكميات", stepWriting: "كتابة جدول الكميات", stepChecking: "مراجعة المجاميع"
   },
   ml: {
     welcomeTitle: "നിർമ്മാണവുമായി ബന്ധപ്പെട്ട ഏത് ചോദ്യവും ചോദിക്കൂ",
@@ -135,7 +135,7 @@ window.I18N = {
     consultTitle: "വിദഗ്ധ റിവ്യൂ അഭ്യർത്ഥന", consultText: "പ്രോജക്ട് റിവ്യൂ, മിക്സ് ഡിസൈൻ, പ്ലാന്റ് സജ്ജീകരണം, എസ്റ്റിമേറ്റ് അല്ലെങ്കിൽ സൈറ്റ് പ്രശ്നങ്ങൾക്ക്. കുറച്ച് ദിവസത്തിനുള്ളിൽ മറുപടി നൽകാൻ ശ്രമിക്കും; ഇത് ഉറപ്പുള്ളതോ പണം നൽകേണ്ടതോ ആയ സേവനമല്ല.",
     name: "പേര്", contact: "ഫോൺ / WhatsApp അല്ലെങ്കിൽ ഇമെയിൽ", location: "സ്ഥലം", topic: "വിഷയം", needHelp: "എന്തിനാണ് സഹായം വേണ്ടത്?", sendRequest: "അഭ്യർത്ഥന അയയ്ക്കുക", consultPrivacy: "നിങ്ങളുടെ വിവരങ്ങൾ ഈ അഭ്യർത്ഥനയ്ക്ക് മറുപടി നൽകാൻ മാത്രം ഉപയോഗിക്കുന്നു.",
     savedAnswer: "⚡ ഇതേ ചോദ്യത്തിന് സൂക്ഷിച്ച ഉത്തരം. നിങ്ങൾക്ക് യോജിക്കുന്നില്ലെങ്കിൽ 👎 അമർത്തുക, പുതിയത് ലഭിക്കും.",
-    installApp: "📲 ആപ്പ് ഇൻസ്റ്റാൾ ചെയ്യുക", waAsk: "💬 WhatsApp ആണോ ഇഷ്ടം? അവിടെ ചോദിക്കൂ", quotation: "ക്വട്ടേഷൻ", preparingBoq: "മുഴുവൻ ഇനം തിരിച്ചുള്ള BOQ തയ്യാറാക്കുന്നു — 1–3 മിനിറ്റ് എടുക്കും…"
+    installApp: "📲 ആപ്പ് ഇൻസ്റ്റാൾ ചെയ്യുക", waAsk: "💬 WhatsApp ആണോ ഇഷ്ടം? അവിടെ ചോദിക്കൂ", quotation: "ക്വട്ടേഷൻ", preparingBoq: "മുഴുവൻ ഇനം തിരിച്ചുള്ള BOQ തയ്യാറാക്കുന്നു — 1–3 മിനിറ്റ് എടുക്കും…", stepReading: "നിങ്ങളുടെ ചോദ്യം വായിക്കുന്നു", stepQuantities: "അളവുകൾ കണക്കാക്കുന്നു", stepWriting: "BOQ എഴുതുന്നു", stepChecking: "ആകെത്തുകകൾ പരിശോധിക്കുന്നു"
   },
   ta: {
     welcomeTitle: "கட்டுமானம் பற்றிய எந்த கேள்வியையும் கேளுங்கள்",
@@ -162,7 +162,7 @@ window.I18N = {
     consultTitle: "நிபுணர் மதிப்பாய்வு கோரிக்கை", consultText: "திட்ட மதிப்பாய்வு, கலவை வடிவமைப்பு, பிளாண்ட் அமைப்பு, மதிப்பீடுகள் அல்லது தளப் பிரச்சினைகளுக்கு. சில நாட்களில் பதிலளிக்க முயற்சிப்போம்; இது உத்தரவாதமான அல்லது கட்டண சேவை அல்ல.",
     name: "பெயர்", contact: "தொலைபேசி / WhatsApp அல்லது மின்னஞ்சல்", location: "இடம்", topic: "தலைப்பு", needHelp: "எதற்கு உதவி வேண்டும்?", sendRequest: "கோரிக்கையை அனுப்பு", consultPrivacy: "உங்கள் விவரங்கள் இந்தக் கோரிக்கைக்குப் பதிலளிக்க மட்டுமே பயன்படுத்தப்படும்.",
     savedAnswer: "⚡ இதே கேள்விக்கு சேமித்த பதில். உங்களுக்குப் பொருந்தவில்லை என்றால் 👎 அழுத்துங்கள், புதியது கிடைக்கும்.",
-    installApp: "📲 ஆப்பை நிறுவு", waAsk: "💬 WhatsApp பிடிக்குமா? அங்கே கேளுங்கள்", quotation: "விலைப்புள்ளி", preparingBoq: "முழு உருப்படி வாரியான BOQ தயாராகிறது — 1–3 நிமிடங்கள் ஆகும்…"
+    installApp: "📲 ஆப்பை நிறுவு", waAsk: "💬 WhatsApp பிடிக்குமா? அங்கே கேளுங்கள்", quotation: "விலைப்புள்ளி", preparingBoq: "முழு உருப்படி வாரியான BOQ தயாராகிறது — 1–3 நிமிடங்கள் ஆகும்…", stepReading: "உங்கள் கேள்வியைப் படிக்கிறது", stepQuantities: "அளவுகளைக் கணக்கிடுகிறது", stepWriting: "BOQ எழுதுகிறது", stepChecking: "மொத்தங்களைச் சரிபார்க்கிறது"
   },
   bn: {
     welcomeTitle: "নির্মাণ সংক্রান্ত যেকোনো প্রশ্ন করুন",
@@ -189,7 +189,7 @@ window.I18N = {
     consultTitle: "বিশেষজ্ঞ রিভিউয়ের অনুরোধ", consultText: "প্রকল্প রিভিউ, মিক্স ডিজাইন, প্ল্যান্ট সেটআপ, এস্টিমেট বা সাইটের সমস্যার জন্য। আমরা কয়েক দিনের মধ্যে উত্তর দেওয়ার চেষ্টা করি; এটি নিশ্চিত বা পেইড পরিষেবা নয়।",
     name: "নাম", contact: "ফোন / WhatsApp বা ইমেল", location: "জায়গা", topic: "বিষয়", needHelp: "কী বিষয়ে সাহায্য চান?", sendRequest: "অনুরোধ পাঠান", consultPrivacy: "আপনার তথ্য শুধু এই অনুরোধের উত্তর দিতে ব্যবহার হয়।",
     savedAnswer: "⚡ এই একই প্রশ্নের সংরক্ষিত উত্তর। আপনার কাজে না লাগলে 👎 চাপুন, নতুন উত্তর তৈরি হবে।",
-    installApp: "📲 অ্যাপ ইনস্টল করুন", waAsk: "💬 WhatsApp পছন্দ? সেখানে জিজ্ঞেস করুন", quotation: "কোটেশন", preparingBoq: "সম্পূর্ণ আইটেম-ভিত্তিক BOQ তৈরি হচ্ছে — ১–৩ মিনিট লাগবে…"
+    installApp: "📲 অ্যাপ ইনস্টল করুন", waAsk: "💬 WhatsApp পছন্দ? সেখানে জিজ্ঞেস করুন", quotation: "কোটেশন", preparingBoq: "সম্পূর্ণ আইটেম-ভিত্তিক BOQ তৈরি হচ্ছে — ১–৩ মিনিট লাগবে…", stepReading: "আপনার প্রশ্ন পড়া হচ্ছে", stepQuantities: "পরিমাণ হিসাব করা হচ্ছে", stepWriting: "BOQ লেখা হচ্ছে", stepChecking: "মোট যোগফল যাচাই হচ্ছে"
   },
   kn: {
     welcomeTitle: "ನಿರ್ಮಾಣಕ್ಕೆ ಸಂಬಂಧಿಸಿದ ಯಾವುದೇ ಪ್ರಶ್ನೆ ಕೇಳಿ",
@@ -216,7 +216,7 @@ window.I18N = {
     consultTitle: "ತಜ್ಞರ ಪರಿಶೀಲನೆ ವಿನಂತಿ", consultText: "ಪ್ರಾಜೆಕ್ಟ್ ಪರಿಶೀಲನೆ, ಮಿಕ್ಸ್ ಡಿಸೈನ್, ಪ್ಲಾಂಟ್ ಸೆಟಪ್, ಅಂದಾಜುಗಳು ಅಥವಾ ಸೈಟ್ ಸಮಸ್ಯೆಗಳಿಗಾಗಿ. ಕೆಲವು ದಿನಗಳಲ್ಲಿ ಉತ್ತರಿಸಲು ಪ್ರಯತ್ನಿಸುತ್ತೇವೆ; ಇದು ಖಾತರಿಯ ಅಥವಾ ಪಾವತಿಸುವ ಸೇವೆ ಅಲ್ಲ.",
     name: "ಹೆಸರು", contact: "ಫೋನ್ / WhatsApp ಅಥವಾ ಇಮೇಲ್", location: "ಸ್ಥಳ", topic: "ವಿಷಯ", needHelp: "ನಿಮಗೆ ಯಾವುದರಲ್ಲಿ ಸಹಾಯ ಬೇಕು?", sendRequest: "ವಿನಂತಿ ಕಳುಹಿಸಿ", consultPrivacy: "ನಿಮ್ಮ ವಿವರಗಳನ್ನು ಈ ವಿನಂತಿಗೆ ಉತ್ತರಿಸಲು ಮಾತ್ರ ಬಳಸಲಾಗುತ್ತದೆ.",
     savedAnswer: "⚡ ಇದೇ ಪ್ರಶ್ನೆಗೆ ಉಳಿಸಿದ ಉತ್ತರ. ನಿಮಗೆ ಹೊಂದದಿದ್ದರೆ 👎 ಒತ್ತಿ, ಹೊಸ ಉತ್ತರ ಬರುತ್ತದೆ.",
-    installApp: "📲 ಆಪ್ ಇನ್‌ಸ್ಟಾಲ್ ಮಾಡಿ", waAsk: "💬 WhatsApp ಇಷ್ಟವೇ? ಅಲ್ಲಿ ಕೇಳಿ", quotation: "ಕೊಟೇಶನ್", preparingBoq: "ಸಂಪೂರ್ಣ ಐಟಂವಾರು BOQ ಸಿದ್ಧವಾಗುತ್ತಿದೆ — 1–3 ನಿಮಿಷ ಬೇಕು…"
+    installApp: "📲 ಆಪ್ ಇನ್‌ಸ್ಟಾಲ್ ಮಾಡಿ", waAsk: "💬 WhatsApp ಇಷ್ಟವೇ? ಅಲ್ಲಿ ಕೇಳಿ", quotation: "ಕೊಟೇಶನ್", preparingBoq: "ಸಂಪೂರ್ಣ ಐಟಂವಾರು BOQ ಸಿದ್ಧವಾಗುತ್ತಿದೆ — 1–3 ನಿಮಿಷ ಬೇಕು…", stepReading: "ನಿಮ್ಮ ಪ್ರಶ್ನೆ ಓದಲಾಗುತ್ತಿದೆ", stepQuantities: "ಪ್ರಮಾಣಗಳನ್ನು ಲೆಕ್ಕಹಾಕಲಾಗುತ್ತಿದೆ", stepWriting: "BOQ ಬರೆಯಲಾಗುತ್ತಿದೆ", stepChecking: "ಒಟ್ಟು ಮೊತ್ತ ಪರಿಶೀಲಿಸಲಾಗುತ್ತಿದೆ"
   },
   mr: {
     welcomeTitle: "बांधकामाशी संबंधित कोणताही प्रश्न विचारा",
@@ -243,7 +243,7 @@ window.I18N = {
     consultTitle: "तज्ज्ञ पुनरावलोकनाची विनंती", consultText: "प्रकल्प पुनरावलोकन, मिक्स डिझाइन, प्लांट सेटअप, अंदाजपत्रक किंवा साइटवरील समस्यांसाठी. आम्ही काही दिवसांत उत्तर देण्याचा प्रयत्न करतो; ही हमी असलेली किंवा सशुल्क सेवा नाही.",
     name: "नाव", contact: "फोन / WhatsApp किंवा ईमेल", location: "ठिकाण", topic: "विषय", needHelp: "तुम्हाला कशासाठी मदत हवी आहे?", sendRequest: "विनंती पाठवा", consultPrivacy: "तुमची माहिती फक्त या विनंतीला उत्तर देण्यासाठी वापरली जाते.",
     savedAnswer: "⚡ याच प्रश्नाचे जतन केलेले उत्तर. तुमच्या कामाचे नसल्यास 👎 दाबा, नवीन उत्तर मिळेल.",
-    installApp: "📲 अ‍ॅप इन्स्टॉल करा", waAsk: "💬 WhatsApp आवडते? तिथे विचारा", quotation: "कोटेशन", preparingBoq: "संपूर्ण आयटमनिहाय BOQ तयार होत आहे — 1–3 मिनिटे लागतील…"
+    installApp: "📲 अ‍ॅप इन्स्टॉल करा", waAsk: "💬 WhatsApp आवडते? तिथे विचारा", quotation: "कोटेशन", preparingBoq: "संपूर्ण आयटमनिहाय BOQ तयार होत आहे — 1–3 मिनिटे लागतील…", stepReading: "तुमचा प्रश्न वाचत आहोत", stepQuantities: "प्रमाण काढत आहोत", stepWriting: "BOQ लिहित आहोत", stepChecking: "एकूण बेरीज तपासत आहोत"
   },
   te: {
     welcomeTitle: "నిర్మాణానికి సంబంధించిన ఏ ప్రశ్ననైనా అడగండి",
@@ -270,7 +270,7 @@ window.I18N = {
     consultTitle: "నిపుణుల రివ్యూ అభ్యర్థన", consultText: "ప్రాజెక్ట్ రివ్యూ, మిక్స్ డిజైన్, ప్లాంట్ సెటప్, అంచనాలు లేదా సైట్ సమస్యల కోసం. కొన్ని రోజుల్లో సమాధానం ఇవ్వడానికి ప్రయత్నిస్తాము; ఇది హామీ ఉన్న లేదా చెల్లింపు సేవ కాదు.",
     name: "పేరు", contact: "ఫోన్ / WhatsApp లేదా ఇమెయిల్", location: "ప్రదేశం", topic: "విషయం", needHelp: "మీకు దేనిలో సహాయం కావాలి?", sendRequest: "అభ్యర్థన పంపండి", consultPrivacy: "మీ వివరాలు ఈ అభ్యర్థనకు సమాధానం ఇవ్వడానికి మాత్రమే ఉపయోగించబడతాయి.",
     savedAnswer: "⚡ ఇదే ప్రశ్నకు భద్రపరిచిన సమాధానం. మీకు సరిపోకపోతే 👎 నొక్కండి, కొత్తది వస్తుంది.",
-    installApp: "📲 యాప్ ఇన్‌స్టాల్ చేయండి", waAsk: "💬 WhatsApp ఇష్టమా? అక్కడ అడగండి", quotation: "కొటేషన్", preparingBoq: "పూర్తి ఐటమ్‌వారీ BOQ సిద్ధమవుతోంది — 1–3 నిమిషాలు పడుతుంది…"
+    installApp: "📲 యాప్ ఇన్‌స్టాల్ చేయండి", waAsk: "💬 WhatsApp ఇష్టమా? అక్కడ అడగండి", quotation: "కొటేషన్", preparingBoq: "పూర్తి ఐటమ్‌వారీ BOQ సిద్ధమవుతోంది — 1–3 నిమిషాలు పడుతుంది…", stepReading: "మీ ప్రశ్న చదువుతోంది", stepQuantities: "పరిమాణాలు లెక్కిస్తోంది", stepWriting: "BOQ రాస్తోంది", stepChecking: "మొత్తాలు తనిఖీ చేస్తోంది"
   },
   pa: {
     welcomeTitle: "ਉਸਾਰੀ ਨਾਲ ਜੁੜਿਆ ਕੋਈ ਵੀ ਸਵਾਲ ਪੁੱਛੋ",
@@ -297,6 +297,6 @@ window.I18N = {
     consultTitle: "ਮਾਹਰ ਸਮੀਖਿਆ ਦੀ ਬੇਨਤੀ", consultText: "ਪ੍ਰੋਜੈਕਟ ਸਮੀਖਿਆ, ਮਿਕਸ ਡਿਜ਼ਾਈਨ, ਪਲਾਂਟ ਸੈੱਟਅਪ, ਅਨੁਮਾਨ ਜਾਂ ਸਾਈਟ ਦੀਆਂ ਸਮੱਸਿਆਵਾਂ ਲਈ। ਅਸੀਂ ਕੁਝ ਦਿਨਾਂ ਵਿੱਚ ਜਵਾਬ ਦੇਣ ਦੀ ਕੋਸ਼ਿਸ਼ ਕਰਦੇ ਹਾਂ; ਇਹ ਗਾਰੰਟੀਸ਼ੁਦਾ ਜਾਂ ਭੁਗਤਾਨ ਵਾਲੀ ਸੇਵਾ ਨਹੀਂ ਹੈ।",
     name: "ਨਾਂ", contact: "ਫ਼ੋਨ / WhatsApp ਜਾਂ ਈਮੇਲ", location: "ਥਾਂ", topic: "ਵਿਸ਼ਾ", needHelp: "ਤੁਹਾਨੂੰ ਕਿਸ ਬਾਰੇ ਮਦਦ ਚਾਹੀਦੀ ਹੈ?", sendRequest: "ਬੇਨਤੀ ਭੇਜੋ", consultPrivacy: "ਤੁਹਾਡੀ ਜਾਣਕਾਰੀ ਸਿਰਫ਼ ਇਸ ਬੇਨਤੀ ਦਾ ਜਵਾਬ ਦੇਣ ਲਈ ਵਰਤੀ ਜਾਂਦੀ ਹੈ।",
     savedAnswer: "⚡ ਇਸੇ ਸਵਾਲ ਦਾ ਸੰਭਾਲਿਆ ਜਵਾਬ। ਜੇ ਤੁਹਾਡੇ ਕੰਮ ਦਾ ਨਹੀਂ ਤਾਂ 👎 ਦਬਾਓ, ਨਵਾਂ ਜਵਾਬ ਬਣੇਗਾ।",
-    installApp: "📲 ਐਪ ਇੰਸਟਾਲ ਕਰੋ", waAsk: "💬 WhatsApp ਪਸੰਦ ਹੈ? ਉੱਥੇ ਪੁੱਛੋ", quotation: "ਕੋਟੇਸ਼ਨ", preparingBoq: "ਪੂਰਾ ਆਈਟਮ-ਵਾਰ BOQ ਤਿਆਰ ਹੋ ਰਿਹਾ ਹੈ — 1–3 ਮਿੰਟ ਲੱਗਣਗੇ…"
+    installApp: "📲 ਐਪ ਇੰਸਟਾਲ ਕਰੋ", waAsk: "💬 WhatsApp ਪਸੰਦ ਹੈ? ਉੱਥੇ ਪੁੱਛੋ", quotation: "ਕੋਟੇਸ਼ਨ", preparingBoq: "ਪੂਰਾ ਆਈਟਮ-ਵਾਰ BOQ ਤਿਆਰ ਹੋ ਰਿਹਾ ਹੈ — 1–3 ਮਿੰਟ ਲੱਗਣਗੇ…", stepReading: "ਤੁਹਾਡਾ ਸਵਾਲ ਪੜ੍ਹ ਰਹੇ ਹਾਂ", stepQuantities: "ਮਾਤਰਾਵਾਂ ਕੱਢ ਰਹੇ ਹਾਂ", stepWriting: "BOQ ਲਿਖ ਰਹੇ ਹਾਂ", stepChecking: "ਕੁੱਲ ਜੋੜ ਜਾਂਚ ਰਹੇ ਹਾਂ"
   }
 };

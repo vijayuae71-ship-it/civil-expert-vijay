@@ -88,5 +88,5 @@ If nothing comes back, open **Netlify → Logs → Functions → whatsapp**:
 - Claude: the same as the website, about 2–3 US cents per answer.
 - Meta: under Meta's current pricing, replies within 24 hours of a user's message ("service" messages) are free. Messages the business starts (templates) are charged. The bot only replies, so it shouldn't create template charges. Check Meta's WhatsApp pricing page for your country.
 
-## Known limit
-Each answer must finish within Netlify's function time limit. Typical answers take 10–20 seconds. If long answers time out, ask for `simple` answers, or move the reply to a Netlify background function.
+## Long answers
+The webhook (`whatsapp` function) only checks the message and hands it to `whatsapp-background`, a Netlify background function that may run for up to 15 minutes, so Meta gets its reply at once and long answers (detailed BOQs, PDFs, photos) are not cut off. Only a random job id is passed between the two (the message waits in the Blobs store `wa-jobs`), so the background function can't be used to send messages. While an answer is prepared the bot keeps the "typing…" indicator on; if it takes more than 15 seconds it sends one "⏳ Working on your answer — this can take 1–2 minutes." (WhatsApp messages can't be edited, so there is no running percentage). If the hand-over ever fails, the message is answered in the webhook as before.
