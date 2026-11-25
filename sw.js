@@ -2,9 +2,9 @@
  * Pages: network first (always fresh when online), cached copy when offline.
  * Styles/scripts/images: cached copy at once, refreshed in the background.
  * The AI chat itself needs the internet and is never cached. */
-const VERSION = "cae-v4";
+const VERSION = "cae-v5";
 const CORE = [
-  "/", "/index.html", "/expert.html", "/calculators.html", "/quotation.html", "/construction-faq.html", "/privacy.html", "/disclaimer.html",
+  "/", "/index.html", "/expert.html", "/calculators.html", "/quotation.html", "/my-work.html", "/construction-faq.html", "/privacy.html", "/disclaimer.html",
   "/assets/site.css", "/assets/calc.js", "/assets/quote.js", "/assets/i18n.js", "/assets/app.js", "/assets/site-config.js", "/assets/logo.svg",
   "/assets/icon-192.png", "/assets/apple-touch-icon.png", "/manifest.webmanifest"
 ];

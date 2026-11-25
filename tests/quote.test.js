@@ -377,3 +377,32 @@ test("restore merges: newer quote wins, nothing here is lost, clashing rate ids 
   const again = Q.mergeBackup(m, backup);
   assert.deepEqual([again.quotes.length, again.ratebook.length, again.materials.length], [3, 2, 1], "restoring twice adds nothing");
 });
+
+// ---------- my work ----------
+test("my work: counts, values, win rate, estimates, deadlines, money from won jobs, rates and backup", () => {
+  const item = (rate, qty = 100) => ({ description: "Work", unit: "cum", qty, rate });
+  const quotes = [
+    { id: "a", number: "Q-1", status: "won", currency: "INR", items: [item(1000)], bid: { estimate: 95000 }, bills: [{ no: 1, upto: { 0: 40 } }, { no: 2, upto: { 0: 70 } }] },
+    { id: "b", number: "Q-2", status: "lost", currency: "INR", items: [item(1200)], tenderTerms: "- Estimated cost put to tender: Rs. 1 lakh." },
+    { id: "c", number: "Q-3", status: "submitted", currency: "INR", items: [item(500)], validUntil: "2026-12-01" },
+    { id: "d", number: "Q-4", currency: "INR", items: [item(10)], dueDate: "2026-11-27", subject: "School compound wall" },
+    { id: "e", number: "Q-5", status: "draft", currency: "INR", items: [item(10)], dueDate: "2027-01-30" }
+  ];
+  const s = Q.workSummary(quotes, { ratebook: [{}, {}], materials: [{ listDate: "2026-06-01" }, { listDate: "2026-11-01" }], lastBackup: Date.parse("2026-11-15"), today: "2026-11-25" });
+  assert.deepEqual(s.byStatus, { draft: 2, submitted: 1, won: 1, lost: 1 });
+  assert.deepEqual([s.value.won, s.value.lost, s.value.submitted], [100000, 120000, 50000]);
+  assert.equal(s.winRate, 50);
+  assert.equal(s.wonVsEstimate.toFixed(1), "5.3");     // 1,00,000 vs 95,000
+  assert.equal(s.lostVsEstimate.toFixed(1), "20.0");   // 1,20,000 vs 1,00,000 from the key terms
+  assert.deepEqual(s.due.map((d) => [d.kind, d.days, d.number]), [["bid-due", 2, "Q-4"], ["validity-ending", 6, "Q-3"]]);
+  assert.equal(s.money.contract, 100000);
+  assert.equal(s.money.billed, 70000);
+  assert.equal(s.money.toBill, 30000);
+  assert.equal(s.money.retention, 1750);                // 2.5% of 40,000 + 2.5% of 30,000
+  assert.equal(s.money.jobs[0].progressPct, 70);
+  assert.ok(s.money.netReceived > 0 && s.money.netReceived < 70000);
+  assert.deepEqual(s.rates, { count: 2, prices: 2, oldPrices: 1 });
+  assert.equal(s.backupDays, 10);
+  assert.equal(Q.workSummary([], {}).winRate, null);
+  assert.equal(Q.statusOf({}), "draft");
+});
