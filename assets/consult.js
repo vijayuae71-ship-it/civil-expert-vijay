@@ -348,7 +348,8 @@
       const n = parseInt(g(r, "photo").replace(/\D+/g, " ").trim(), 10);
       const sevText = g(r, "sev").toLowerCase();
       const severity = SEVERITY.find((s) => sevText.startsWith(s.toLowerCase())) || (/high|urgent|safety/.test(sevText) ? "Critical" : /medium|moderate/.test(sevText) ? "Major" : "Minor");
-      return { photo: photoIds.length ? photoIds[n - 1] : n, location: g(r, "loc"), defect: g(r, "defect"), severity, cause: g(r, "cause"), remedy: g(r, "remedy"), reference: g(r, "ref"), status: "Open" };
+      const location = g(r, "loc").replace(/^\s*\(?(location )?not (given|stated|specified)\)?\s*[-–—:,]*\s*/i, "");
+      return { photo: photoIds.length ? photoIds[n - 1] : n, location, defect: g(r, "defect"), severity, cause: g(r, "cause"), remedy: g(r, "remedy"), reference: g(r, "ref"), status: "Open" };
     }).filter((s) => s.defect && (photoIds.length ? s.photo !== undefined : Number.isFinite(s.photo)));
   }
   // Critical first, then Major, Minor; open before closed; then by photo order.
