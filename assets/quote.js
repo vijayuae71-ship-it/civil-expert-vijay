@@ -141,6 +141,53 @@
   }
   const tenderItemsFromText = (text) => tables(text).flatMap((rows) => tenderItems(rows));
 
+  // ---------- filling a client's / department's own BOQ format ----------
+  // rows: the sheet as arrays (row 0 = the sheet's first row). Each priced line of the format is matched
+  // to a quotation item — by item number first, else by description (with its parent heading) and unit —
+  // and gets that item's rate; the amount uses the format's own quantity. Nothing is guessed: lines
+  // without a confident match are reported, not filled.
+  const normRef = (r) => String(r || "").toLowerCase().replace(/\s+/g, "").replace(/\.+$/, "");
+  function formatFill(rows, quoteItems) {
+    const found = findHeader(rows || []);
+    if (!found) return { error: "No BOQ table was found in this file. It needs columns such as Description, Quantity and Rate." };
+    const { col } = found;
+    if (col.rate === -1) return { error: "The format has no Rate column to fill. Rename the column for your rates to “Rate”, or use ⬇ Excel instead." };
+    const items = (quoteItems || []).map((it, i) => ({ it, i, full: it.heading ? "" : fullDescription(quoteItems, i) })).filter((x) => !x.it.heading && String(x.it.description || "").trim());
+    const byRef = new Map(items.filter((x) => normRef(x.it.ref)).map((x) => [normRef(x.it.ref), x]));
+    const used = new Set(), assignments = [], unmatchedRows = [];
+    let parent = "";
+    for (let r = found.index + 1; r < rows.length; r++) {
+      const cells = (rows[r] || []).map(cellStr);
+      const description = cells[col.desc] || "", ref = col.ref !== -1 ? cells[col.ref] || "" : "";
+      if (!description || /^\d+$/.test(description) || isTotalRow([description, ref])) continue;
+      const qty = toNumber(cells[col.qty]), unit = col.unit !== -1 ? cells[col.unit] || "" : "";
+      if (!Number.isFinite(qty) || (qty === 0 && !unit)) { parent = description; continue; }   // a heading row
+      let hit = byRef.get(normRef(ref)), how = "item number";
+      if (hit && used.has(hit.i)) hit = null;
+      if (!hit) {
+        const full = `${parent && description.length < 80 ? parent + " — " : ""}${description}`;
+        let best = null;
+        for (const x of items) {
+          if (used.has(x.i)) continue;
+          if (unit && x.it.unit && normUnit(unit) !== normUnit(x.it.unit)) continue;
+          // Numbers are the specification (mix 1:6, 12 mm, M-25, Fe-500D): every number in one must be in the other.
+          const nums = (s) => tokens(s).filter((w) => /\d/.test(w));
+          const inFull = (list, text) => { const have = new Set(nums(text)); return list.every((w) => have.has(w)); };
+          if (!inFull(nums(description), x.full) || !inFull(nums(x.it.description), full)) continue;
+          const score = Math.max(similarity(full, x.full), similarity(description, x.it.description)) + (Number(x.it.qty) === qty ? 0.1 : 0);
+          if (!best || score > best.score) best = { x, score };
+        }
+        if (best && best.score >= 0.75) { hit = best.x; how = "description"; }
+      }
+      if (!hit) { unmatchedRows.push({ row: r, ref, description, qty, unit }); continue; }
+      used.add(hit.i);
+      const rate = Number(hit.it.rate) || 0;
+      assignments.push({ row: r, ref, description, qty, unit, itemIndex: hit.i, rate, amount: round2(qty * rate), how, qtyDiffers: Math.abs(qty - (Number(hit.it.qty) || 0)) > 1e-6, noRate: !(rate > 0) });
+    }
+    const unusedItems = items.filter((x) => !used.has(x.i)).map((x) => x.i);
+    return { headerRow: found.index, col, assignments, unmatchedRows, unusedItems, total: round2(assignments.reduce((s, a) => s + a.amount, 0)) };
+  }
+
   // Numbered item lists for the AI (rates, plain-language summaries): at most `size` items each.
   // `want` picks the items (default: every non-heading item); indexes refer to `items`.
   // A sub-item such as "All kinds of soil" means little alone: put its parent heading in front.
@@ -662,7 +709,7 @@
     return `${major} ${words(whole, currency === "INR")}${frac ? ` and ${words(frac, false)} ${minor}` : ""} Only`;
   }
 
-  const api = { CURRENCIES, toNumber, money, detectCurrency, itemsFromAnswer, tenderItems, tenderItemsFromText, ratesFromText, shortsFromText, sourcesFromText, basisFromText, materialLine, materialsFromRows, materialsFromText, addMaterials, relevantMaterials, priceAgeDays, matLabel, rateRequests, similarRates, ownRateFor, addToRateBook, rateListFromRows, normUnit, fullDescription, termsFacts, bidSummary, workSummary, statusOf, STATUSES, defaultBillSettings, billAbstract, newBill, makeBackup, readBackup, mergeBackup, simplifyRequests, checkQuote, reviewMessage, totals, quoteNumber, shareText, amountInWords, isTotalRow };
+  const api = { CURRENCIES, toNumber, money, detectCurrency, itemsFromAnswer, tenderItems, tenderItemsFromText, ratesFromText, shortsFromText, sourcesFromText, basisFromText, materialLine, materialsFromRows, materialsFromText, addMaterials, relevantMaterials, priceAgeDays, matLabel, rateRequests, similarRates, ownRateFor, addToRateBook, rateListFromRows, normUnit, fullDescription, termsFacts, bidSummary, workSummary, formatFill, statusOf, STATUSES, defaultBillSettings, billAbstract, newBill, makeBackup, readBackup, mergeBackup, simplifyRequests, checkQuote, reviewMessage, totals, quoteNumber, shareText, amountInWords, isTotalRow };
   if (typeof module === "object" && module.exports) module.exports = api;
   else root.QUOTE = api;
 })(typeof self !== "undefined" ? self : this);

@@ -406,3 +406,23 @@ test("my work: counts, values, win rate, estimates, deadlines, money from won jo
   assert.equal(Q.workSummary([], {}).winRate, null);
   assert.equal(Q.statusOf({}), "draft");
 });
+
+// ---------- filling a client's BOQ format ----------
+test("client's format: matched by item number, then by description with the same numbers; nothing guessed", () => {
+  const rows = [["Name of work: Anganwadi"], [], ["Sl. No.", "Item Description", "Quantity", "Units", "BASIC RATE In Figures To be entered by the Bidder in Rs. P", "TOTAL AMOUNT With Taxes"], [1, 2, 3, 4, 5, 6],
+    ["1", "Earth work in excavation by mechanical means, lead 50 m and lift 1.5 m", "", "", "", ""], ["1.1", "All kinds of soil", 125.5, "cum", "", ""], ["1.2", "Ordinary rock", 12, "cum", "", ""],
+    ["2", "Providing and laying cement concrete 1:4:8 up to plinth level, excluding centering and shuttering", 18.2, "cum", "", ""], ["3", "Steel reinforcement Fe-500D", 500, "kg", "", ""],
+    ["4", "Plaster 12 mm 1:6", 100, "sqm", "", ""], ["", "Total in Figures", "", "", "", ""]];
+  const items = [{ ref: "1.1", description: "All kinds of soil", unit: "cum", qty: 125.5, rate: 290 }, { ref: "", description: "Ordinary rock (any)", unit: "cum", qty: 12, rate: 1500 },
+    { ref: "2", description: "Providing and laying cement concrete 1:4:8 up to plinth level, excluding centering and shuttering", unit: "cum", qty: 20, rate: 6500 },
+    { ref: "9", description: "Plaster 12 mm 1:4", unit: "sqm", qty: 100, rate: 330 }];
+  const r = Q.formatFill(rows, items);
+  assert.deepEqual([r.headerRow, r.col.rate, r.col.amount, r.col.qty], [2, 4, 5, 2]);
+  assert.deepEqual(r.assignments.map((a) => [a.row, a.ref, a.rate, a.amount, a.how, a.qtyDiffers]), [
+    [5, "1.1", 290, 36395, "item number", false], [6, "1.2", 1500, 18000, "description", false], [7, "2", 6500, 118300, "item number", true]]);
+  assert.deepEqual(r.unmatchedRows.map((u) => u.ref), ["3", "4"], "1:6 plaster is never filled with the 1:4 rate");
+  assert.deepEqual(r.unusedItems, [3]);
+  assert.equal(r.total, 172695);
+  assert.match(Q.formatFill([["Item", "Description", "Qty", "Unit"], ["1", "x", 1, "m"]], items).error, /no Rate column/);
+  assert.match(Q.formatFill([["a"], ["b"]], items).error, /No BOQ table/);
+});
