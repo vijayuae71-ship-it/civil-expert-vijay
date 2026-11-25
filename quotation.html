@@ -1033,33 +1033,40 @@
       const el = $("backup-nudge");
       const show = has && (days === null || days > 30);
       el.classList.toggle("hidden", !show);
-      if (show) el.textContent = `💾 ${days === null ? "You have not saved a backup yet." : `Your last backup was ${days} days ago.`} Your quotations and rates are only on this phone — tap 💾 to save a backup.`;
+      if (show) el.textContent = `💾 ${days === null ? "You have not saved a backup yet." : `Your last backup was ${days} days ago.`} Your quotations, rates and consultant work are only on this phone — tap 💾 to save a backup.`;
       $("backup-status").textContent = last ? `Last backup saved: ${new Date(last).toLocaleDateString()}` : "No backup saved from this phone yet.";
     }
+    // Consultant tools' work (snags, BBS members, spec draft) goes in the same backup file.
+    const loadConsult = () => ({ snags: store.get(Q.CONSULT_KEYS.snags, null), bbs: store.get(Q.CONSULT_KEYS.bbs, []), spec: store.get(Q.CONSULT_KEYS.spec, "") });
+    const saveConsult = (c) => store.set(Q.CONSULT_KEYS.snags, c.snags) && store.set(Q.CONSULT_KEYS.bbs, c.bbs) && store.set(Q.CONSULT_KEYS.spec, c.spec);
+    const consultText = (c) => { const n = Q.consultantCount(c); return [n.snags ? `${n.snags} snags` : "", n.members ? `${n.members} BBS members` : "", n.spec ? "a spec draft" : ""].filter(Boolean).join(", "); };
     $("btn-backup").onclick = () => { togglePanel("backup"); backupNudge(); };
     $("backup-save").onclick = (e) => withBusy(e.currentTarget, async () => {
       clearTimeout(saveTimer); q.updated = Date.now(); quotes = [q, ...quotes.filter((x) => x.id !== q.id)]; store.set(KEY, quotes);
-      const data = Q.makeBackup({ quotes, company, ratebook: loadBook(), materials: loadMats() });
+      const data = Q.makeBackup({ quotes, company, ratebook: loadBook(), materials: loadMats(), consultant: loadConsult() });
       const name = `construction-ai-backup-${today()}.json`;
       const file = new File([JSON.stringify(data)], name, { type: "application/json" });
       let shared = false;
       try { if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: "Construction AI Expert backup" }); shared = true; } } catch (err) { if (err && err.name === "AbortError") return; }
       if (!shared) { const url = URL.createObjectURL(file); const link = Object.assign(document.createElement("a"), { href: url, download: name }); document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 5000); }
       store.set(LAST_BACKUP, Date.now()); backupNudge();
-      toast(`Backup saved: ${quotes.length} quotations, ${loadBook().length} rates, ${loadMats().length} prices.`);
+      const extra = consultText(loadConsult());
+      toast(`Backup saved: ${quotes.length} quotations, ${loadBook().length} rates, ${loadMats().length} prices${extra ? `, ${extra}` : ""}.`);
     });
     $("backup-file").addEventListener("change", async (e) => {
       const f = e.target.files[0]; e.target.value = ""; if (!f) return;
       try {
         const b = Q.readBackup(await f.text());
-        if (!confirm(`Restore this backup (${b.quotes.length} quotations, ${b.ratebook.length} rates, ${b.materials.length} prices${b.at ? `, saved ${new Date(b.at).toLocaleDateString()}` : ""})? Nothing on this phone is deleted.`)) return;
-        const merged = Q.mergeBackup({ quotes, company, ratebook: loadBook(), materials: loadMats() }, b);
+        const extra = consultText(b.consultant);
+        if (!confirm(`Restore this backup (${b.quotes.length} quotations, ${b.ratebook.length} rates, ${b.materials.length} prices${extra ? `, ${extra}` : ""}${b.at ? `, saved ${new Date(b.at).toLocaleDateString()}` : ""})? Nothing on this phone is deleted.`)) return;
+        const merged = Q.mergeBackup({ quotes, company, ratebook: loadBook(), materials: loadMats(), consultant: loadConsult() }, b);
         quotes = merged.quotes; company = merged.company;
         if (!store.set(KEY, quotes) || !store.set(CO_KEY, company)) throw new Error("The phone storage is full — delete some old quotations and try again.");
         saveBook(merged.ratebook); saveMats(merged.materials);
+        if (!saveConsult(merged.consultant)) throw new Error("The phone storage is full — clear old snags on the Consultants page and try again.");
         q = quotes.find((x) => x.id === q.id) || quotes[0] || blank(); fill(); renderSaved();
         const c = merged.counts;
-        $("backup-status").textContent = `✓ Restored: ${c.quotesAdded} quotations added, ${c.quotesUpdated} updated, ${c.ratesAdded} rates and ${c.pricesAdded} prices added.`;
+        $("backup-status").textContent = `✓ Restored: ${c.quotesAdded} quotations added, ${c.quotesUpdated} updated, ${c.ratesAdded} rates and ${c.pricesAdded} prices added${c.snagsAdded ? `, ${c.snagsAdded} snags` : ""}${c.membersAdded ? `, ${c.membersAdded} BBS members` : ""}${c.specRestored ? ", the spec draft" : ""}.${c.specKept ? " The spec draft already on this phone was kept." : ""}`;
       } catch (err) { $("backup-status").textContent = `⚠️ ${err.message}`; }
     });
 

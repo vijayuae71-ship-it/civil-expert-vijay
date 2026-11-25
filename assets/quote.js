@@ -485,14 +485,43 @@
 
   // ---------- backup / restore ----------
   // One file with everything the Quotation page keeps on this device.
-  function makeBackup({ quotes = [], company = {}, ratebook = [], materials = [] }, at = new Date().toISOString()) {
-    return { app: "construction-ai-expert", kind: "backup", version: 1, at, quotes, company, ratebook, materials };
+  // Consultant tools' work (consultant.html) travels in the same backup file.
+  const CONSULT_KEYS = { snags: "cae-snags-v1", bbs: "cae-bbs-v1", spec: "cae-spec-draft-v1" };
+  function normConsultant(c) {
+    const o = c && typeof c === "object" ? c : {}, sn = o.snags && typeof o.snags === "object" ? o.snags : {};
+    return {
+      snags: { project: String(sn.project || ""), by: String(sn.by || ""), photos: Array.isArray(sn.photos) ? sn.photos.filter((p) => p && p.id) : [], snags: Array.isArray(sn.snags) ? sn.snags.filter((x) => x && x.defect) : [] },
+      bbs: Array.isArray(o.bbs) ? o.bbs.filter((m) => m && typeof m === "object") : [],
+      spec: typeof o.spec === "string" ? o.spec : ""
+    };
+  }
+  const consultantCount = (c) => { const n = normConsultant(c); return { snags: n.snags.snags.length, photos: n.snags.photos.length, members: n.bbs.length, spec: n.spec.trim() ? 1 : 0 }; };
+  // New snags, photos and members are added; the spec draft on the phone is never overwritten.
+  function mergeConsultant(current, incoming) {
+    const cur = normConsultant(current), inc = normConsultant(incoming);
+    const counts = { snagsAdded: 0, photosAdded: 0, membersAdded: 0, specRestored: false, specKept: false };
+    const photos = cur.snags.photos.slice(), snags = cur.snags.snags.slice();
+    for (const p of inc.snags.photos) if (!photos.some((x) => x.id === p.id)) { photos.push(p); counts.photosAdded++; }
+    for (const x of inc.snags.snags) {
+      const same = snags.some((y) => (x.id && y.id === x.id) || (y.photo === x.photo && y.defect === x.defect));
+      if (!same) { snags.push(x); counts.snagsAdded++; }
+    }
+    const key = (m) => `${String(m.type || "").toLowerCase()}|${String(m.mark || "").trim().toLowerCase()}`;
+    const onlyExample = cur.bbs.length === 1 && cur.bbs[0].mark === "B1" && cur.bbs[0].main === "3-16" && cur.bbs[0].L === "4000";
+    const bbs = onlyExample && inc.bbs.length ? [] : cur.bbs.slice();
+    for (const m of inc.bbs) if (!bbs.some((x) => key(x) === key(m))) { bbs.push(m); counts.membersAdded++; }
+    let spec = cur.spec;
+    if (inc.spec.trim() && inc.spec !== cur.spec) { if (cur.spec.trim()) counts.specKept = true; else { spec = inc.spec; counts.specRestored = true; } }
+    return { consultant: { snags: { project: cur.snags.project || inc.snags.project, by: cur.snags.by || inc.snags.by, photos, snags }, bbs, spec }, counts };
+  }
+  function makeBackup({ quotes = [], company = {}, ratebook = [], materials = [], consultant = null }, at = new Date().toISOString()) {
+    return { app: "construction-ai-expert", kind: "backup", version: 1, at, quotes, company, ratebook, materials, consultant: normConsultant(consultant) };
   }
   function readBackup(json) {
     let b; try { b = typeof json === "string" ? JSON.parse(json) : json; } catch { throw new Error("This is not a backup file."); }
     if (!b || b.app !== "construction-ai-expert" || b.kind !== "backup") throw new Error("This is not a Construction AI Expert backup file.");
     if (!(b.version >= 1 && b.version <= 1)) throw new Error("This backup was made by a newer version. Update the app and try again.");
-    return { quotes: Array.isArray(b.quotes) ? b.quotes : [], company: b.company && typeof b.company === "object" ? b.company : {}, ratebook: Array.isArray(b.ratebook) ? b.ratebook : [], materials: Array.isArray(b.materials) ? b.materials : [], at: b.at };
+    return { quotes: Array.isArray(b.quotes) ? b.quotes : [], company: b.company && typeof b.company === "object" ? b.company : {}, ratebook: Array.isArray(b.ratebook) ? b.ratebook : [], materials: Array.isArray(b.materials) ? b.materials : [], consultant: normConsultant(b.consultant), at: b.at };
   }
   // Merge: the same item (by id) keeps whichever copy is newer; everything else is added. Ids that clash
   // between different rate-book / price entries get new numbers.
@@ -524,7 +553,8 @@
     };
     const ratebook = mergeList(current.ratebook, backup.ratebook, "R", (a, b) => bookKey(a.description, a.unit, a.currency) === bookKey(b.description, b.unit, b.currency), "ratesAdded");
     const materials = mergeList(current.materials, backup.materials, "M", (a, b) => matKey(a) === matKey(b), "pricesAdded");
-    return { quotes, company, ratebook, materials, counts };
+    const mc = mergeConsultant(current.consultant, backup.consultant);
+    return { quotes, company, ratebook, materials, consultant: mc.consultant, counts: { ...counts, ...mc.counts } };
   }
 
   // ---------- my work (all quotations on this device) ----------
@@ -756,7 +786,7 @@
     return `${major} ${words(whole, currency === "INR")}${frac ? ` and ${words(frac, false)} ${minor}` : ""} Only`;
   }
 
-  const api = { tables, CURRENCIES, toNumber, money, detectCurrency, itemsFromAnswer, tenderItems, tenderItemsFromText, ratesFromText, shortsFromText, sourcesFromText, basisFromText, materialLine, materialsFromRows, materialsFromText, addMaterials, relevantMaterials, priceAgeDays, matLabel, rateRequests, similarRates, ownRateFor, addToRateBook, rateListFromRows, normUnit, fullDescription, termsFacts, bidSummary, workSummary, formatFill, pricedItems, matchItems, normRef, statusOf, STATUSES, defaultBillSettings, billAbstract, newBill, makeBackup, readBackup, mergeBackup, simplifyRequests, checkQuote, reviewMessage, totals, quoteNumber, shareText, amountInWords, isTotalRow };
+  const api = { CONSULT_KEYS, normConsultant, consultantCount, mergeConsultant, tables, CURRENCIES, toNumber, money, detectCurrency, itemsFromAnswer, tenderItems, tenderItemsFromText, ratesFromText, shortsFromText, sourcesFromText, basisFromText, materialLine, materialsFromRows, materialsFromText, addMaterials, relevantMaterials, priceAgeDays, matLabel, rateRequests, similarRates, ownRateFor, addToRateBook, rateListFromRows, normUnit, fullDescription, termsFacts, bidSummary, workSummary, formatFill, pricedItems, matchItems, normRef, statusOf, STATUSES, defaultBillSettings, billAbstract, newBill, makeBackup, readBackup, mergeBackup, simplifyRequests, checkQuote, reviewMessage, totals, quoteNumber, shareText, amountInWords, isTotalRow };
   if (typeof module === "object" && module.exports) module.exports = api;
   else root.QUOTE = api;
 })(typeof self !== "undefined" ? self : this);

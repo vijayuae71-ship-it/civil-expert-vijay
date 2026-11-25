@@ -213,6 +213,13 @@
         <p class="mt-2 text-xs text-slate-500">Found from photos only: confirm each item on site (crack width and depth, hollowness, strength need measurement or testing). You can edit any cell — tap it.</p>
       </div>
     </section>
+    <section class="mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div><h2 class="font-bold text-slate-800">💾 Backup</h2><p class="text-xs text-slate-500" id="bk-note">Snag lists, BBS members and drafts are saved only on this phone.</p></div>
+        <div class="flex flex-wrap gap-2"><button id="bk-save" class="rounded-lg bg-blue-700 px-3 py-1.5 text-sm font-semibold text-white hover:bg-blue-800">Save backup</button><label class="cursor-pointer rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-semibold">Restore<input id="bk-file" type="file" accept=".json,application/json" class="hidden"></label></div>
+      </div>
+      <p id="bk-status" class="mt-2 text-sm text-slate-600" role="status"></p>
+    </section>
   </main>
 
   <footer class="border-t border-slate-200 bg-white">
@@ -636,7 +643,19 @@
     const spStatus = (t) => { $("sp-status").textContent = t; };
     const project = () => Object.fromEntries(["name", "client", "location", "cost", "period", "contractType", "makes", "notes"].map((k) => [k, $(`sp-${k}`).value]));
     const saveDoc = () => store.set(SP_KEY, doc.innerHTML);
-    const savedDoc = store.get(SP_KEY, "");
+    // Drafts come back from this phone or from a backup file: keep only plain formatting tags.
+    function cleanHtml(html) {
+      const ok = new Set(["H1", "H2", "H3", "H4", "P", "OL", "UL", "LI", "STRONG", "B", "EM", "I", "U", "SPAN", "HR", "BR", "DIV"]);
+      const src = new DOMParser().parseFromString(`<div>${String(html || "")}</div>`, "text/html").body.firstChild, out = document.createElement("div");
+      const copy = (from, to) => from.childNodes.forEach((n) => {
+        if (n.nodeType === 3) to.append(n.textContent);
+        else if (n.nodeType === 1 && ok.has(n.tagName)) { const e = document.createElement(n.tagName); if (n.tagName === "SPAN" && n.className === "num") e.className = "num"; if (n.tagName === "LI" && /^\d+$/.test(n.getAttribute("value") || "")) e.setAttribute("value", n.getAttribute("value")); copy(n, e); to.append(e); }
+        else if (n.nodeType === 1 && !/^(SCRIPT|STYLE|IFRAME|OBJECT|EMBED|TEMPLATE)$/.test(n.tagName)) copy(n, to);
+      });
+      if (src) copy(src, out);
+      return out.innerHTML;
+    }
+    const savedDoc = cleanHtml(store.get(SP_KEY, ""));
     if (savedDoc) { doc.innerHTML = savedDoc; $("sp-out").classList.remove("hidden"); }
     doc.addEventListener("input", saveDoc);
     let spBusy = false;
@@ -871,6 +890,43 @@
         pdf.save(`Snag-list-${today()}.pdf`);
       } catch (e) { toast(e.message); }
     });
+
+    // =============== backup (the same file as Quotation → 💾) ===============
+    const BK = { quotes: "cae-quotes-v1", company: "cae-quote-company-v1", ratebook: "cae-ratebook-v1", materials: "cae-materials-v1", last: "cae-last-backup" };
+    const loadAll = () => ({ quotes: store.get(BK.quotes, []), company: store.get(BK.company, {}), ratebook: store.get(BK.ratebook, []), materials: store.get(BK.materials, []),
+      consultant: { snags: store.get(Q.CONSULT_KEYS.snags, null), bbs: store.get(Q.CONSULT_KEYS.bbs, []), spec: store.get(Q.CONSULT_KEYS.spec, "") } });
+    const pl = (n, w) => `${n} ${w}${n === 1 ? "" : "s"}`;
+    const describe = (c) => { const n = Q.consultantCount(c); return [`${pl(n.snags, "snag")} (${pl(n.photos, "photo")})`, pl(n.members, "BBS member"), n.spec ? "a spec draft" : "no spec draft"].join(", "); };
+    function backupNote() {
+      const last = store.get(BK.last, 0), days = last ? Math.floor((Date.now() - last) / 864e5) : null;
+      $("bk-note").textContent = `Snag lists, BBS members and drafts are saved only on this phone. ${days === null ? "No backup saved yet." : `Last backup: ${days === 0 ? "today" : `${days} days ago`}.`} The backup also has your quotations and rates.`;
+    }
+    backupNote();
+    $("bk-save").addEventListener("click", async () => {
+      saveSnags();
+      const all = loadAll(), data = Q.makeBackup(all), name = `construction-ai-backup-${today()}.json`;
+      const file = new File([JSON.stringify(data)], name, { type: "application/json" });
+      let shared = false;
+      try { if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: "Construction AI Expert backup" }); shared = true; } } catch (err) { if (err && err.name === "AbortError") return; }
+      if (!shared) { const url = URL.createObjectURL(file); const a = Object.assign(document.createElement("a"), { href: url, download: name }); document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 5000); }
+      store.set(BK.last, Date.now()); backupNote();
+      $("bk-status").textContent = `✓ Backup saved: ${describe(all.consultant)}, ${pl(all.quotes.length, "quotation")}, ${pl(all.ratebook.length, "rate")}. Keep the file in Google Drive or WhatsApp it to yourself.`;
+    });
+    $("bk-file").addEventListener("change", async (e) => {
+      const f = e.target.files[0]; e.target.value = ""; if (!f) return;
+      try {
+        const b = Q.readBackup(await f.text());
+        if (!confirm(`Restore this backup (${describe(b.consultant)}, ${b.quotes.length} quotations${b.at ? `, saved ${new Date(b.at).toLocaleDateString()}` : ""})? Nothing on this phone is deleted.`)) return;
+        const m = Q.mergeBackup(loadAll(), b);
+        const ok = store.set(BK.quotes, m.quotes) && store.set(BK.company, m.company) && store.set(BK.ratebook, m.ratebook) && store.set(BK.materials, m.materials)
+          && store.set(Q.CONSULT_KEYS.snags, m.consultant.snags) && store.set(Q.CONSULT_KEYS.bbs, m.consultant.bbs) && store.set(Q.CONSULT_KEYS.spec, cleanHtml(m.consultant.spec));
+        if (!ok) throw new Error("The phone storage is full — clear old snags and try again.");
+        const c = m.counts;
+        try { sessionStorage.setItem("cae-restored", `✓ Restored: ${pl(c.snagsAdded, "snag")}, ${pl(c.membersAdded, "BBS member")}${c.specRestored ? ", the spec draft" : ""}, ${pl(c.quotesAdded, "quotation")}.${c.specKept ? " The spec draft already on this phone was kept." : ""}`); } catch {}
+        location.reload();
+      } catch (err) { $("bk-status").textContent = `⚠️ ${err.message}`; }
+    });
+    try { const msg = sessionStorage.getItem("cae-restored"); if (msg) { $("bk-status").textContent = msg; sessionStorage.removeItem("cae-restored"); } } catch {}
   })();
   </script>
 </body>

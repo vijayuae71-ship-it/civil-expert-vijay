@@ -356,7 +356,7 @@ test("bill settings: contract overrides, other deduction, Gulf defaults, and a q
 test("backup: round trip, wrong files refused", () => {
   const data = { quotes: [{ id: "a", updated: 1 }], company: { name: "SV" }, ratebook: [{ id: "R1", description: "PCC", unit: "cum", rate: 6200, currency: "INR" }], materials: [] };
   const b = Q.readBackup(JSON.stringify(Q.makeBackup(data, "2026-11-25T10:00:00Z")));
-  assert.deepEqual({ ...b, at: undefined }, { ...data, at: undefined });
+  assert.deepEqual({ ...b, at: undefined, consultant: undefined }, { ...data, at: undefined, consultant: undefined });
   assert.throws(() => Q.readBackup("{bad"), /not a backup file/);
   assert.throws(() => Q.readBackup({ app: "other" }), /not a Construction AI Expert backup/);
   assert.throws(() => Q.readBackup({ app: "construction-ai-expert", kind: "backup", version: 9 }), /newer version/);
@@ -373,7 +373,7 @@ test("restore merges: newer quote wins, nothing here is lost, clashing rate ids 
   assert.deepEqual(m.company, { name: "SV Smart", phone: "90000" });
   assert.deepEqual(m.ratebook.map((e) => [e.id, e.description, e.rate]), [["R1", "PCC 1:4:8", 6300], ["R2", "Brick work 1:6", 7800]]);
   assert.deepEqual(m.materials.map((e) => e.id), ["M1"]);
-  assert.deepEqual(m.counts, { quotesAdded: 1, quotesUpdated: 0, ratesAdded: 1, pricesAdded: 1 });
+  assert.deepEqual(m.counts, { quotesAdded: 1, quotesUpdated: 0, ratesAdded: 1, pricesAdded: 1, snagsAdded: 0, photosAdded: 0, membersAdded: 0, specRestored: false, specKept: false });
   const again = Q.mergeBackup(m, backup);
   assert.deepEqual([again.quotes.length, again.ratebook.length, again.materials.length], [3, 2, 1], "restoring twice adds nothing");
 });
@@ -434,4 +434,32 @@ test("progress estimate rises, slows, never passes 95% by itself; steps follow t
   assert.deepEqual([at(0), at(15), at(30), at(60), at(120), at(600)], [0, 31, 52, 76, 91, 95]);
   const steps = [[0, "Reading"], [20, "Quantities"], [50, "Writing"], [80, "Checking"]];
   assert.deepEqual([5, 20, 60, 95].map((p) => P.stepFor(p, steps)), ["Reading", "Quantities", "Writing", "Checking"]);
+});
+
+test("backup carries the consultant work; restore adds new snags and members and never overwrites a draft", () => {
+  const work = { snags: { project: "School", by: "VK", photos: [{ id: "p1", thumb: "AAA" }], snags: [{ id: "s1", photo: "p1", defect: "Honeycombing", severity: "Major", status: "Open" }] },
+    bbs: [{ mark: "B1", type: "beam", L: "4000", main: "3-16" }, { mark: "C1", type: "column" }], spec: "<h3>1. Earthwork</h3>" };
+  const b = Q.readBackup(JSON.stringify(Q.makeBackup({ quotes: [], consultant: work })));
+  assert.deepEqual(b.consultant, work);
+  assert.deepEqual(Q.consultantCount(b.consultant), { snags: 1, photos: 1, members: 2, spec: 1 });
+  // an old backup without consultant work still reads
+  assert.deepEqual(Q.readBackup({ app: "construction-ai-expert", kind: "backup", version: 1 }).consultant, { snags: { project: "", by: "", photos: [], snags: [] }, bbs: [], spec: "" });
+
+  // a fresh phone (only the example beam, empty draft) gets everything
+  const fresh = Q.mergeBackup({ quotes: [], consultant: { snags: null, bbs: [{ mark: "B1", type: "beam", count: "4", L: "4000", B: "230", D: "450", main: "3-16", top: "2-12", st: "8@150" }], spec: "" } }, b);
+  assert.equal(fresh.consultant.snags.snags.length, 1);
+  assert.equal(fresh.consultant.snags.project, "School");
+  assert.deepEqual(fresh.consultant.bbs.map((m) => m.mark), ["B1", "C1"], "the example beam is replaced, not doubled");
+  assert.equal(fresh.consultant.spec, work.spec);
+  assert.deepEqual([fresh.counts.snagsAdded, fresh.counts.photosAdded, fresh.counts.membersAdded, fresh.counts.specRestored], [1, 1, 2, true]);
+
+  // a phone with its own work keeps it: same snag not doubled, own members kept, own draft kept
+  const mine = { snags: { project: "Mall", by: "", photos: [{ id: "p9" }], snags: [{ id: "s9", photo: "p9", defect: "Crack" }, { id: "s1", photo: "p1", defect: "Honeycombing" }] }, bbs: [{ mark: "F1", type: "footing" }], spec: "<p>My edited draft</p>" };
+  const m = Q.mergeBackup({ quotes: [], consultant: mine }, b);
+  assert.deepEqual(m.consultant.snags.snags.map((x) => x.id), ["s9", "s1"]);
+  assert.equal(m.consultant.snags.project, "Mall");
+  assert.deepEqual(m.consultant.bbs.map((x) => x.mark), ["F1", "B1", "C1"]);
+  assert.equal(m.consultant.spec, "<p>My edited draft</p>");
+  assert.equal(m.counts.specKept, true);
+  assert.equal(Q.mergeBackup(m, b).counts.snagsAdded, 0, "restoring twice adds nothing");
 });
