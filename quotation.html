@@ -61,7 +61,7 @@
   </style>
 </head>
 <body class="bg-slate-100 text-slate-900 font-sans pb-24">
-  <nav class="no-print bg-white border-b border-slate-200"><div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3"><a href="index.html" class="flex min-w-0 items-center gap-2 font-bold leading-tight text-slate-800"><img src="assets/logo.svg" alt="" width="32" height="32" class="w-8 h-8"><span class="truncate">Construction AI Expert</span></a><div class="flex items-center gap-4 text-sm font-medium text-blue-700"><a href="expert.html" class="whitespace-nowrap hover:text-blue-900">Ask AI</a><a href="calculators.html" class="hidden sm:inline hover:text-blue-900">Calculators</a><a href="quotation.html" class="whitespace-nowrap font-bold text-blue-900" aria-current="page">Quotation</a></div></div></nav>
+  <nav class="no-print bg-white border-b border-slate-200"><div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3"><a href="index.html" class="flex min-w-0 items-center gap-2 font-bold leading-tight text-slate-800"><img src="assets/logo.svg" alt="" width="32" height="32" class="w-8 h-8"><span class="truncate">Construction AI Expert</span></a><div class="flex items-center gap-4 text-sm font-medium text-blue-700"><a href="expert.html" class="whitespace-nowrap hover:text-blue-900">Ask AI</a><a href="calculators.html" class="hidden sm:inline hover:text-blue-900">Calculators</a><a href="quotation.html" class="whitespace-nowrap font-bold text-blue-900" aria-current="page">Quotation</a><a href="my-work.html" class="whitespace-nowrap hover:text-blue-900">My work</a></div></div></nav>
 
   <main class="max-w-4xl mx-auto px-3 sm:px-4 py-5">
     <div class="no-print flex flex-wrap items-center justify-between gap-2">
@@ -83,6 +83,14 @@
       <p id="backup-status" class="mt-2 text-xs text-slate-600"></p>
     </section>
     <section id="saved" class="no-print hidden mt-3 rounded-xl border border-slate-200 bg-white p-2 shadow-sm" aria-label="Saved quotations"></section>
+    <div id="status-bar" class="no-print mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm">
+      <label class="flex items-center gap-2 font-semibold text-slate-600">Status
+        <select id="q-status" class="rounded-md border border-slate-300 bg-white px-2 py-1 text-sm font-normal text-slate-900">
+          <option value="draft">📝 Draft</option><option value="submitted">📤 Submitted</option><option value="won">🏆 Won</option><option value="lost">✖ Lost</option>
+        </select></label>
+      <label class="flex items-center gap-2 font-semibold text-slate-600">Bid due <input id="q-due" type="date" class="rounded-md border border-slate-300 px-2 py-1 text-sm font-normal text-slate-900"></label>
+      <a href="my-work.html" class="ml-auto font-semibold text-blue-700 underline">📊 My work</a>
+    </div>
     <p id="from-answer" class="no-print hidden mt-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950">Items were copied from the AI answer. Rates from the AI are indicative — check every rate and quantity before you send this quotation.</p>
     <section id="tender-tools" class="no-print mt-3 rounded-xl border border-blue-200 bg-blue-50/60 p-3">
       <p class="text-sm font-bold text-blue-900">Tender / BOQ tools</p>
@@ -323,6 +331,7 @@
     // ---------- render ----------
     const setVal = (el, v) => { if (document.activeElement !== el) el.value = v == null ? "" : v; };
     function fill() {
+      $("q-status").value = Q.statusOf(q); setVal($("q-due"), q.dueDate || "");
       document.querySelectorAll("[data-q]").forEach((el) => setVal(el, q[el.dataset.q]));
       document.querySelectorAll("[data-cl]").forEach((el) => setVal(el, q.client[el.dataset.cl]));
       document.querySelectorAll("[data-co]").forEach((el) => setVal(el, company[el.dataset.co]));
@@ -402,7 +411,7 @@
         const row = document.createElement("div"); row.className = `flex items-center gap-2 rounded-lg px-2 py-1.5 ${x.id === q.id ? "bg-blue-50" : "hover:bg-slate-50"}`;
         row.innerHTML = "<button type='button' class='min-w-0 flex-1 text-left'><span class='block truncate text-sm font-semibold'></span><span class='block truncate text-xs text-slate-500'></span></button><button type='button' class='rounded px-2 text-xs text-slate-500 hover:bg-slate-100'>Copy</button><button type='button' class='rounded px-2 text-xs text-red-600 hover:bg-red-50'>Delete</button>";
         const [open, dup, del] = row.querySelectorAll("button");
-        open.children[0].textContent = `${x.number} · ${x.client?.name || "No client"}`;
+        open.children[0].textContent = `${{ draft: "📝", submitted: "📤", won: "🏆", lost: "✖" }[Q.statusOf(x)]} ${x.number} · ${x.client?.name || "No client"}`;
         open.children[1].textContent = `${nice(x.date)} · ${Q.money(Q.totals(x).total, x.currency)}${x.subject ? ` · ${x.subject}` : ""}`;
         open.onclick = () => { q = x; fill(); hideReview(); $("bid").classList.add("hidden"); $("bills").classList.add("hidden"); showTerms(x.tenderTerms); $("from-tender").classList.toggle("hidden", !x.fromTender); toggleList(false); window.scrollTo({ top: 0, behavior: "smooth" }); };
         dup.onclick = () => { const fresh = blank({ currency: x.currency }); q = { ...JSON.parse(JSON.stringify(x)), id: fresh.id, number: fresh.number, date: fresh.date, validUntil: fresh.validUntil }; save(); fill(); toggleList(false); toast("Copied as a new quotation"); };
@@ -414,6 +423,14 @@
 
     // ---------- inputs ----------
     document.querySelectorAll("[data-q]").forEach((el) => el.addEventListener("input", () => { q[el.dataset.q] = el.value; if (el.tagName === "TEXTAREA") autosize(el); save(); }));
+    // Status and bid due date: for My work only, never printed or shared.
+    $("q-status").addEventListener("change", (e) => {
+      q.status = e.target.value;
+      if (q.status === "submitted" && !q.submittedAt) q.submittedAt = today();
+      if (q.status === "won" || q.status === "lost") q.decidedAt = today();
+      save(); renderSaved(); toast({ submitted: "Marked as submitted.", won: "🏆 Marked as won — open 🧾 Running bills when work starts.", lost: "Marked as lost.", draft: "Back to draft." }[q.status]);
+    });
+    $("q-due").addEventListener("change", (e) => { q.dueDate = e.target.value; save(); });
     document.querySelectorAll("[data-cl]").forEach((el) => el.addEventListener("input", () => { q.client[el.dataset.cl] = el.value; if (el.tagName === "TEXTAREA") autosize(el); save(); }));
     document.querySelectorAll("[data-co]").forEach((el) => el.addEventListener("input", () => { company[el.dataset.co] = el.value; store.set(CO_KEY, company); if (el.tagName === "TEXTAREA") autosize(el); renderTotals(); }));
     $("currency").innerHTML = Object.keys(Q.CURRENCIES).map((c) => `<option value="${c}">${c} (${Q.CURRENCIES[c].symbol})</option>`).join("");
@@ -1108,7 +1125,11 @@
       q = blank({ currency: Q.CURRENCIES[imported.currency] ? imported.currency : undefined, subject: String(imported.subject || "").slice(0, 300) });
       q.items = imported.items.slice(0, 200).map((it) => ({ description: String(it.description || ""), unit: String(it.unit || ""), qty: Number(it.qty) || 0, rate: Number(it.rate) || 0 }));
       $("from-answer").classList.remove("hidden"); save();
-    } else { q = quotes[0] || blank(); $("from-tender").classList.toggle("hidden", !q.fromTender); showTerms(q.tenderTerms); }
+    } else {
+      const openId = new URLSearchParams(location.search).get("open");   // from My work
+      q = (openId && quotes.find((x) => x.id === openId)) || quotes[0] || blank();
+      $("from-tender").classList.toggle("hidden", !q.fromTender); showTerms(q.tenderTerms);
+    }
     store.del(IMPORT_KEY);
     const waId = new URLSearchParams(location.search).get("wa");
     if (location.search) history.replaceState(null, "", location.pathname);

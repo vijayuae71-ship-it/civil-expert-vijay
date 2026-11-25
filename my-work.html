@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Work | Construction AI Expert</title>
+  <meta name="description" content="Your tenders and quotations in one place: status, win rate, bids due, bills and money from won jobs. Saved on your phone.">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#1e3a8a">
+  <link rel="icon" href="assets/logo.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="assets/site.css">
+  <script src="assets/quote.js"></script>
+  <script src="assets/app.js" defer></script>
+</head>
+<body class="bg-slate-100 text-slate-900 font-sans">
+  <nav class="bg-white border-b border-slate-200"><div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3"><a href="index.html" class="flex min-w-0 items-center gap-2 font-bold leading-tight text-slate-800"><img src="assets/logo.svg" alt="" width="32" height="32" class="w-8 h-8"><span class="truncate">Construction AI Expert</span></a><div class="flex items-center gap-4 text-sm font-medium text-blue-700"><a href="expert.html" class="whitespace-nowrap hover:text-blue-900">Ask AI</a><a href="quotation.html" class="whitespace-nowrap hover:text-blue-900">Quotation</a><a href="my-work.html" class="whitespace-nowrap font-bold text-blue-900" aria-current="page">My work</a></div></div></nav>
+
+  <main class="max-w-4xl mx-auto px-3 sm:px-4 py-5">
+    <div class="flex flex-wrap items-end justify-between gap-2">
+      <div><h1 class="text-2xl font-extrabold text-blue-900">My work</h1><p class="text-xs text-slate-500">Your tenders and quotations in one place. Saved only on this phone — keep a 💾 backup.</p></div>
+      <a href="quotation.html" class="rounded-lg bg-blue-700 px-3 py-1.5 text-sm font-semibold text-white hover:bg-blue-800">+ New quotation</a>
+    </div>
+
+    <section id="empty" class="hidden mt-5 rounded-2xl border border-slate-200 bg-white p-5 text-center shadow-sm">
+      <p class="text-lg font-bold text-slate-800">No quotations yet</p>
+      <p class="mt-1 text-sm text-slate-600">Make a quotation or import a tender BOQ. Then set its status (Submitted, Won, Lost) at the top of the quotation, and your work shows up here.</p>
+      <a href="quotation.html" class="mt-3 inline-block rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white">Open Quotation</a>
+    </section>
+
+    <div id="dash" class="hidden">
+      <section class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4" aria-label="Tenders and quotes">
+        <div class="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm"><p class="text-xs text-slate-500">Quotations</p><p class="text-2xl font-extrabold tabular-nums" id="t-count"></p><p class="text-xs text-slate-500" id="t-count-sub"></p></div>
+        <div class="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm"><p class="text-xs text-slate-500">Value quoted (submitted, won, lost)</p><p class="text-xl font-extrabold tabular-nums" id="t-value"></p><p class="text-xs text-slate-500" id="t-value-sub"></p></div>
+        <div class="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm"><p class="text-xs text-slate-500">Win rate</p><p class="text-2xl font-extrabold tabular-nums" id="t-win"></p><p class="text-xs text-slate-500" id="t-win-sub"></p></div>
+        <div class="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm"><p class="text-xs text-slate-500">Your bids vs department estimate</p><p class="text-xl font-extrabold tabular-nums" id="t-est"></p><p class="text-xs text-slate-500" id="t-est-sub"></p></div>
+      </section>
+
+      <section class="mt-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <h2 class="font-bold text-slate-800">⏰ Due soon</h2>
+        <ul id="due" class="mt-2 space-y-2 text-sm"></ul>
+      </section>
+
+      <section class="mt-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <h2 class="font-bold text-slate-800">💰 Money from won jobs</h2>
+        <div id="money" class="mt-2"></div>
+        <ul id="jobs" class="mt-3 space-y-3 text-sm"></ul>
+      </section>
+
+      <section class="mt-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <h2 class="font-bold text-slate-800">📁 All quotations</h2>
+          <div id="filters" class="flex flex-wrap gap-1.5" role="group" aria-label="Filter by status"></div>
+        </div>
+        <ul id="list" class="mt-2 divide-y divide-slate-100"></ul>
+      </section>
+
+      <section class="mt-4 grid gap-3 sm:grid-cols-3">
+        <a href="quotation.html" class="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm hover:border-emerald-400"><p class="text-xs text-slate-500">📒 My rates</p><p class="text-xl font-extrabold tabular-nums" id="t-rates"></p><p class="text-xs text-slate-500">saved rates (Quotation → My rates)</p></a>
+        <a href="quotation.html" class="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm hover:border-orange-400"><p class="text-xs text-slate-500">📦 Material prices</p><p class="text-xl font-extrabold tabular-nums" id="t-prices"></p><p class="text-xs text-slate-500" id="t-prices-sub"></p></a>
+        <a href="quotation.html" class="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm hover:border-blue-400"><p class="text-xs text-slate-500">💾 Last backup</p><p class="text-xl font-extrabold" id="t-backup"></p><p class="text-xs text-slate-500" id="t-backup-sub"></p></a>
+      </section>
+    </div>
+  </main>
+  <footer class="border-t border-slate-200 bg-white mt-10"><p class="max-w-5xl mx-auto px-4 py-6 text-sm text-slate-500">Figures are worked out from your own quotations and bills on this phone. <a href="disclaimer.html" class="text-blue-700 hover:underline">Disclaimer &amp; terms</a> · <a href="privacy.html" class="text-blue-700 hover:underline">Privacy notice</a></p></footer>
+
+  <script>
+  (() => {
+    const Q = window.QUOTE, $ = (id) => document.getElementById(id);
+    const store = {
+      get(k, d) { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch { return d; } },
+      set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { return false; } }
+    };
+    const KEY = "cae-quotes-v1";
+    const LABEL = { draft: "📝 Draft", submitted: "📤 Submitted", won: "🏆 Won", lost: "✖ Lost" };
+    const CHIP = { draft: "bg-slate-100 text-slate-700", submitted: "bg-blue-50 text-blue-800", won: "bg-emerald-50 text-emerald-800", lost: "bg-red-50 text-red-800" };
+    const today = () => { const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); };
+    const nice = (iso) => { if (!iso) return ""; const [y, m, d] = iso.split("-"); return `${d}-${m}-${y}`; };
+    const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; };
+    const short = (n, cur) => {   // ₹ 12.4 lakh / ₹ 1.2 crore for India; plain thousands otherwise
+      const sym = (Q.CURRENCIES[cur] || Q.CURRENCIES.INR).symbol;
+      if (cur === "INR" && n >= 1e7) return `${sym} ${(n / 1e7).toFixed(2)} crore`;
+      if (cur === "INR" && n >= 1e5) return `${sym} ${(n / 1e5).toFixed(2)} lakh`;
+      return Q.money(Math.round(n), cur).replace(/\.0+$/, "");
+    };
+    let filter = "all";
+
+    function render() {
+      const quotes = store.get(KEY, []);
+      $("empty").classList.toggle("hidden", quotes.length > 0);
+      $("dash").classList.toggle("hidden", quotes.length === 0);
+      if (!quotes.length) return;
+      const opts = { ratebook: store.get("cae-ratebook-v1", []), materials: store.get("cae-materials-v1", []), lastBackup: store.get("cae-last-backup", 0), today: today() };
+      const all = Q.workSummary(quotes, opts);
+      // Money is added up per currency (a ₹ quote and an AED quote are never summed together).
+      const currencies = [...new Set(quotes.map((x) => x.currency || "INR"))];
+      const perCur = currencies.map((c) => ({ c, s: Q.workSummary(quotes.filter((x) => (x.currency || "INR") === c), opts) }));
+      const joinCur = (fn) => { const parts = perCur.filter(({ s }) => fn(s) > 0).map(({ c, s }) => short(fn(s), c)); return parts.length ? parts.join(" · ") : short(0, perCur[0].c); };
+
+      const b = all.byStatus;
+      $("t-count").textContent = all.total;
+      $("t-count-sub").textContent = `${b.draft} draft · ${b.submitted} submitted · ${b.won} won · ${b.lost} lost`;
+      $("t-value").textContent = joinCur((s) => s.value.submitted + s.value.won + s.value.lost);
+      $("t-value-sub").textContent = `won ${joinCur((s) => s.value.won)}`;
+      $("t-win").textContent = all.winRate === null ? "–" : `${Math.round(all.winRate)}%`;
+      $("t-win-sub").textContent = all.winRate === null ? "Mark quotes Won or Lost to see this" : `won ${b.won} of ${b.won + b.lost} decided`;
+      const sign = (p) => `${p >= 0 ? "+" : "−"}${Math.abs(p).toFixed(1)}%`;
+      $("t-est").textContent = all.wonVsEstimate === null ? "–" : `${sign(all.wonVsEstimate)} when won`;
+      $("t-est-sub").textContent = all.lostVsEstimate === null ? (all.wonVsEstimate === null ? "Needs the estimate (Key tender terms or Bid summary)" : "") : `${sign(all.lostVsEstimate)} when lost`;
+
+      const due = $("due"); due.innerHTML = "";
+      const DUE = {
+        "bid-overdue": (d) => `🔴 Bid was due ${-d.days} day${d.days === -1 ? "" : "s"} ago (${nice(d.date)}) — submitted? Change its status.`,
+        "bid-due": (d) => `${d.days <= 2 ? "🔴" : "🟠"} Bid due ${d.days === 0 ? "today" : d.days === 1 ? "tomorrow" : `in ${d.days} days`} (${nice(d.date)})`,
+        "validity-over": (d) => `🟠 Your offer's validity ended ${nice(d.date)} — extend it if the department asks`,
+        "validity-ending": (d) => `🟠 Your offer is valid only until ${nice(d.date)} (${d.days} day${d.days === 1 ? "" : "s"})`
+      };
+      all.due.forEach((d) => { const li = el("li"); const a = el("a", "block rounded-lg bg-slate-50 px-3 py-2 hover:bg-slate-100"); a.href = `quotation.html?open=${encodeURIComponent(d.id)}`; a.append(el("span", "font-semibold", DUE[d.kind](d)), el("span", "block text-xs text-slate-600", `${d.number || ""} · ${d.name}`)); li.appendChild(a); due.appendChild(li); });
+      if (!due.children.length) due.appendChild(el("li", "text-slate-500", "Nothing due in the next 7 days. Add a “Bid due” date at the top of a quotation to see it here."));
+
+      const money = $("money"); money.innerHTML = "";
+      if (!b.won) money.appendChild(el("p", "text-sm text-slate-500", "No won jobs yet. Mark a quotation 🏆 Won, then add 🧾 Running bills as work goes on."));
+      else perCur.filter(({ s }) => s.byStatus.won).forEach(({ c, s }) => {
+        const grid = el("dl", "grid grid-cols-2 gap-x-3 gap-y-1 text-sm sm:grid-cols-4");
+        [["Contract value", s.money.contract], ["Billed to date", s.money.billed], ["Net payable on your bills", s.money.netReceived], ["Retention held back", s.money.retention], ["Work left to bill", s.money.toBill]].forEach(([l, v]) => {
+          const box = el("div", "rounded-lg bg-slate-50 px-3 py-2"); box.append(el("dt", "text-xs text-slate-500", l), el("dd", "font-bold tabular-nums", short(v, c))); grid.appendChild(box);
+        });
+        money.appendChild(grid);
+      });
+      const jobs = $("jobs"); jobs.innerHTML = "";
+      perCur.forEach(({ c, s }) => s.money.jobs.forEach((j) => {
+        const li = el("li"), a = el("a", "block hover:opacity-80"); a.href = `quotation.html?open=${encodeURIComponent(j.id)}`;
+        const top = el("div", "flex justify-between gap-2"); top.append(el("span", "min-w-0 truncate font-semibold", `${j.number || ""} · ${j.name}`), el("span", "shrink-0 tabular-nums text-slate-600", `${Math.round(j.progressPct)}%`));
+        const track = el("div", "mt-1 h-2 rounded-full bg-slate-100"), fill = el("div", "h-2 rounded-full bg-blue-600"); fill.style.width = `${Math.min(100, j.progressPct)}%`; track.appendChild(fill);
+        a.append(top, track, el("div", "mt-0.5 text-xs text-slate-500", `${j.bills} bill${j.bills === 1 ? "" : "s"} · billed ${short(j.billed, c)} of ${short(j.contract, c)}`));
+        li.appendChild(a); jobs.appendChild(li);
+      }));
+
+      const filters = $("filters"); filters.innerHTML = "";
+      [["all", `All ${all.total}`], ...Q.STATUSES.map((s) => [s, `${LABEL[s]} ${b[s]}`])].forEach(([k, l]) => {
+        const btn = el("button", `rounded-full px-3 py-1 text-xs font-semibold ${filter === k ? "bg-blue-700 text-white" : "border border-slate-300 text-slate-700"}`, l);
+        btn.type = "button"; btn.setAttribute("aria-pressed", filter === k); btn.onclick = () => { filter = k; render(); }; filters.appendChild(btn);
+      });
+      const list = $("list"); list.innerHTML = "";
+      quotes.filter((x) => filter === "all" || Q.statusOf(x) === filter).forEach((x) => {
+        const st = Q.statusOf(x), t = Q.totals(x);
+        const li = el("li", "flex items-center gap-2 py-2.5");
+        const a = el("a", "min-w-0 flex-1"); a.href = `quotation.html?open=${encodeURIComponent(x.id)}`;
+        a.append(el("span", "block truncate text-sm font-semibold text-slate-800", x.subject || x.client?.name || x.number),
+          el("span", "block truncate text-xs text-slate-500", `${short(t.taxable, x.currency || "INR")}${x.dueDate && st === "draft" ? ` · due ${nice(x.dueDate)}` : ""} · ${x.number} · ${nice(x.date)}`));
+        const sel = el("select", `shrink-0 rounded-full border-0 px-2 py-1 text-xs font-semibold ${CHIP[st]}`);
+        sel.setAttribute("aria-label", `Status of ${x.number}`);
+        Q.STATUSES.forEach((s) => { const o = el("option", "", LABEL[s]); o.value = s; o.selected = s === st; sel.appendChild(o); });
+        sel.onchange = () => {
+          const qs = store.get(KEY, []), y = qs.find((z) => z.id === x.id); if (!y) return;
+          y.status = sel.value; y.updated = Date.now();
+          if (y.status === "submitted" && !y.submittedAt) y.submittedAt = today();
+          if (y.status === "won" || y.status === "lost") y.decidedAt = today();
+          store.set(KEY, qs); render();
+        };
+        li.append(a, sel); list.appendChild(li);
+      });
+      if (!list.children.length) list.appendChild(el("li", "py-3 text-sm text-slate-500", "No quotations with this status."));
+
+      $("t-rates").textContent = all.rates.count;
+      $("t-prices").textContent = all.rates.prices;
+      $("t-prices-sub").textContent = all.rates.oldPrices ? `🟠 ${all.rates.oldPrices} older than 3 months` : "all up to date";
+      $("t-backup").textContent = all.backupDays === null ? "Never" : all.backupDays === 0 ? "Today" : `${all.backupDays} days ago`;
+      $("t-backup-sub").textContent = all.backupDays === null || all.backupDays > 30 ? "🟠 Save one: Quotation → 💾" : "Quotation → 💾";
+    }
+    render();
+    window.addEventListener("pageshow", render);   // fresh figures when coming back from a quotation
+  })();
+  </script>
+</body>
+</html>

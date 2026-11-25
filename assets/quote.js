@@ -433,6 +433,55 @@
     return { quotes, company, ratebook, materials, counts };
   }
 
+  // ---------- my work (all quotations on this device) ----------
+  // q.status: "draft" | "submitted" | "won" | "lost" (missing = draft); q.dueDate: bid submission date.
+  const STATUSES = ["draft", "submitted", "won", "lost"];
+  const statusOf = (q) => (STATUSES.includes(q.status) ? q.status : "draft");
+  const daysBetween = (fromIso, toIso) => Math.round((Date.parse(toIso) - Date.parse(fromIso)) / 864e5);
+  function workSummary(quotes, { ratebook = [], materials = [], lastBackup = 0, today = new Date().toISOString().slice(0, 10), soonDays = 7 } = {}) {
+    const byStatus = { draft: 0, submitted: 0, won: 0, lost: 0 };
+    const value = { draft: 0, submitted: 0, won: 0, lost: 0 };
+    const due = [], money = { contract: 0, billed: 0, netReceived: 0, retention: 0, toBill: 0, jobs: [] };
+    const vsEstimate = [];
+    for (const q of quotes || []) {
+      const st = statusOf(q), t = totals(q);
+      byStatus[st]++; value[st] += t.taxable;
+      const name = q.subject || q.client?.name || q.number || "Quotation";
+      if (st === "draft" && q.dueDate) {
+        const d = daysBetween(today, q.dueDate);
+        if (d <= soonDays) due.push({ id: q.id, kind: d < 0 ? "bid-overdue" : "bid-due", days: d, date: q.dueDate, name, number: q.number });
+      }
+      if (st === "submitted" && q.validUntil) {
+        const d = daysBetween(today, q.validUntil);
+        if (d <= soonDays) due.push({ id: q.id, kind: d < 0 ? "validity-over" : "validity-ending", days: d, date: q.validUntil, name, number: q.number });
+      }
+      const estimate = Number(q.bid?.estimate) || termsFacts(q.tenderTerms).estimate;
+      if ((st === "won" || st === "lost") && estimate > 0 && t.taxable > 0) vsEstimate.push({ status: st, pct: (t.taxable / estimate - 1) * 100 });
+      if (st === "won") {
+        const bills = q.bills || [];
+        let net = 0, retention = 0, upto = 0;
+        bills.forEach((_, n) => {
+          const a = billAbstract(q, n); if (!a) return;
+          net += a.net; upto = a.uptoGross;
+          retention += a.deductions.filter((d) => /^Security deposit/.test(d.label)).reduce((s, d) => s + d.amount, 0);
+        });
+        money.contract += t.taxable; money.billed += upto; money.netReceived += net; money.retention += retention;
+        money.toBill += Math.max(0, t.taxable - upto);
+        money.jobs.push({ id: q.id, name, number: q.number, contract: t.taxable, billed: upto, bills: bills.length, progressPct: t.taxable ? (upto / t.taxable) * 100 : 0 });
+      }
+    }
+    due.sort((a, b) => a.days - b.days);
+    const decided = byStatus.won + byStatus.lost;
+    const avg = (arr) => (arr.length ? arr.reduce((s, x) => s + x.pct, 0) / arr.length : null);
+    const oldPrices = (materials || []).filter((m) => priceAgeDays(m, new Date(today)) > 90).length;
+    return {
+      total: (quotes || []).length, byStatus, value, winRate: decided ? (byStatus.won / decided) * 100 : null,
+      wonVsEstimate: avg(vsEstimate.filter((x) => x.status === "won")), lostVsEstimate: avg(vsEstimate.filter((x) => x.status === "lost")),
+      due, money, rates: { count: (ratebook || []).length, prices: (materials || []).length, oldPrices },
+      backupDays: lastBackup ? Math.floor((Date.parse(today) - lastBackup) / 864e5) : null
+    };
+  }
+
   // ---------- bid summary ----------
   const lakhCrore = (num, word) => { const n = Number(String(num).replace(/,/g, "")); return /crore|cr\b/i.test(word || "") ? n * 1e7 : /lakh|lac/i.test(word || "") ? n * 1e5 : n; };
   // Numbers a tender's terms usually state; anything not found stays undefined.
@@ -613,7 +662,7 @@
     return `${major} ${words(whole, currency === "INR")}${frac ? ` and ${words(frac, false)} ${minor}` : ""} Only`;
   }
 
-  const api = { CURRENCIES, toNumber, money, detectCurrency, itemsFromAnswer, tenderItems, tenderItemsFromText, ratesFromText, shortsFromText, sourcesFromText, basisFromText, materialLine, materialsFromRows, materialsFromText, addMaterials, relevantMaterials, priceAgeDays, matLabel, rateRequests, similarRates, ownRateFor, addToRateBook, rateListFromRows, normUnit, fullDescription, termsFacts, bidSummary, defaultBillSettings, billAbstract, newBill, makeBackup, readBackup, mergeBackup, simplifyRequests, checkQuote, reviewMessage, totals, quoteNumber, shareText, amountInWords, isTotalRow };
+  const api = { CURRENCIES, toNumber, money, detectCurrency, itemsFromAnswer, tenderItems, tenderItemsFromText, ratesFromText, shortsFromText, sourcesFromText, basisFromText, materialLine, materialsFromRows, materialsFromText, addMaterials, relevantMaterials, priceAgeDays, matLabel, rateRequests, similarRates, ownRateFor, addToRateBook, rateListFromRows, normUnit, fullDescription, termsFacts, bidSummary, workSummary, statusOf, STATUSES, defaultBillSettings, billAbstract, newBill, makeBackup, readBackup, mergeBackup, simplifyRequests, checkQuote, reviewMessage, totals, quoteNumber, shareText, amountInWords, isTotalRow };
   if (typeof module === "object" && module.exports) module.exports = api;
   else root.QUOTE = api;
 })(typeof self !== "undefined" ? self : this);
