@@ -362,9 +362,46 @@
     const by = (sev) => real.filter((s) => s.severity === sev && s.status !== "Closed").length;
     return { total: real.length, open: real.filter((s) => s.status !== "Closed").length, critical: by("Critical"), major: by("Major"), minor: by("Minor") };
   }
+  // The site team's language: Indian languages first (the app's answer languages), then the Gulf's.
+  const SITE_LANGUAGES = [["hi", "Hindi", "हिन्दी"], ["kn", "Kannada", "ಕನ್ನಡ"], ["ta", "Tamil", "தமிழ்"], ["te", "Telugu", "తెలుగు"], ["mr", "Marathi", "मराठी"], ["ml", "Malayalam", "മലയാളം"],
+    ["bn", "Bengali", "বাংলা"], ["gu", "Gujarati", "ગુજરાતી"], ["pa", "Punjabi", "ਪੰਜਾਬੀ"], ["ur", "Urdu", "اردو"], ["ne", "Nepali", "नेपाली"], ["ar", "Arabic", "العربية"]];
+  const langName = (code) => (SITE_LANGUAGES.find((l) => l[0] === code) || [])[1] || "";
+  // What the snag-translate task gets, and its reply → [{ defect, remedy }] in the same order.
+  function translateMessage(snags, code) {
+    return `Language: ${langName(code)}\n\nItems:\n${snags.map((s, i) => `${i + 1}. Defect: ${String(s.defect || "").replace(/\s+/g, " ")} | Remedy: ${String(s.remedy || "").replace(/\s+/g, " ")}`).join("\n")}\n\nTranslate the Defect and Remedy of every item.`;
+  }
+  function translationsFromText(text, count) {
+    const rows = tableRows(text), out = Array.from({ length: count }, () => null);
+    if (rows.length < 2) return out;
+    const h = rows[0].map((x) => String(x).toLowerCase());
+    let cn = h.findIndex((x) => /^\s*(no|#|sl)/.test(x)); if (cn === -1) cn = 0;
+    const cd = h.length >= 3 ? 1 : -1, cr = h.length >= 3 ? 2 : 1;
+    for (const r of rows.slice(1)) {
+      const n = parseInt(String(r[cn] || "").replace(/[^\d]/g, ""), 10);
+      if (!(n >= 1 && n <= count)) continue;
+      const clean = (v) => String(v || "").replace(/<br\s*\/?>/gi, " ").trim();
+      out[n - 1] = { defect: cd === -1 ? "" : clean(r[cd]), remedy: clean(r[cr]) };
+    }
+    return out;
+  }
+  // A WhatsApp message for the site team: open snags, critical first, in their language when there is one.
+  function snagShareText(list, { project = "", date = "", photoLabel = (id) => id } = {}) {
+    const open = list.filter((s) => s.status !== "Closed" && !/^no visible defect/i.test(s.defect));
+    const icon = { Critical: "🔴", Major: "🟠", Minor: "⚪" };
+    const lines = [`*Snag list${project ? ` – ${project}` : ""}${date ? ` – ${date}` : ""}*`, `${open.length} open`, ""];
+    open.forEach((s, i) => {
+      const loc = s.local && s.local.defect ? s.local : null;
+      lines.push(`${i + 1}. ${icon[s.severity] || ""} *${s.severity}* · ${s.location || ""}${s.photo ? ` (${photoLabel(s.photo)})` : ""}`);
+      lines.push(loc ? loc.defect : s.defect);
+      if (s.remedy) lines.push(`✅ ${loc && loc.remedy ? loc.remedy : s.remedy}`);
+      lines.push("");
+    });
+    return lines.join("\n").trim();
+  }
   function snagSheet(list, { title = "Snag list", photoLabel = (id) => id } = {}) {
-    const out = [[title], [], ["No", "Photo", "Location / element", "Defect", "Severity", "Likely cause", "Remedy / remarks", "Reference", "Status"]];
-    list.forEach((s, i) => out.push([i + 1, photoLabel(s.photo), s.location, s.defect, s.severity, s.cause, s.remedy, s.reference, s.status]));
+    const code = (list.find((s) => s.local && s.local.lang) || {}).local?.lang, L = langName(code);
+    const out = [[title], [], ["No", "Photo", "Location / element", "Defect", "Severity", "Likely cause", "Remedy / remarks", "Reference", "Status", ...(L ? [`Defect (${L})`, `Remedy (${L})`] : [])]];
+    list.forEach((s, i) => out.push([i + 1, photoLabel(s.photo), s.location, s.defect, s.severity, s.cause, s.remedy, s.reference, s.status, ...(L ? [s.local && s.local.lang === code ? s.local.defect : "", s.local && s.local.lang === code ? s.local.remedy : ""] : [])]));
     return out;
   }
 
@@ -400,7 +437,7 @@
   }
 
   const api = { compareBids, billColumns, billItems, certifyBill, bbs, BBS_DEFAULTS, kgPerM, slabCheck, beamCheck, columnCheck, footingCheck, median,
-    SEVERITY, snagsFromText, sortSnags, snagSummary, snagSheet,
+    SEVERITY, snagsFromText, sortSnags, snagSummary, snagSheet, SITE_LANGUAGES, langName, translateMessage, translationsFromText, snagShareText,
     tableRows, parseBars, memberRowsFromText, memberFromRow, membersFromText, specMessage, conditionsMessage, mdToHtml, comparisonSheet, certificateSheet, bbsSheet };
   if (typeof module === "object" && module.exports) module.exports = api;
   else root.CONSULT = api;

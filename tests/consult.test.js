@@ -225,3 +225,30 @@ test("site snags: the AI table becomes snags on the right photos, critical first
   assert.deepEqual(sheet[2], ["No", "Photo", "Location / element", "Defect", "Severity", "Likely cause", "Remedy / remarks", "Reference", "Status"]);
   assert.deepEqual(sheet[3].slice(0, 5), [1, "P2", "Slab edge", "No edge protection", "Critical"]);
 });
+
+test("snags in the site team's language: message, reply, Excel columns and the WhatsApp text", () => {
+  const snags = [
+    { photo: "p1", location: "Column C3", defect: "Honeycombing at base", severity: "Major", remedy: "Chip loose concrete and patch with repair mortar", status: "Open" },
+    { photo: "p2", location: "Slab edge", defect: "No edge protection", severity: "Critical", remedy: "Stop work at the edge; fix a 1 m guard rail", status: "Open" },
+    { photo: "p2", location: "Slab", defect: "Dust", severity: "Minor", remedy: "Clean", status: "Closed" }
+  ];
+  const msg = C.translateMessage(snags.slice(0, 2), "kn");
+  assert.match(msg, /^Language: Kannada/);
+  assert.match(msg, /2\. Defect: No edge protection \| Remedy: Stop work at the edge; fix a 1 m guard rail/);
+  assert.equal(C.langName("hi"), "Hindi"); assert.equal(C.langName("xx"), "");
+  // rows may come back in any order; missing or out-of-range numbers are ignored
+  const t = C.translationsFromText("| No | Defect | Remedy |\n|---|---|---|\n| 2 | ಅಂಚಿನ ರಕ್ಷಣೆ ಇಲ್ಲ | ಅಂಚಿನಲ್ಲಿ ಕೆಲಸ ನಿಲ್ಲಿಸಿ; 1 m ಗಾರ್ಡ್ ರೈಲ್ ಹಾಕಿ |\n| 9 | x | y |", 2);
+  assert.equal(t[0], null);
+  assert.deepEqual(t[1], { defect: "ಅಂಚಿನ ರಕ್ಷಣೆ ಇಲ್ಲ", remedy: "ಅಂಚಿನಲ್ಲಿ ಕೆಲಸ ನಿಲ್ಲಿಸಿ; 1 m ಗಾರ್ಡ್ ರೈಲ್ ಹಾಕಿ" });
+  snags[1].local = { lang: "kn", ...t[1] };
+  const sheet = C.snagSheet(C.sortSnags(snags, ["p1", "p2"]), { photoLabel: (id) => id.toUpperCase() });
+  assert.deepEqual(sheet[2].slice(-2), ["Defect (Kannada)", "Remedy (Kannada)"]);
+  assert.deepEqual(sheet[3].slice(-2), ["ಅಂಚಿನ ರಕ್ಷಣೆ ಇಲ್ಲ", "ಅಂಚಿನಲ್ಲಿ ಕೆಲಸ ನಿಲ್ಲಿಸಿ; 1 m ಗಾರ್ಡ್ ರೈಲ್ ಹಾಕಿ"]);
+  assert.deepEqual(sheet[4].slice(-2), ["", ""], "a snag not yet translated has empty cells");
+  assert.equal(C.snagSheet(snags.slice(0, 1))[2].length, 9, "no language columns without translations");
+  const wa = C.snagShareText(C.sortSnags(snags, ["p1", "p2"]), { project: "School", date: "2026-11-25", photoLabel: (id) => id.toUpperCase() });
+  assert.match(wa, /^\*Snag list – School – 2026-11-25\*\n2 open/);
+  assert.match(wa, /1\. 🔴 \*Critical\* · Slab edge \(P2\)\nಅಂಚಿನ ರಕ್ಷಣೆ ಇಲ್ಲ\n✅ ಅಂಚಿನಲ್ಲಿ ಕೆಲಸ ನಿಲ್ಲಿಸಿ/);
+  assert.match(wa, /2\. 🟠 \*Major\* · Column C3 \(P1\)\nHoneycombing at base\n✅ Chip loose/, "untranslated snags go in English");
+  assert.doesNotMatch(wa, /Dust/, "closed snags are left out");
+});
