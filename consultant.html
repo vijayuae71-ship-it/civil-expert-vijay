@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Consultant Tools | Construction AI Expert</title>
-  <meta name="description" content="Tools for architects, structural engineers and PMCs: bid comparison, bar bending schedule, IS 456 check sheets, specification and tender writer, and running-bill certification.">
+  <meta name="description" content="Tools for architects, structural engineers and PMCs: site snag list from photos, bid comparison, bar bending schedule, IS 456 check sheets, specification and tender writer, and running-bill certification.">
   <meta name="theme-color" content="#1e3a8a">
   <link rel="icon" href="assets/logo.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
   <link rel="manifest" href="manifest.webmanifest">
@@ -36,6 +36,7 @@
     <p class="mt-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-950">⚠️ These are working aids. Every schedule, check, draft and certificate must be verified and signed by the responsible qualified consultant. They do not replace your design, judgement or approval.</p>
 
     <div class="mt-4 flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Tools">
+      <button class="tab shrink-0 rounded-full border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold" role="tab" data-tab="snags">📷 Site snags</button>
       <button class="tab shrink-0 rounded-full border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold" role="tab" data-tab="bids">📊 Bid comparison</button>
       <button class="tab shrink-0 rounded-full border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold" role="tab" data-tab="bbs">🔩 Bar bending</button>
       <button class="tab shrink-0 rounded-full border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold" role="tab" data-tab="checks">📐 IS 456 checks</button>
@@ -186,6 +187,32 @@
         <div id="bill-abstract" class="mt-4 max-w-md text-sm"></div>
       </div>
     </section>
+    <!-- 6. Site snag list -->
+    <section id="tab-snags" class="panel mt-4 space-y-4" hidden>
+      <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <h2 class="font-bold text-slate-800">Site inspection photos</h2>
+        <p class="text-xs text-slate-500">Take or choose photos; add where each one is. The AI lists every visible defect with its severity, likely cause and remedy. Photos are kept small on this phone for the report.</p>
+        <div class="mt-2 grid gap-2 text-sm sm:grid-cols-2 grid-in">
+          <label>Project / site<input id="sn-project" class="rounded border border-slate-300 px-2 py-1" placeholder="e.g. Anganwadi building, Mysuru"></label>
+          <label>Inspected by<input id="sn-by" class="rounded border border-slate-300 px-2 py-1" placeholder="Name, firm"></label>
+        </div>
+        <div class="mt-3 flex flex-wrap gap-2">
+          <label class="cursor-pointer rounded-lg bg-blue-700 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800">📷 Take photo<input id="sn-camera" type="file" accept="image/*" capture="environment" class="hidden"></label>
+          <label class="cursor-pointer rounded-lg border border-blue-300 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-800">🖼 Choose photos<input id="sn-file" type="file" accept="image/*" multiple class="hidden"></label>
+        </div>
+        <ul id="sn-pending" class="mt-3 grid gap-2 sm:grid-cols-2"></ul>
+        <button id="sn-run" class="mt-3 hidden rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">Find defects</button>
+        <div id="sn-progress" class="mt-2"></div>
+        <p id="sn-status" class="mt-1 text-sm text-slate-600" role="status"></p>
+      </div>
+      <div id="sn-out" class="hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div class="flex flex-wrap items-center justify-between gap-2"><h2 class="font-bold text-slate-800">Snag list</h2><div class="flex flex-wrap gap-2"><button id="sn-xlsx" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-semibold">⬇ Excel</button><button id="sn-pdf" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-semibold">⬇ PDF with photos</button><button id="sn-clear" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-semibold text-red-700">Clear</button></div></div>
+        <div id="sn-summary" class="mt-3 flex flex-wrap gap-2 text-sm"></div>
+        <div class="mt-2 flex flex-wrap gap-1.5 text-xs" role="group" aria-label="Show"><button data-snf="all" class="snf rounded-full border px-2.5 py-1">All</button><button data-snf="open" class="snf rounded-full border px-2.5 py-1">Open</button><button data-snf="Critical" class="snf rounded-full border px-2.5 py-1">Critical</button></div>
+        <div class="mt-2 overflow-x-auto"><table id="sn-table" class="min-w-full text-xs"></table></div>
+        <p class="mt-2 text-xs text-slate-500">Found from photos only: confirm each item on site (crack width and depth, hollowness, strength need measurement or testing). You can edit any cell — tap it.</p>
+      </div>
+    </section>
   </main>
 
   <footer class="border-t border-slate-200 bg-white">
@@ -208,9 +235,9 @@
     const num = (id) => { const v = Number($(id).value); return Number.isFinite(v) ? v : 0; };
 
     // ---- tabs ----
-    const TABS = ["bids", "bbs", "checks", "specs", "bills"];
+    const TABS = ["snags", "bids", "bbs", "checks", "specs", "bills"];
     function showTab(name) {
-      if (!TABS.includes(name)) name = "bids";
+      if (!TABS.includes(name)) name = "snags";
       document.querySelectorAll(".tab").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === name)));
       document.querySelectorAll(".panel").forEach((p) => { p.hidden = p.id !== `tab-${name}`; });
       try { history.replaceState(null, "", `#${name}`); } catch {}
@@ -230,6 +257,7 @@
       "bill-items": { expectedMs: 70000, steps: [[0, "Reading the bill"], [25, "Copying quantities and amounts"], [80, "Checking item numbers"]] },
       "bbs-members": { expectedMs: 60000, steps: [[0, "Reading the drawing"], [30, "Finding members and bars"], [70, "Writing the member list"]] },
       "spec-items": { expectedMs: 150000, steps: [[0, "Reading the BOQ"], [15, "Grouping items by trade"], [35, "Writing materials and workmanship"], [65, "Writing testing and measurement"], [88, "Finishing"]] },
+      "site-snags": { expectedMs: 60000, steps: [[0, "Looking at the photos"], [25, "Finding defects"], [55, "Working out causes and remedies"], [85, "Writing the snag list"]] },
       "spec-conditions": { expectedMs: 120000, steps: [[0, "Reading the project details"], [15, "Writing the notice inviting tender"], [40, "Writing conditions of contract"], [75, "Approved makes and documents"]] }
     };
     const uuid = () => (crypto.randomUUID ? crypto.randomUUID() : Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, "0")).join(""));
@@ -253,11 +281,11 @@
       throw new Error("This is taking too long. Please try again with fewer pages.");
     }
     const fileData = (file) => new Promise((ok, fail) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(",")[1]); r.onerror = () => fail(new Error(`Could not read ${file.name}.`)); r.readAsDataURL(file); });
-    async function imageData(file) {
+    async function imageData(file, maxPx = 2200, quality = 0.88) {
       let bmp; try { bmp = await createImageBitmap(file); } catch { throw new Error(`${file.name}: this photo format could not be opened. Please use JPEG.`); }
-      const sc = Math.min(1, 2200 / Math.max(bmp.width, bmp.height)), cv = document.createElement("canvas");
+      const sc = Math.min(1, maxPx / Math.max(bmp.width, bmp.height)), cv = document.createElement("canvas");
       cv.width = Math.round(bmp.width * sc); cv.height = Math.round(bmp.height * sc); cv.getContext("2d").drawImage(bmp, 0, 0, cv.width, cv.height);
-      return cv.toDataURL("image/jpeg", 0.88).split(",")[1];
+      return cv.toDataURL("image/jpeg", quality).split(",")[1];
     }
     async function attachmentsOf(files) {
       const out = [];
@@ -712,6 +740,135 @@
         const rows = c.lines.map((l) => [l.ref || "", l.description.slice(0, 200), fmt(l.agreedQty), fmt(l.agreedRate), fmt(l.claimedQty), fmt(l.claimed, 0), fmt(l.allowedQty), fmt(l.certified, 0), l.reasons.join(" ")]);
         const after = [["Claimed up to date", m(c.claimedUpto)], ["Certified up to date", m(c.certifiedUpto)], ["Less: certified in previous bills", m(c.certifiedPrev)], ["Gross amount of this bill", m(c.gross), true], ...(c.tax ? [["Add: GST / VAT", m(c.tax)]] : []), ...c.deductions.map((d) => [`Less: ${d.label}`, m(d.amount)]), ["Net payable", m(c.net), true], ["", ""], ["Certified by: ____________________   Date: __________", ""]];
         await savePdf({ title: "Running bill — certification", subtitle: `Bill: ${billName}. Agreement: ${agreement.label}. Deviation limit ${num("bl-dev")}%. Quantities limited to measured (MB) quantities where entered.`, cols, rows, after, file: `Bill-certification-${today()}.pdf` });
+      } catch (e) { toast(e.message); }
+    });
+
+    // =============== 6. Site snag list ===============
+    const SN_KEY = "cae-snags-v1";
+    const snagState = store.get(SN_KEY, null) || { project: "", by: "", photos: [], snags: [] };
+    const pending = [];
+    let snFilter = "all", snBusy = false;
+    $("sn-project").value = snagState.project || ""; $("sn-by").value = snagState.by || "";
+    const saveSnags = () => { snagState.project = $("sn-project").value; snagState.by = $("sn-by").value; if (!store.set(SN_KEY, snagState)) toast("Phone storage is full: download the report, then clear old snags."); };
+    $("sn-project").addEventListener("change", saveSnags); $("sn-by").addEventListener("change", saveSnags);
+    const photoNo = (id) => snagState.photos.findIndex((p) => p.id === id) + 1;
+    function renderPending() {
+      const ul = $("sn-pending"); ul.replaceChildren();
+      pending.forEach((p, i) => {
+        const li = el("li", "flex gap-2 rounded-lg border border-slate-200 p-2");
+        const img = el("img", "h-16 w-16 shrink-0 rounded object-cover"); img.src = p.url; img.alt = "";
+        const box = el("div", "min-w-0 flex-1");
+        const inp = el("input", "w-full rounded border border-slate-300 px-2 py-1 text-sm"); inp.placeholder = "Where? e.g. Grid C3, 1st floor slab"; inp.value = p.location; inp.oninput = () => { p.location = inp.value; };
+        const x = el("button", "mt-1 text-xs text-red-700", "Remove"); x.onclick = () => { URL.revokeObjectURL(p.url); pending.splice(i, 1); renderPending(); };
+        box.append(el("p", "truncate text-xs text-slate-500", p.file.name), inp, x); li.append(img, box); ul.append(li);
+      });
+      $("sn-run").classList.toggle("hidden", !pending.length);
+      $("sn-run").textContent = `Find defects in ${pending.length} photo${pending.length === 1 ? "" : "s"}`;
+    }
+    const addPhotos = (e) => {
+      const files = Array.from(e.target.files || []).filter((f) => /^image\//.test(f.type)); e.target.value = "";
+      if (pending.length + files.length > 20) toast("Up to 20 photos at a time.");
+      files.slice(0, 20 - pending.length).forEach((file) => pending.push({ id: uuid(), file, url: URL.createObjectURL(file), location: "" }));
+      renderPending();
+    };
+    $("sn-camera").addEventListener("change", addPhotos); $("sn-file").addEventListener("change", addPhotos);
+    $("sn-run").addEventListener("click", async () => {
+      if (snBusy || !pending.length) return;
+      snBusy = true; $("sn-run").disabled = true;
+      const batches = []; for (let i = 0; i < pending.length; i += 4) batches.push(pending.slice(i, i + 4));
+      let found = 0;
+      try {
+        for (let b = 0; b < batches.length; b++) {
+          const batch = batches[b];
+          $("sn-status").textContent = `Checking photos${batches.length > 1 ? ` — part ${b + 1} of ${batches.length}` : ""}… about a minute per part. Keep this page open.`;
+          const attachments = [];
+          for (const p of batch) attachments.push({ name: `photo-${attachments.length + 1}.jpg`, mimeType: "image/jpeg", data: await imageData(p.file, 1600, 0.85) });
+          const message = `Project / site: ${$("sn-project").value.trim() || "not given"}\nPhotos:\n${batch.map((p, i) => `${i + 1}. ${p.location.trim() ? `Location: ${p.location.trim()}` : "Location not given"}`).join("\n")}\n\nMake the snag list for these photos.`;
+          const job = await aiJob({ task: "site-snags", message, attachments }, "sn-progress");
+          const snags = C.snagsFromText(job.reply, batch.map((p) => p.id));
+          for (const p of batch) {
+            snagState.photos.push({ id: p.id, name: p.file.name, location: p.location.trim(), date: today(), thumb: await imageData(p.file, 480, 0.6) });
+            URL.revokeObjectURL(p.url);
+          }
+          snags.forEach((s) => { s.id = uuid(); if (!s.location) s.location = batch.find((p) => p.id === s.photo)?.location || ""; });
+          snagState.snags.push(...snags); found += snags.filter((s) => !/^no visible defect/i.test(s.defect)).length;
+          pending.splice(0, batch.length); saveSnags(); renderPending(); renderSnags();
+        }
+        $("sn-status").textContent = `✓ ${found} defect${found === 1 ? "" : "s"} found. Confirm each on site; tap a cell to correct it.`;
+      } catch (e) { $("sn-status").textContent = `⚠️ ${e.message}`; }
+      finally { snBusy = false; $("sn-run").disabled = false; }
+    });
+    const SEV_CLS = { Critical: "bg-red-100 text-red-800", Major: "bg-amber-100 text-amber-900", Minor: "bg-slate-100 text-slate-700" };
+    function renderSnags() {
+      $("sn-out").classList.toggle("hidden", !snagState.snags.length);
+      const sum = C.snagSummary(snagState.snags), box = $("sn-summary"); box.replaceChildren();
+      [[`${sum.open} open of ${sum.total}`, "bg-blue-50 text-blue-900"], [`🔴 ${sum.critical} critical`, SEV_CLS.Critical], [`🟠 ${sum.major} major`, SEV_CLS.Major], [`⚪ ${sum.minor} minor`, SEV_CLS.Minor]].forEach(([t, c]) => box.append(el("span", `rounded-full px-3 py-1 font-semibold ${c}`, t)));
+      document.querySelectorAll(".snf").forEach((b) => { const on = b.dataset.snf === snFilter; b.classList.toggle("bg-blue-900", on); b.classList.toggle("text-white", on); });
+      const list = C.sortSnags(snagState.snags, snagState.photos.map((p) => p.id)).filter((s) => snFilter === "all" || (snFilter === "open" ? s.status !== "Closed" : s.severity === snFilter && s.status !== "Closed"));
+      const t = $("sn-table"); t.replaceChildren();
+      const hr = el("tr", "text-left text-slate-500 align-bottom");
+      ["No", "Photo", "Location / element", "Defect", "Severity", "Likely cause", "Remedy / remarks", "Ref.", "Status", ""].forEach((h) => hr.append(el("th", "p-1", h)));
+      t.append(el("thead")); t.tHead.append(hr);
+      const tb = el("tbody"); t.append(tb);
+      list.forEach((s, i) => {
+        const tr = el("tr", `border-t border-slate-100 align-top ${s.status === "Closed" ? "opacity-50" : ""}`);
+        tr.append(el("td", "p-1 tabular-nums", String(i + 1)));
+        const ph = snagState.photos.find((p) => p.id === s.photo), tdp = el("td", "p-1");
+        if (ph) { const img = el("img", "h-14 w-14 rounded object-cover"); img.src = `data:image/jpeg;base64,${ph.thumb}`; img.alt = `Photo ${photoNo(ph.id)}`; tdp.append(img, el("div", "text-[10px] text-slate-500", `P${photoNo(ph.id)}`)); }
+        tr.append(tdp);
+        const edit = (k, cls) => { const td = el("td", `p-1 ${cls}`, s[k]); td.contentEditable = "true"; td.addEventListener("blur", () => { if (s[k] !== td.textContent.trim()) { s[k] = td.textContent.trim(); saveSnags(); } }); return td; };
+        tr.append(edit("location", "min-w-[7rem]"), edit("defect", "min-w-[10rem]"));
+        const tds = el("td", "p-1"), sev = el("select", `rounded px-1 py-0.5 font-semibold ${SEV_CLS[s.severity]}`); C.SEVERITY.forEach((v) => sev.append(new Option(v, v))); sev.value = s.severity; sev.setAttribute("aria-label", "Severity"); sev.onchange = () => { s.severity = sev.value; saveSnags(); renderSnags(); }; tds.append(sev); tr.append(tds);
+        tr.append(edit("cause", "min-w-[8rem]"), edit("remedy", "min-w-[14rem]"), edit("reference", "min-w-[5rem] text-slate-500"));
+        const tdst = el("td", "p-1"), st = el("select", "rounded border border-slate-300 px-1 py-0.5"); ["Open", "Closed"].forEach((v) => st.append(new Option(v, v))); st.value = s.status; st.setAttribute("aria-label", "Status"); st.onchange = () => { s.status = st.value; saveSnags(); renderSnags(); }; tdst.append(st); tr.append(tdst);
+        const del = el("button", "px-1 text-red-700", "✕"); del.setAttribute("aria-label", "Delete this snag"); del.onclick = () => { snagState.snags = snagState.snags.filter((x) => x !== s); snagState.photos = snagState.photos.filter((p) => snagState.snags.some((x) => x.photo === p.id)); saveSnags(); renderSnags(); };
+        const tdd = el("td"); tdd.append(del); tr.append(tdd);
+        tb.append(tr);
+      });
+    }
+    document.querySelectorAll(".snf").forEach((b) => b.addEventListener("click", () => { snFilter = b.dataset.snf; renderSnags(); }));
+    renderSnags();
+    const orderedSnags = () => C.sortSnags(snagState.snags, snagState.photos.map((p) => p.id));
+    $("sn-xlsx").addEventListener("click", async () => { try { await loadXlsx(); saveXlsx(C.snagSheet(orderedSnags(), { title: `Snag list — ${$("sn-project").value || "site"} — ${today()}`, photoLabel: (id) => `P${photoNo(id)}` }), `Snag-list-${today()}.xlsx`, [5, 7, 22, 40, 10, 28, 50, 16, 9]); } catch (e) { toast(e.message); } });
+    $("sn-clear").addEventListener("click", () => { if (!confirm("Delete the whole snag list and its photos from this phone?")) return; snagState.photos = []; snagState.snags = []; saveSnags(); renderSnags(); });
+    $("sn-pdf").addEventListener("click", async () => {
+      try {
+        await loadPdf();
+        const { jsPDF } = window.jspdf, pdf = new jsPDF({ unit: "pt", format: "a4", orientation: "landscape" });
+        const M = 28, W = pdf.internal.pageSize.getWidth(), H = pdf.internal.pageSize.getHeight(), CW = W - 2 * M;
+        const clean = (v) => String(v == null ? "" : v).replace(/[−–—]/g, "-").replace(/[×]/g, "x").replace(/[≤]/g, "<=").replace(/[≥]/g, ">=").replace(/[^\x00-\xFF]/g, "");
+        const cols = [["No", 22], ["Photo", 78], ["Location", 80], ["Defect", 140], ["Severity", 50], ["Likely cause", 95], ["Remedy / remarks", 195], ["Ref.", 60], ["Status", 40]];
+        const scale = CW / cols.reduce((a, c) => a + c[1], 0), ws = cols.map((c) => c[1] * scale);
+        let y = M;
+        const head = () => { pdf.setFont("helvetica", "bold"); pdf.setFontSize(8); pdf.setFillColor(30, 58, 138); pdf.rect(M, y, CW, 16, "F"); pdf.setTextColor(255); let x = M; cols.forEach((c, i) => { pdf.text(c[0], x + 3, y + 11); x += ws[i]; }); y += 16; pdf.setTextColor(15, 23, 42); pdf.setFont("helvetica", "normal"); };
+        const sum = C.snagSummary(snagState.snags);
+        pdf.setFont("helvetica", "bold"); pdf.setFontSize(15); pdf.setTextColor(30, 58, 138); pdf.text("Site inspection - snag list", M, y + 10); y += 24;
+        pdf.setFont("helvetica", "normal"); pdf.setFontSize(9); pdf.setTextColor(71, 85, 105);
+        pdf.text(clean(`${$("sn-project").value || "Project / site: -"}   |   Date: ${today()}   |   Inspected by: ${$("sn-by").value || "-"}`), M, y); y += 13;
+        pdf.text(`Open: ${sum.open} of ${sum.total}   |   Critical ${sum.critical}   |   Major ${sum.major}   |   Minor ${sum.minor}`, M, y); y += 14;
+        head();
+        const SEVC = { Critical: [220, 38, 38], Major: [217, 119, 6], Minor: [100, 116, 139] };
+        orderedSnags().forEach((s, i) => {
+          pdf.setFontSize(7.5);
+          const ph = snagState.photos.find((p) => p.id === s.photo);
+          const cells = [String(i + 1), "", s.location, s.defect, s.severity, s.cause, s.remedy, s.reference, s.status].map((v, k) => pdf.splitTextToSize(clean(v), ws[k] - 6));
+          const imgH = ph ? ws[1] * 0.75 - 4 : 0, h = Math.max(imgH + 14, Math.max(...cells.map((c) => c.length)) * 9 + 6);
+          if (y + h > H - M - 20) { pdf.addPage(); y = M; head(); pdf.setFontSize(7.5); }
+          if (i % 2) { pdf.setFillColor(248, 250, 252); pdf.rect(M, y, CW, h, "F"); }
+          let x = M;
+          cells.forEach((c, k) => {
+            if (k === 1 && ph) { try { pdf.addImage(`data:image/jpeg;base64,${ph.thumb}`, "JPEG", x + 3, y + 3, ws[1] - 6, imgH); } catch {} pdf.setFontSize(6.5); pdf.text(`P${photoNo(ph.id)}`, x + 3, y + imgH + 11); pdf.setFontSize(7.5); }
+            else if (k === 4) { pdf.setTextColor(...SEVC[s.severity]); pdf.setFont("helvetica", "bold"); pdf.text(c, x + 3, y + 10); pdf.setTextColor(15, 23, 42); pdf.setFont("helvetica", "normal"); }
+            else pdf.text(c, x + 3, y + 10);
+            x += ws[k];
+          });
+          pdf.setDrawColor(226, 232, 240); pdf.line(M, y + h, M + CW, y + h); y += h;
+        });
+        y += 14; if (y > H - M - 30) { pdf.addPage(); y = M; }
+        pdf.setFontSize(9); pdf.text("Inspected by: ______________________      Contractor's acknowledgement: ______________________      Date: __________", M, y); y += 16;
+        pdf.setFont("helvetica", "italic"); pdf.setFontSize(7.5); pdf.setTextColor(100, 116, 139);
+        pdf.text("Prepared from site photos with Construction AI Expert. Each item to be confirmed on site by the responsible consultant; crack widths, hollowness and strength need measurement or testing.", M, y);
+        pdf.save(`Snag-list-${today()}.pdf`);
       } catch (e) { toast(e.message); }
     });
   })();

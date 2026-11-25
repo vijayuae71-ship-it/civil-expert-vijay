@@ -176,6 +176,7 @@ test("consultant tasks: copying bids and bills runs on the cheaper model; drawin
     ["priced-boq", true, /PRICED bill of quantities/, false],
     ["bill-items", true, /running-account \(RA \/ interim\) bill/, false],
     ["bbs-members", false, /bar bending schedule/, false],
+    ["site-snags", false, /snag list from site photos/, false],
     ["spec-items", false, /technical specifications section/, true],
     ["spec-conditions", false, /Notice inviting tender/i, true]
   ]) {

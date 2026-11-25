@@ -333,6 +333,40 @@
     return out.join("\n");
   }
 
+  // ---------- site snags ----------
+  const SEVERITY = ["Critical", "Major", "Minor"];
+  // The site-snags table → snag objects. Photo numbers in the reply are 1.. within this batch; `photoIds`
+  // maps them to the page's own photo ids. Rows for a photo number that was not sent are dropped.
+  function snagsFromText(text, photoIds = []) {
+    const rows = tableRows(text);
+    if (rows.length < 2) return [];
+    const h = rows[0].map((x) => String(x).toLowerCase());
+    const col = (re) => h.findIndex((x) => re.test(x));
+    const c = { photo: col(/photo|image|pic/), loc: col(/location|element/), defect: col(/defect|observation|issue/), sev: col(/severity|priority|category/), cause: col(/cause/), remedy: col(/remedy|remark|action|rectification/), ref: col(/reference|code|clause/) };
+    const g = (r, k) => (c[k] === -1 ? "" : String(r[c[k]] || "").replace(/<br\s*\/?>/gi, " ").trim());
+    return rows.slice(1).map((r) => {
+      const n = parseInt(g(r, "photo").replace(/\D+/g, " ").trim(), 10);
+      const sevText = g(r, "sev").toLowerCase();
+      const severity = SEVERITY.find((s) => sevText.startsWith(s.toLowerCase())) || (/high|urgent|safety/.test(sevText) ? "Critical" : /medium|moderate/.test(sevText) ? "Major" : "Minor");
+      return { photo: photoIds.length ? photoIds[n - 1] : n, location: g(r, "loc"), defect: g(r, "defect"), severity, cause: g(r, "cause"), remedy: g(r, "remedy"), reference: g(r, "ref"), status: "Open" };
+    }).filter((s) => s.defect && (photoIds.length ? s.photo !== undefined : Number.isFinite(s.photo)));
+  }
+  // Critical first, then Major, Minor; open before closed; then by photo order.
+  function sortSnags(list, photoOrder = []) {
+    const rank = (s) => SEVERITY.indexOf(s.severity) + (s.status === "Closed" ? 10 : 0) + (/^no visible defect/i.test(s.defect) ? 20 : 0);
+    return list.slice().sort((a, b) => rank(a) - rank(b) || photoOrder.indexOf(a.photo) - photoOrder.indexOf(b.photo));
+  }
+  function snagSummary(list) {
+    const real = list.filter((s) => !/^no visible defect/i.test(s.defect));
+    const by = (sev) => real.filter((s) => s.severity === sev && s.status !== "Closed").length;
+    return { total: real.length, open: real.filter((s) => s.status !== "Closed").length, critical: by("Critical"), major: by("Major"), minor: by("Minor") };
+  }
+  function snagSheet(list, { title = "Snag list", photoLabel = (id) => id } = {}) {
+    const out = [[title], [], ["No", "Photo", "Location / element", "Defect", "Severity", "Likely cause", "Remedy / remarks", "Reference", "Status"]];
+    list.forEach((s, i) => out.push([i + 1, photoLabel(s.photo), s.location, s.defect, s.severity, s.cause, s.remedy, s.reference, s.status]));
+    return out;
+  }
+
   // ---------- Excel sheets (arrays of rows) ----------
   function comparisonSheet(cmp, { title = "Comparative statement" } = {}) {
     const names = cmp.bidders.map((b) => b.name);
@@ -365,6 +399,7 @@
   }
 
   const api = { compareBids, billColumns, billItems, certifyBill, bbs, BBS_DEFAULTS, kgPerM, slabCheck, beamCheck, columnCheck, footingCheck, median,
+    SEVERITY, snagsFromText, sortSnags, snagSummary, snagSheet,
     tableRows, parseBars, memberRowsFromText, memberFromRow, membersFromText, specMessage, conditionsMessage, mdToHtml, comparisonSheet, certificateSheet, bbsSheet };
   if (typeof module === "object" && module.exports) module.exports = api;
   else root.CONSULT = api;

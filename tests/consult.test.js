@@ -203,3 +203,24 @@ test("a priced BOQ copied by the AI reads its rates and amounts", () => {
   const items = Q.pricedItems(rows);
   assert.deepEqual(items.map((x) => [x.ref, x.heading ? "h" : x.rate]), [["1", "h"], ["1.1", 300]]);
 });
+
+test("site snags: the AI table becomes snags on the right photos, critical first, with a summary", () => {
+  const reply = "| Photo | Location / element | Defect | Severity | Likely cause | Remedy | Reference |\n|---|---|---|---|---|---|---|\n" +
+    "| 1 | Column C3 | Honeycombing at the base | Major | Poor compaction | Chip, clean and patch with repair mortar; verify depth on site | IS 456 cl 13.3 |\n" +
+    "| Photo 2 | Slab edge | No edge protection | Critical – stop work | Guard rail missing | Install guard rail with toe board | IS 3696 |\n" +
+    "| 2 | Slab edge | No visible defect | Minor | | | |\n" +
+    "| 3 | Beam | Crack | High | x | y | |";   // no photo 3 was sent
+  const snags = C.snagsFromText(reply, ["pA", "pB"]);
+  assert.deepEqual(snags.map((s) => [s.photo, s.severity, s.status]), [["pA", "Major", "Open"], ["pB", "Critical", "Open"], ["pB", "Minor", "Open"]]);
+  assert.equal(snags[0].remedy, "Chip, clean and patch with repair mortar; verify depth on site");
+  assert.equal(snags[0].reference, "IS 456 cl 13.3");
+  const sorted = C.sortSnags(snags, ["pA", "pB"]);
+  assert.deepEqual(sorted.map((s) => s.severity), ["Critical", "Major", "Minor"]);
+  assert.deepEqual(C.snagSummary(snags), { total: 2, open: 2, critical: 1, major: 1, minor: 0 }, "'No visible defect' is not counted");
+  snags[1].status = "Closed";
+  assert.deepEqual(C.snagSummary(snags), { total: 2, open: 1, critical: 0, major: 1, minor: 0 });
+  assert.equal(C.sortSnags(snags, ["pA", "pB"])[0].photo, "pA", "closed items go below open ones");
+  const sheet = C.snagSheet(sorted, { photoLabel: (id) => (id === "pA" ? "P1" : "P2") });
+  assert.deepEqual(sheet[2], ["No", "Photo", "Location / element", "Defect", "Severity", "Likely cause", "Remedy / remarks", "Reference", "Status"]);
+  assert.deepEqual(sheet[3].slice(0, 5), [1, "P2", "Slab edge", "No edge protection", "Critical"]);
+});
