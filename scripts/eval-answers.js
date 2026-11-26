@@ -162,7 +162,7 @@ const ROWS = (n) => ({ toString: () => `at least ${n} item rows (A1, B2 …)`, t
 CASES.push(
   {
     group: "boq", background: true, name: "Complete BOQ for a 1,000 sq ft G+1 house is itemised section by section",
-    body: { message: "give a complete boq for a 1000 square feet plot for complete construction", audience: "engineer", quoteReady: true },
+    body: { message: "give a complete boq for a 1000 square feet G+1 house in Bengaluru for complete construction", audience: "engineer", quoteReady: true },
     must: [ROWS(25), /excavation/i, /reinforcement|steel/i, /shuttering|formwork/i, /plaster/i, /tile|flooring/i, /waterproof/i, /paint/i, /electric|wiring/i, /plumbing|sanitary/i, /Sub-total/i, /Grand Total/i],
     mustNot: [/no more than 5/i]
   },
@@ -327,10 +327,11 @@ const asks = check("asks 2–4 questions first, each with options", (t) => { con
 CASES.push(
   { group: "ask", name: "Vague BOQ request: asks for location, size and floors before answering", body: { message: "Give me the BOQ and cost for constructing a house", audience: "engineer" }, must: [asks] },
   { group: "ask", name: "Vague cost question from a worker: asks first", body: { message: "How much will it cost to build my house?", audience: "worker" }, must: [asks] },
+  { group: "ask", background: true, name: "Compound wall with length, height and city given: BOQ answered with assumptions, not questions", body: { message: "BOQ with rates for 60 m long, 1.8 m high compound wall in Bengaluru", audience: "engineer" }, mustNot: [/\[\[ASK\]\]/], must: [/excavation|masonry|block|brick/i] },
   { group: "ask", name: "Simple how-to question: answered directly, no questions first", body: { message: "What is the curing period for an M25 slab?", audience: "worker" }, must: [/7|10|14/], mustNot: [/\[\[ASK\]\]/] },
   { group: "ask", name: "Quantity question with its details given: answered directly", body: { message: "Cement and sand for 100 sq ft of 12 mm wall plaster in 1:6", audience: "worker" }, must: [/bag/i], mustNot: [/\[\[ASK\]\]/] },
-  { group: "ask", name: "After the answers: answers now, using them, no second round of questions", body: { message: "My answers:\n1. Where is the site: Mysuru\n2. Built-up area: 1000 sq ft\n3. How many floors: G+1", audience: "engineer", history: [{ role: "user", text: "Give me the BOQ and cost for constructing a house" }, { role: "model", text: ASKED }] }, must: [/1,?000/, /Mysuru/i], mustNot: [/\[\[ASK\]\]/] },
-  { group: "ask", name: "'Just give a quick estimate': answers with assumptions, no questions", body: { message: "Just give a quick estimate with your own assumptions.", audience: "engineer", history: [{ role: "user", text: "Give me the BOQ and cost for constructing a house" }, { role: "model", text: ASKED }] }, must: [/assum/i], mustNot: [/\[\[ASK\]\]/] }
+  { group: "ask", background: true, name: "After the answers: answers now, using them, no second round of questions", body: { message: "My answers:\n1. Where is the site: Mysuru\n2. Built-up area: 1000 sq ft\n3. How many floors: G+1", audience: "engineer", history: [{ role: "user", text: "Give me the BOQ and cost for constructing a house" }, { role: "model", text: ASKED }] }, must: [/1,?000/, /Mysuru/i], mustNot: [/\[\[ASK\]\]/] },
+  { group: "ask", background: true, name: "'Just give a quick estimate': answers with assumptions, no questions", body: { message: "Just give a quick estimate with your own assumptions.", audience: "engineer", history: [{ role: "user", text: "Give me the BOQ and cost for constructing a house" }, { role: "model", text: ASKED }] }, must: [/assum/i], mustNot: [/\[\[ASK\]\]/] }
 );
 
 const longTender = { name: "sample-tender-boq-long.pdf", mimeType: "application/pdf", data: require("fs").readFileSync(require("path").join(__dirname, "fixtures", "sample-tender-boq-long.pdf")).toString("base64") };

@@ -597,7 +597,9 @@
 
         // BOQ, estimate and quotation questions in Detailed mode get a complete itemised BOQ.
         const BOQ_RE = /\b(boq|b\.o\.q|bill of quantit|estimat|quotation|quote|rate analysis|break\s?-?up|itemi[sz]ed|line items?|cost of construction|construction cost|costing|budget)/i;
-        const wantsFullBoq = (text, payload) => payload.audience === 'engineer' && (payload.quoteReady || BOQ_RE.test(text));
+        // Answers to the AI's questions ([[ASK]]) lead to the full estimate, which takes longer: always the background job.
+        const followsAsk = (payload) => { const last = (payload.history || []).at(-1); return !!last && last.role === 'model' && /^\s*\[\[ASK\]\]/.test(last.text || ''); };
+        const wantsFullBoq = (text, payload) => followsAsk(payload) || (payload.audience === 'engineer' && (payload.quoteReady || BOQ_RE.test(text)));
         async function backgroundAnswer(payload) {
             const jobId = (crypto.randomUUID ? crypto.randomUUID() : Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2, '0')).join(''));
             const start = await fetch('/.netlify/functions/chat-start', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...payload, jobId }) });
