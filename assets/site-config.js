@@ -15,7 +15,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const n = String(window.SITE_CONFIG.whatsappBotNumber || "").replace(/\D/g, "");
   if (!n) return;
   document.querySelectorAll("[data-wa-bot]").forEach((el) => {
-    el.href = `https://wa.me/${n}?text=${encodeURIComponent("Hi")}`;
+    // A trade page's link opens the chat with "Hi! I am a plumber 🔧" (data-wa-text): the bot welcomes that trade.
+    el.href = `https://wa.me/${n}?text=${encodeURIComponent(el.dataset.waText || "Hi")}`;
     el.target = "_blank"; el.rel = "noopener";
     el.classList.remove("hidden");
   });

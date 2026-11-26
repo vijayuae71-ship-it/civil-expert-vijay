@@ -4,6 +4,7 @@ const { relevantDubaiRmcCostingContext } = require("./dubai-rmc-costing");
 const { relevantMixDesignContext, requestedGrade } = require("./mix-design-guidance");
 const { relevantEngineeringReference } = require("./site-engineering-reference");
 const { checkRateLimit, isAllowedOrigin } = require("./rate-limit");
+const { tradeFor, tradeInstruction } = require("./trades");
 const Anthropic = require("@anthropic-ai/sdk").default;
 const { BRAND_NAME } = require("./brand");
 const answerCache = require("./answer-cache");
@@ -209,7 +210,8 @@ async function runRequest(event, { background = false } = {}, meter = { calls: [
   if (!isAllowedOrigin(event)) return { statusCode: 403, headers, body: JSON.stringify({ error: "Requests are accepted only from this website." }) };
 
   try {
-    const { message, attachment, attachments, language, quoteReady, history, audience, channel, task } = JSON.parse(event.body || "{}");
+    const { message, attachment, attachments, language, quoteReady, history, audience, channel, task, trade: tradeSlug } = JSON.parse(event.body || "{}");
+    const trade = tradeFor(tradeSlug);   // the person's trade (from a /for/<trade> page or a WhatsApp trade link), if known
     if (task !== undefined && !Object.hasOwn(TASKS, task)) return { statusCode: 400, headers, body: JSON.stringify({ error: "Unknown request." }) };
     // "whatsapp": the reply is shown in WhatsApp, which has no tables or headings.
     const isWhatsApp = channel === "whatsapp";
@@ -257,7 +259,7 @@ async function runRequest(event, { background = false } = {}, meter = { calls: [
       return { statusCode: 500, headers, body: JSON.stringify({ error: "The AI service has not been configured yet. Add ANTHROPIC_API_KEY in Netlify environment variables." }) };
     }
 
-    meter.info = { kind: "chat", channel: channel === "whatsapp" ? "whatsapp" : "web", audience: audience === "worker" ? "worker" : "engineer", language: language || "en", task: task || undefined, quoteReady: quoteReady === true || undefined, followUp: Array.isArray(history) && history.length > 0 || undefined, files: (Array.isArray(attachments) ? attachments.length : attachment ? 1 : 0) || undefined, background: background || undefined, q: task ? undefined : String(message).trim().slice(0, 100) };
+    meter.info = { kind: "chat", channel: channel === "whatsapp" ? "whatsapp" : "web", audience: audience === "worker" ? "worker" : "engineer", language: language || "en", task: task || undefined, trade: trade ? trade.slug : undefined, quoteReady: quoteReady === true || undefined, followUp: Array.isArray(history) && history.length > 0 || undefined, files: (Array.isArray(attachments) ? attachments.length : attachment ? 1 : 0) || undefined, background: background || undefined, q: task ? undefined : String(message).trim().slice(0, 100) };
     const limited = await checkRateLimit(event);
     if (limited) return { statusCode: limited.statusCode, headers, body: JSON.stringify({ error: limited.error }) };
     if (task) {
@@ -329,7 +331,7 @@ Retain technical units, numbers, equations, and construction terminology accurat
     // repeat requests); the per-request settings go in a second, uncached block after it.
     const system = [
       { type: "text", text: systemInstruction, cache_control: { type: "ephemeral" } },
-      { type: "text", text: `${languageInstruction}${quoteModeInstruction}${fullBoq ? FULL_BOQ_INSTRUCTION : ""}${workerInstruction}${whatsappInstruction}` }
+      { type: "text", text: `${languageInstruction}${quoteModeInstruction}${fullBoq ? FULL_BOQ_INSTRUCTION : ""}${workerInstruction}${whatsappInstruction}${tradeInstruction(trade)}` }
     ];
 
     const isDsrRequest = /\b(boq|bill of quantities|estimate|estimation|quantity schedule|rate analysis|rate\s*analysis|cpwd|dsr)\b/i.test(message);

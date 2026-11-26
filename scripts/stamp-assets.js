@@ -18,15 +18,17 @@ const hashOf = (rel) => {
 };
 
 function stamp(html) {
-  return html.replace(/\b(src|href)="(assets\/[\w.-]+\.(?:css|js))(?:\?v=[\w]+)?"/g, (all, attr, rel) => {
+  return html.replace(/\b(src|href)="(\/?)(assets\/[\w.-]+\.(?:css|js))(?:\?v=[\w]+)?"/g, (all, attr, slash, rel) => {
     const h = hashOf(rel);
-    return h ? `${attr}="${rel}?v=${h}"` : all;
+    return h ? `${attr}="${slash}${rel}?v=${h}"` : all;
   });
 }
 
 if (require.main === module) {
   let n = 0;
-  for (const page of fs.readdirSync(root).filter((f) => f.endsWith(".html"))) {
+  const pages = fs.readdirSync(root).filter((f) => f.endsWith(".html"));
+  if (fs.existsSync(path.join(root, "for"))) pages.push(...fs.readdirSync(path.join(root, "for")).filter((f) => f.endsWith(".html")).map((f) => `for/${f}`));
+  for (const page of pages) {
     const file = path.join(root, page), before = fs.readFileSync(file, "utf8"), after = stamp(before);
     if (after !== before) { fs.writeFileSync(file, after); n++; }
   }

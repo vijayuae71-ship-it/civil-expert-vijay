@@ -90,3 +90,10 @@ If nothing comes back, open **Netlify → Logs → Functions → whatsapp**:
 
 ## Long answers
 The webhook (`whatsapp` function) only checks the message and hands it to `whatsapp-background`, a Netlify background function that may run for up to 15 minutes, so Meta gets its reply at once and long answers (detailed BOQs, PDFs, photos) are not cut off. Only a random job id is passed between the two (the message waits in the Blobs store `wa-jobs`), so the background function can't be used to send messages. While an answer is prepared the bot keeps the "typing…" indicator on; if it takes more than 15 seconds it sends one "⏳ Working on your answer — this can take 1–2 minutes." (WhatsApp messages can't be edited, so there is no running percentage). If the hand-over ever fails, the message is answered in the webhook as before.
+
+
+## Trade links (plumbers, painters, contractors …)
+
+Every trade has its own page — `/for/plumber`, `/for/electrician`, `/for/mason`, `/for/painter`, `/for/tiler`, `/for/carpenter`, `/for/bar-bender`, `/for/waterproofing`, `/for/ac-technician`, `/for/site-engineer`, `/for/contractor`, `/for/consultant` (all listed at `/for/`). Once the bot number is set in `assets/site-config.js`, each page shows **Ask on WhatsApp**, which opens the chat with a greeting such as *"Hi! I am a plumber 🔧"*.
+
+The bot recognises that first message: it remembers the trade (even after `new`), sends a welcome with example questions and the link to that trade's page, and pitches every later answer at that trade. To share in a trade's WhatsApp group, send the trade page link (e.g. `https://civilengineervijay.netlify.app/for/plumber?r=plumbers-group`), or the direct chat link `https://wa.me/<bot number>?text=Hi!%20I%20am%20a%20plumber%20%F0%9F%94%A7`. The `?r=…` tag shows up on the owner dashboard under *Where new users came from*.

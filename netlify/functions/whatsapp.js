@@ -16,6 +16,7 @@ const chat = require("./chat");
 const { toWhatsApp, splitMessages } = require("./whatsapp-format");
 const { BRAND_NAME } = require("./brand");
 const usage = require("./usage-stats");
+const { tradeFor, tradeFromIntro } = require("./trades");
 
 const API_VERSION = process.env.WHATSAPP_API_VERSION || "v23.0";
 const SITE_URL = process.env.URL || "https://civilengineervijay.netlify.app";
@@ -107,14 +108,15 @@ async function loadConversation(store, key) {
     const saved = await store.get(key, { type: "json" });
     const audience = saved?.audience === "engineer" ? "engineer" : "worker";
     if (!saved) return { turns: [], audience, isNew: true };
+    const trade = tradeFor(saved.trade)?.slug;   // the person's trade is kept even after a long gap
     const lastFile = saved.lastFile && Date.now() - Date.parse(saved.lastFile.at || 0) < IMPORT_DAYS * 864e5 ? saved.lastFile : null;
-    if (Date.now() - Date.parse(saved.updatedAt || 0) > CONVERSATION_IDLE_MS) return { turns: [], audience, isNew: false, lastFile };
-    return { turns: Array.isArray(saved.turns) ? saved.turns : [], audience, isNew: false, lastFile };
+    if (Date.now() - Date.parse(saved.updatedAt || 0) > CONVERSATION_IDLE_MS) return { turns: [], audience, isNew: false, lastFile, trade };
+    return { turns: Array.isArray(saved.turns) ? saved.turns : [], audience, isNew: false, lastFile, trade };
   } catch { return { turns: [], audience: "worker", isNew: false }; }
 }
 async function saveConversation(store, key, conversation) {
   if (!store) return;
-  try { await store.setJSON(key, { audience: conversation.audience, turns: (conversation.turns || []).slice(-HISTORY_TURNS), lastFile: conversation.lastFile || null, updatedAt: new Date().toISOString() }); } catch {}
+  try { await store.setJSON(key, { audience: conversation.audience, turns: (conversation.turns || []).slice(-HISTORY_TURNS), lastFile: conversation.lastFile || null, trade: conversation.trade || undefined, updatedAt: new Date().toISOString() }); } catch {}
 }
 
 // Meta retries a webhook it thinks failed; answer each message id once.
@@ -175,6 +177,20 @@ const WELCOME = [
   `📄 Disclaimer: ${SITE_URL}/disclaimer · 🔒 Privacy: ${SITE_URL}/privacy`
 ].join("\n");
 
+// The welcome for a trade: what to ask, and their page with calculators and tools.
+function tradeWelcome(t) {
+  return [
+    `${t.emoji} *Welcome, ${t.short}!* I'm ${BRAND_NAME} — ask me anything about your work, in your own language. You can also send a photo of the problem.`,
+    "",
+    "*Try asking*",
+    ...t.examples.map((e) => `• ${e}`),
+    "",
+    `🧰 Your page with calculators and tools:\n${SITE_URL}/for/${t.slug}?r=wa-bot`,
+    "",
+    "*Commands*: *new* – start fresh · *detailed* – engineer answers · *simple* – short steps"
+  ].join("\n");
+}
+
 function command(text) {
   const t = String(text || "").trim().toLowerCase().replace(/[!.?]+$/, "");
   if (/^(hi|hello|hey|start|menu|help|salam|namaste|नमस्ते)$/.test(t)) return "welcome";
@@ -219,9 +235,17 @@ async function handleMessage(event, stores, msg, { background = false } = {}) {
     return sendText(from, "Please send your question as a text message or a photo.", msg.id);
   }
 
+  // The first message from a trade page's WhatsApp link ("Hi! I am a plumber 🔧"): remember the trade and
+  // welcome them with examples and their page, instead of answering the greeting as a question.
+  const intro = !attachment && tradeFromIntro(text);
+  if (intro) {
+    await saveConversation(stores.conversations, key, { ...conversation, trade: intro.slug, audience: intro.audience });
+    return sendText(from, tradeWelcome(intro));
+  }
+
   switch (command(text)) {
     case "welcome": if (conversation.isNew) await saveConversation(stores.conversations, key, conversation); return sendText(from, WELCOME);
-    case "new": await saveConversation(stores.conversations, key, { turns: [], audience: conversation.audience }); return sendText(from, "✅ Started a fresh conversation. Ask your question.");
+    case "new": await saveConversation(stores.conversations, key, { turns: [], audience: conversation.audience, trade: conversation.trade }); return sendText(from, "✅ Started a fresh conversation. Ask your question.");
     case "detailed": await saveConversation(stores.conversations, key, { ...conversation, audience: "engineer" }); return sendText(from, "📐 Detailed answers are on (calculations and full working). Send *simple* to switch back.");
     case "simple": await saveConversation(stores.conversations, key, { ...conversation, audience: "worker" }); return sendText(from, "🛠️ Simple step-by-step answers are on. Send *detailed* for engineer answers.");
     case "consult": return sendText(from, `To request a personal review of your project, fill this short form (we try to reply within a few days):\n${SITE_URL}/expert#consult`);
@@ -251,7 +275,7 @@ async function handleMessage(event, stores, msg, { background = false } = {}) {
       httpMethod: "POST",
       blobs: event.blobs,
       headers: { host: event.headers?.host || "whatsapp", "x-nf-client-connection-ip": `wa-${key}` },
-      body: JSON.stringify({ message: text.slice(0, 4000), history: conversation.turns, attachment, language: "auto", audience: conversation.audience, channel: "whatsapp" })
+      body: JSON.stringify({ message: text.slice(0, 4000), history: conversation.turns, attachment, language: "auto", audience: conversation.audience, channel: "whatsapp", trade: conversation.trade })
     };
     // In the background job the AI may take longer (long BOQs, PDFs) than a webhook call is allowed.
     response = background ? await chat.run(request, { background: true }) : await chat.handler(request);

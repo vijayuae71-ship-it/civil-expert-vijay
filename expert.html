@@ -15,7 +15,7 @@
     <meta property="og:image" content="https://civilengineervijay.netlify.app/assets/og-image.png">
     <meta name="twitter:card" content="summary_large_image">
     <link rel="icon" href="assets/logo.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
-    <link rel="stylesheet" href="assets/site.css"><link rel="manifest" href="manifest.webmanifest"><script src="assets/app.js" defer></script>
+    <link rel="stylesheet" href="assets/site.css"><link rel="manifest" href="manifest.webmanifest"><script src="assets/growth.js" defer></script><script src="assets/app.js" defer></script>
     <script src="assets/site-config.js"></script>
     <script src="assets/i18n.js"></script>
     <script src="assets/quote.js"></script>
@@ -73,7 +73,7 @@
                     <h1 class="text-xl font-bold" data-i18n="welcomeTitle">Ask any construction question</h1>
                     <p class="mt-1 text-sm text-blue-100" data-i18n="welcomeText">For every worker on site — mason, steel fixer, carpenter, electrician, plumber, painter, foreman or engineer. Type or 🎤 speak in your own language, or 📷 send a photo of the problem, a drawing or a product label and ask about it.</p>
                     <p class="mt-2 text-sm font-medium text-white" lang="mul">English · हिंदी · اردو · العربية · മലയാളം · தமிழ் · తెలుగు · ಕನ್ನಡ · मराठी · বাংলা · ਪੰਜਾਬੀ</p>
-                    <button type="button" data-install-app class="hidden mt-3 mr-2 inline-flex items-center gap-2 rounded-full bg-amber-400 px-4 py-2 text-sm font-bold text-slate-900 hover:bg-amber-300" data-i18n="installApp">📲 Install app</button><a data-wa-bot class="hidden mt-3 inline-flex items-center gap-2 rounded-full bg-green-500 px-4 py-2 text-sm font-bold text-white hover:bg-green-600" data-i18n="waAsk">💬 Prefer WhatsApp? Ask the expert there</a>
+                    <button type="button" data-install-app class="hidden mt-3 mr-2 inline-flex items-center gap-2 rounded-full bg-amber-400 px-4 py-2 text-sm font-bold text-slate-900 hover:bg-amber-300" data-i18n="installApp">📲 Install app</button><button type="button" data-share-app class="mt-3 mr-2 inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-2 text-sm font-bold text-white ring-1 ring-white/40 hover:bg-white/25" data-i18n="shareApp">📤 Share with a friend</button><a data-wa-bot class="hidden mt-3 inline-flex items-center gap-2 rounded-full bg-green-500 px-4 py-2 text-sm font-bold text-white hover:bg-green-600" data-i18n="waAsk">💬 Prefer WhatsApp? Ask the expert there</a>
                 </div>
                 <p class="mt-4 mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500" data-i18n="pickWork">Pick your work — or just ask</p>
                 <div id="starters" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
@@ -532,7 +532,7 @@
             });
         }
         async function shareAnswer(text) {
-            const body = `${plainText(text).slice(0, 3500)}\n\n— ${BRAND}: ${(window.SITE_CONFIG || {}).siteUrl || location.origin}/expert`;
+            const body = `${plainText(text).slice(0, 3500)}\n\n— ${window.Growth ? Growth.madeWith('wa-ai') : `${BRAND}: ${(window.SITE_CONFIG || {}).siteUrl || location.origin}/expert`}`;
             if (navigator.share) { try { await navigator.share({ text: body }); return; } catch (e) { if (e.name === 'AbortError') return; } }
             window.open(`https://wa.me/?text=${encodeURIComponent(body)}`, '_blank', 'noopener');
         }
@@ -563,7 +563,7 @@
                     pinned = { names: files.map(f => f.name), attachments };
                 }
                 else if (pinned) attachments = pinned.attachments;   // follow-up about the same drawings/photos
-                const payload = { message: text, history, attachments, language: answerLang, audience, quoteReady: audience === 'engineer' && $('quote-ready').checked };
+                const payload = { message: text, history, attachments, language: answerLang, audience, quoteReady: audience === 'engineer' && $('quote-ready').checked, trade: (store.get('vijay-expert-prefs') || {}).trade || undefined };
                 let data = {};
                 if (wantsFullBoq(text, payload)) {
                     // A full itemised BOQ takes 1–3 minutes to write: it runs in the background and we check back.
@@ -793,7 +793,7 @@
             const wide = blocks.some(b => b.type === 'table' && Math.max(...b.rows.map(r => r.length)) > 6);
             const pdf = new jsPDF({ unit: 'pt', format: 'a4', orientation: wide ? 'landscape' : 'portrait' });
             const W = pdf.internal.pageSize.getWidth(), H = pdf.internal.pageSize.getHeight(), M = 36, CW = W - M * 2; let y = 40;
-            const footer = () => { pdf.setFont('helvetica', 'normal'); pdf.setFontSize(7); pdf.setTextColor(100, 116, 139); pdf.text(`AI-generated general guidance only — verify with the responsible qualified engineer before use. Disclaimer: ${((window.SITE_CONFIG || {}).siteUrl || location.origin).replace(/^https?:\/\//, '')}/disclaimer`, M, H - 18); };
+            const footer = () => { pdf.setFont('helvetica', 'normal'); pdf.setFontSize(7); pdf.setTextColor(100, 116, 139); pdf.text(`AI-generated general guidance only — verify with the responsible qualified engineer before use. Disclaimer: ${((window.SITE_CONFIG || {}).siteUrl || location.origin).replace(/^https?:\/\//, '')}/disclaimer`, M, H - 22); if (window.Growth) { pdf.setTextColor(37, 99, 235); pdf.text(Growth.madeWith('pdf-ai'), M, H - 12); } };
             const addPage = () => { footer(); pdf.addPage(); y = 40; };
             const need = h => { if (y + h > H - 38) addPage(); };
             // Tamil, Hindi, Arabic and other scripts: drawn by the phone as a picture (see assets/pdftext.js).
@@ -842,6 +842,7 @@
                 if (b.type === 'table') { b.rows.forEach((r, i) => rows.push(i === 0 ? r : r.map(toNumber))); rows.push([]); return; }
                 addMerged(b.type === 'bullet' ? `• ${b.value}` : b.value);
             });
+            if (window.Growth) { rows.push([]); addMerged(Growth.madeWith('xl-ai')); }
             const sheet = XLSX.utils.aoa_to_sheet(rows);
             sheet['!merges'] = merges;
             sheet['!cols'] = Array.from({ length: lastColumn }, (_, i) => ({ wch: i === 0 ? 8 : i <= 2 ? 40 : 16 }));
@@ -879,9 +880,15 @@
             conversation.forEach((m, i) => m.role === 'user' ? addUser(m.text) : addAI(m.text, m.lang, { scroll: false, question: conversation[i - 1]?.text || '', cacheKey: m.cacheKey }));
             scroller.scrollTop = scroller.scrollHeight;
         }
-        // Question passed in the link (e.g. "Ask the AI about this" on the calculators page).
-        const preset = new URLSearchParams(location.search).get('q');
-        if (preset) { input.value = preset.slice(0, 4000); history.replaceState(null, '', location.pathname); }
+        // Question passed in the link (e.g. "Ask the AI about this" on the calculators page), and the
+        // person's trade from a /for/<trade> page: kept, so answers are pitched at that work.
+        const params = new URLSearchParams(location.search), preset = params.get('q'), tradeParam = (params.get('trade') || '').toLowerCase();
+        if (/^[a-z-]{2,30}$/.test(tradeParam)) {
+            store.set('vijay-expert-prefs', { ...(store.get('vijay-expert-prefs') || {}), trade: tradeParam });
+            const aud = params.get('audience'); if (aud === 'worker' || aud === 'engineer') setAudience(aud);
+        }
+        if (preset) input.value = preset.slice(0, 4000);
+        if (preset || tradeParam) history.replaceState(null, '', location.pathname);
         autosize();
         requireTerms();
     })();

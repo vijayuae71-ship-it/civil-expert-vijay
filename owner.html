@@ -106,7 +106,8 @@
     <section class="grid two" style="margin-top:12px">
       <div class="card"><h2>Where people ask</h2><div id="b-channel"></div>
         <h2 style="margin-top:14px">Answer style</h2><div id="b-audience"></div>
-        <h2 style="margin-top:14px">Languages</h2><div id="b-lang"></div></div>
+        <h2 style="margin-top:14px">Languages</h2><div id="b-lang"></div>
+        <h2 style="margin-top:14px">Questions by trade (from /for/ pages and WhatsApp trade links)</h2><div id="b-trades"></div></div>
       <div class="card"><h2>Tender &amp; quotation tools</h2><div id="b-tasks"></div>
         <h2 style="margin-top:14px">WhatsApp files forwarded</h2><div id="b-wa"></div>
         <h2 style="margin-top:14px">AI cost by model</h2><div id="b-models"></div>
@@ -220,12 +221,12 @@
   window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => last && render(last), 150); });
   function render(data) {
     last = data;
-    const ds = data.days, tot = { questions: 0, cost: 0, cached: 0, errors: 0, limited: 0, background: 0, withFiles: 0, followUps: 0, channels: {}, audiences: {}, languages: {}, tasks: {}, waImports: {}, up: 0, down: 0 };
+    const ds = data.days, tot = { questions: 0, cost: 0, cached: 0, errors: 0, limited: 0, background: 0, withFiles: 0, followUps: 0, channels: {}, audiences: {}, languages: {}, tasks: {}, waImports: {}, trades: {}, up: 0, down: 0 };
     const modelCost = {};
     let downs = [];
     for (const d of ds) {
       tot.questions += d.questions; tot.cost += d.cost; tot.cached += d.cached; tot.errors += d.errors; tot.limited += d.limited; tot.withFiles += d.withFiles; tot.followUps += d.followUps;
-      add(tot.channels, d.channels); add(tot.audiences, d.audiences); add(tot.languages, d.languages); add(tot.tasks, d.tasks); add(tot.waImports, d.waImports);
+      add(tot.channels, d.channels); add(tot.audiences, d.audiences); add(tot.languages, d.languages); add(tot.tasks, d.tasks); add(tot.waImports, d.waImports); add(tot.trades, d.trades);
       for (const [m, v] of Object.entries(d.models || {})) modelCost[m] = (modelCost[m] || 0) + v.cost;
       tot.up += d.feedback?.up || 0; tot.down += d.feedback?.down || 0; downs = downs.concat(d.feedback?.downs || []);
     }
@@ -263,6 +264,7 @@
     hbars($("b-audience"), tot.audiences, { names: { worker: "🛠️ Simple steps", engineer: "📐 Detailed" } });
     hbars($("b-lang"), tot.languages, { names: LANGS });
     hbars($("b-tasks"), tot.tasks, { names: TASKS });
+    hbars($("b-trades"), tot.trades);
     hbars($("b-wa"), tot.waImports, { names: { tender: "Tenders / BOQs", prices: "Price lists" } });
     hbars($("b-models"), modelCost, { fmt: usd });
     $("health").textContent = `Errors: ${int(tot.errors)} · Hit the hourly limit: ${int(tot.limited)} · Follow-up questions: ${int(tot.followUps)}`;
