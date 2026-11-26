@@ -15,6 +15,8 @@ if (!process.env.ANTHROPIC_API_KEY) {
 process.env.CHAT_LIMIT_PER_IP_HOUR = "1000";
 const { handler, run } = require("../netlify/functions/chat");
 
+// A named check for cases a regex can't express (defined first: cases below use it).
+const check = (label, fn) => ({ toString: () => label, test: (text) => { try { return fn(text); } catch { return false; } } });
 const CASES = [
   {
     name: "M100 mix design lists every high-strength constituent",
@@ -199,7 +201,6 @@ const photo = (file) => ({ name: file, mimeType: "image/jpeg", data: require("fs
 // ---------- tenders (group "tender"): copy a BOQ word for word, then price it ----------
 const Q = require("../assets/quote.js");
 const tenderPdf = { name: "sample-tender-boq.pdf", mimeType: "application/pdf", data: require("fs").readFileSync(require("path").join(__dirname, "fixtures", "sample-tender-boq.pdf")).toString("base64") };
-const check = (label, fn) => ({ toString: () => label, test: (text) => { try { return fn(text); } catch { return false; } } });
 const EXPECTED = [["2.8", null], ["2.8.1", 86.4], ["4.1.8", 9.75], ["5.33", null], ["5.33.1", 24.6], ["5.22A", null], ["5.22A.6", 2850], ["6.1.2", 31.2], ["13.1.1", 412]];
 CASES.push(
   {
