@@ -3,7 +3,7 @@ const { relevantFaqContext } = require("./construction-faq-knowledge");
 const { relevantDubaiRmcCostingContext } = require("./dubai-rmc-costing");
 const { relevantMixDesignContext, requestedGrade } = require("./mix-design-guidance");
 const { relevantEngineeringReference } = require("./site-engineering-reference");
-const { checkRateLimit, isAllowedOrigin } = require("./rate-limit");
+const { checkRateLimit, isAllowedOrigin, addCost } = require("./rate-limit");
 const { tradeFor, tradeInstruction } = require("./trades");
 const Anthropic = require("@anthropic-ai/sdk").default;
 const { BRAND_NAME } = require("./brand");
@@ -198,6 +198,9 @@ async function run(event, opts = {}) {
     try { body = JSON.parse(res.body || "{}"); } catch {}
     await usage.record(event, { ...meter.info, status: res.statusCode, cached: body.cached === true, calls: meter.calls });
   }
+  // Today's running AI spend, for the owner's daily budget (rate-limit.js).
+  const spent = meter.calls.reduce((sum, c) => sum + usage.callCost(c), 0);
+  if (spent > 0) await addCost(event, spent);
   return res;
 }
 

@@ -97,3 +97,13 @@ The webhook (`whatsapp` function) only checks the message and hands it to `whats
 Every trade has its own page — `/for/plumber`, `/for/electrician`, `/for/mason`, `/for/painter`, `/for/tiler`, `/for/carpenter`, `/for/bar-bender`, `/for/waterproofing`, `/for/ac-technician`, `/for/site-engineer`, `/for/contractor`, `/for/consultant` (all listed at `/for/`). Once the bot number is set in `assets/site-config.js`, each page shows **Ask on WhatsApp**, which opens the chat with a greeting such as *"Hi! I am a plumber 🔧"*.
 
 The bot recognises that first message: it remembers the trade (even after `new`), sends a welcome with example questions and the link to that trade's page, and pitches every later answer at that trade. To share in a trade's WhatsApp group, send the trade page link (e.g. `https://civilengineervijay.netlify.app/for/plumber?r=plumbers-group`), or the direct chat link `https://wa.me/<bot number>?text=Hi!%20I%20am%20a%20plumber%20%F0%9F%94%A7`. The `?r=…` tag shows up on the owner dashboard under *Where new users came from*.
+
+## Capacity, limits and the daily AI budget
+
+Website and WhatsApp share the same limits, set on the owner dashboard (`/owner`) → **Limits & budget** (or, as defaults, the Netlify variables `CHAT_LIMIT_SITE_DAY`, `CHAT_LIMIT_PER_IP_HOUR`, `CHAT_LIMIT_PER_IP_DAY`, `CHAT_DAILY_BUDGET_USD`):
+
+- Questions per day for the whole site (default 2,000 ≈ 400–650 people asking on the same day).
+- Per person: 30 an hour, 120 a day (on WhatsApp a person = a phone number).
+- Daily AI budget in US$ (0 = off): the app adds each answer's estimated AI cost to today's total; once it is reached, new questions get "try again tomorrow" until midnight UTC.
+
+The dashboard shows today's questions and estimated spend against these limits. Keep a monthly spending limit in the Anthropic console as well — it is the hard stop.
