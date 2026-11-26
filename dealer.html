@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dealer Panel | Construction AI Expert</title>
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#1e3a8a">
+  <link rel="icon" href="assets/logo.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="assets/site.css">
+  <script src="assets/growth.js" defer></script><script src="assets/app.js" defer></script>
+</head>
+<body class="bg-slate-100 text-slate-900 font-sans">
+  <nav class="bg-white border-b border-slate-200"><div class="max-w-3xl mx-auto px-4 py-3 flex items-center gap-2"><img src="assets/logo.svg" alt="" width="32" height="32" class="w-8 h-8"><span class="font-bold text-slate-800">🏪 Dealer panel</span></div></nav>
+  <main class="max-w-3xl mx-auto px-3 sm:px-4 py-5 space-y-4">
+    <p id="msg" class="text-slate-600" role="status">Loading…</p>
+    <section id="nolink" class="hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <h1 class="text-xl font-extrabold text-blue-900">Dealer panel</h1>
+      <p class="mt-2 text-sm text-slate-700">There is no password. When we approve your registration, we send your <b>personal dealer panel link</b> on WhatsApp. Open it once on this phone and it is remembered — after that, just open this page.</p>
+      <div class="mt-3 flex flex-wrap gap-2"><a href="suppliers.html" class="rounded-full bg-emerald-700 px-4 py-2 text-sm font-bold text-white">🏪 Join as a supplier</a></div>
+      <p class="mt-3 text-xs text-slate-500">Lost your link? Message us on WhatsApp from your registered number and we'll send it again.</p>
+    </section>
+    <div id="panel" class="hidden space-y-4">
+      <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div class="flex flex-wrap items-start justify-between gap-2">
+          <div><h1 id="biz" class="text-xl font-extrabold text-blue-900"></h1><p id="who" class="text-sm text-slate-600"></p></div>
+          <label class="flex items-center gap-2 text-sm font-semibold"><input id="active" type="checkbox" class="h-5 w-5"> <span id="active-label">Accepting new requests</span></label>
+        </div>
+        <p id="area" class="mt-2 text-sm text-slate-700"></p>
+        <p id="cats" class="mt-1 text-xs text-slate-500"></p>
+      </section>
+      <section id="stats" class="grid grid-cols-2 gap-2 sm:grid-cols-5"></section>
+      <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div class="flex flex-wrap items-center justify-between gap-2"><h2 class="font-bold text-slate-800">Your requests</h2><select id="filter" class="rounded border border-slate-300 px-2 py-1 text-sm" aria-label="Show"><option value="open">To do</option><option value="all">All</option><option value="won">Won</option></select></div>
+        <ul id="list" class="mt-2 divide-y divide-slate-100"></ul>
+      </section>
+      <p class="text-xs text-slate-500">This page is your login — keep the link private. Add it to your home screen for one-tap access.</p>
+    </div>
+  </main>
+  <script>
+  (() => {
+    const $ = (id) => document.getElementById(id);
+    const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; };
+    const ls = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch {} }, del(k) { try { localStorage.removeItem(k); } catch {} } };
+    const rs = (n) => `₹${Math.round(n || 0).toLocaleString("en-IN")}`;
+    // The link's key is remembered on this phone, so /dealer opens the panel next time.
+    let k = new URLSearchParams(location.search).get("k") || ls.get("cae-dealer-key") || "";
+    if (new URLSearchParams(location.search).get("k")) history.replaceState(null, "", location.pathname);
+    let data = null;
+    const STATUS = { sent: ["To quote", "bg-amber-100 text-amber-900"], quoted: ["Quoted — waiting", "bg-blue-100 text-blue-900"], chosen: ["Won", "bg-emerald-100 text-emerald-900"], "not-chosen": ["Not chosen", "bg-slate-100 text-slate-600"], declined: ["Declined", "bg-slate-100 text-slate-600"] };
+    async function call(method, body) {
+      const res = await fetch(method === "GET" ? `/.netlify/functions/supplier-panel?k=${encodeURIComponent(k)}` : "/.netlify/functions/supplier-panel", { method, headers: { "Content-Type": "application/json" }, body: body ? JSON.stringify({ k, ...body }) : undefined, cache: "no-store" });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) { const e = new Error(d.error || "Something went wrong."); e.status = res.status; throw e; }
+      return d;
+    }
+    async function load() {
+      if (!/^[a-f0-9]{32}$/.test(k)) { $("msg").textContent = ""; $("nolink").classList.remove("hidden"); return; }
+      try { data = await call("GET"); ls.set("cae-dealer-key", k); $("msg").textContent = ""; render(); }
+      catch (e) { if (e.status === 404) { ls.del("cae-dealer-key"); $("nolink").classList.remove("hidden"); $("msg").textContent = `⚠️ ${e.message}`; } else $("msg").textContent = `⚠️ ${e.message}`; }
+    }
+    function render() {
+      const p = data.profile, s = data.stats;
+      $("panel").classList.remove("hidden");
+      $("biz").textContent = p.business; $("who").textContent = `${p.name ? `${p.name} · ` : ""}${p.phone}`;
+      $("area").textContent = `${p.city} · ${p.pins && p.pins.length ? `PINs ${p.pins.join(", ")}` : "whole city"}`;
+      $("cats").textContent = p.categories.join(" · ");
+      $("active").checked = p.active; $("active-label").textContent = p.active ? "Accepting new requests" : "Paused — no new requests";
+      const st = $("stats"); st.replaceChildren();
+      [["To quote", s.toQuote], ["Quoted", s.quoted], ["Won", s.won], ["Delivered", s.delivered], ["Rating", s.rating ? `★ ${s.rating} (${s.ratings})` : "—"]].forEach(([l, v]) => { const c = el("div", "rounded-xl border border-slate-200 bg-white p-3 shadow-sm"); c.append(el("p", "text-xs text-slate-500", l), el("p", "text-xl font-extrabold tabular-nums", String(v))); st.append(c); });
+      const f = $("filter").value, ul = $("list"); ul.replaceChildren();
+      const rows = data.requests.filter((r) => f === "all" || (f === "won" ? r.status === "chosen" : (r.status === "sent" && !r.cancelled) || r.status === "quoted" || (r.status === "chosen" && r.fulfil !== "delivered")));
+      if (!rows.length) ul.append(el("li", "py-3 text-sm text-slate-500", data.requests.length ? "Nothing here." : "No requests yet. They come here (and on WhatsApp) when a customer near your PINs asks for your materials."));
+      rows.forEach((r) => {
+        const li = el("li", "py-3"), [label, cls] = r.cancelled && r.status !== "chosen" ? ["Cancelled by customer", "bg-slate-100 text-slate-600"] : STATUS[r.status] || [r.status, "bg-slate-100"];
+        const top = el("div", "flex flex-wrap items-center gap-2");
+        top.append(el("span", `rounded-full px-2.5 py-0.5 text-xs font-bold ${cls}`, r.status === "chosen" && r.fulfil ? `Won · ${r.fulfil}` : label), el("span", "text-sm font-semibold", r.where), el("span", "text-xs text-slate-500", r.at.slice(0, 10)));
+        if (r.total) top.append(el("span", "ml-auto text-sm font-bold tabular-nums", rs(r.total)));
+        li.append(top, el("p", "mt-1 text-sm text-slate-700", r.items));
+        if (r.neededBy) li.append(el("p", "text-xs text-slate-500", `Needed by ${r.neededBy}`));
+        const a = el("a", "mt-2 inline-block rounded-full bg-blue-700 px-4 py-1.5 text-sm font-bold text-white", r.status === "sent" && !r.cancelled ? "Send your rates →" : r.status === "chosen" ? "Customer & delivery →" : "Open →");
+        a.href = `quote.html?t=${r.token}`; li.append(a);
+        ul.append(li);
+      });
+    }
+    $("filter").onchange = () => data && render();
+    $("active").onchange = async () => { try { data = await call("POST", { action: $("active").checked ? "resume" : "pause" }); render(); } catch (e) { $("msg").textContent = `⚠️ ${e.message}`; } };
+    load();
+  })();
+  </script>
+</body>
+</html>

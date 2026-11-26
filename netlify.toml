@@ -21,6 +21,57 @@
   status = 301
   force = true
 
+# Addresses people guess for the supplier pages.
+[[redirects]]
+  from = "/supplier"
+  to = "/suppliers"
+  status = 301
+
+[[redirects]]
+  from = "/suppliers/login"
+  to = "/dealer"
+  status = 301
+
+[[redirects]]
+  from = "/supplier/login"
+  to = "/dealer"
+  status = 301
+
+[[redirects]]
+  from = "/supplier-login"
+  to = "/dealer"
+  status = 301
+
+[[redirects]]
+  from = "/suppliers-login"
+  to = "/dealer"
+  status = 301
+
+[[redirects]]
+  from = "/dealer-login"
+  to = "/dealer"
+  status = 301
+
+[[redirects]]
+  from = "/dealers"
+  to = "/suppliers"
+  status = 301
+
+[[redirects]]
+  from = "/join"
+  to = "/suppliers"
+  status = 301
+
+[[redirects]]
+  from = "/vendor"
+  to = "/suppliers"
+  status = 301
+
+[[redirects]]
+  from = "/vendors"
+  to = "/suppliers"
+  status = 301
+
 [[headers]]
   for = "/*"
   [headers.values]

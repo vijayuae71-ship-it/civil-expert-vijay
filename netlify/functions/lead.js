@@ -27,7 +27,8 @@ async function sendToSuppliers(store, rec, { exclude = [] } = {}) {
     const offer = { providerId: p.id, token: t, status: "sent", sentAt: new Date().toISOString() };
     offer.notified = await wa.sendTemplate("supplier", p.phone, [`${rec.area ? `${rec.area}, ` : ""}${rec.city} ${rec.pin}`, `${SITE}/quote?t=${t}`]);
     added.push(offer);
-    await store.setJSON(`prov/${p.id}`, { ...p, openOffers: (p.openOffers || 0) + 1 });
+    // The supplier's own list of requests (their dealer panel), newest first, last 200.
+    await store.setJSON(`prov/${p.id}`, { ...p, openOffers: (p.openOffers || 0) + 1, requests: [{ leadKey: rec.key, token: t, at: offer.sentAt }, ...(p.requests || [])].slice(0, 200) });
   }
   rec.offers = [...(rec.offers || []), ...added];
   return added;
