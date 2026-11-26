@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Material Quotes | Construction AI Expert</title>
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#1e3a8a">
+  <link rel="icon" href="assets/logo.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <link rel="stylesheet" href="assets/site.css">
+  <script src="assets/growth.js" defer></script><script src="assets/app.js" defer></script>
+</head>
+<body class="bg-slate-100 text-slate-900 font-sans">
+  <nav class="bg-white border-b border-slate-200"><div class="max-w-3xl mx-auto px-4 py-3 flex items-center gap-2"><img src="assets/logo.svg" alt="" width="32" height="32" class="w-8 h-8"><span class="font-bold text-slate-800">Construction AI Expert · Material quotes</span></div></nav>
+  <main class="max-w-3xl mx-auto px-3 sm:px-4 py-5">
+    <p id="msg" class="text-slate-600" role="status">Loading…</p>
+    <div id="app" class="space-y-4"></div>
+  </main>
+  <script>
+  (() => {
+    const $ = (id) => document.getElementById(id), app = $("app");
+    const t = new URLSearchParams(location.search).get("t") || "";
+    const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; };
+    const rs = (n) => `₹${Number(n || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
+    const card = (cls = "") => el("section", `rounded-2xl border border-slate-200 bg-white p-4 shadow-sm ${cls}`);
+    const btn = (label, cls, fn) => { const b = el("button", `rounded-full px-4 py-2 text-sm font-bold ${cls}`, label); b.type = "button"; b.onclick = fn; return b; };
+    const today = (plus = 0) => { const d = new Date(Date.now() + plus * 864e5); return new Date(d.getTime() - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); };
+    let data = null, timer = null;
+
+    async function call(method, body) {
+      const res = await fetch(method === "GET" ? `/.netlify/functions/quote?t=${encodeURIComponent(t)}` : "/.netlify/functions/quote", { method, headers: { "Content-Type": "application/json" }, body: body ? JSON.stringify({ t, ...body }) : undefined, cache: "no-store" });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(d.error || "Something went wrong. Please try again.");
+      return d;
+    }
+    async function load() {
+      try { data = await call("GET"); $("msg").textContent = ""; render(); }
+      catch (e) { $("msg").textContent = `⚠️ ${e.message}`; }
+    }
+    async function act(body, okMsg) {
+      try { data = await call("POST", body); render(); if (okMsg) flash(okMsg); }
+      catch (e) { flash(`⚠️ ${e.message}`); }
+    }
+    function flash(text) { $("msg").textContent = text; window.scrollTo({ top: 0, behavior: "smooth" }); }
+    const where = (d) => `${d.area ? `${d.area}, ` : ""}${d.city} ${d.pin}`;
+    const steps = (list, done) => { const ol = el("ol", "mt-2 flex flex-wrap gap-1.5 text-xs"); list.forEach(([key, label], i) => { const on = i <= done; ol.append(el("li", `rounded-full px-2.5 py-1 font-semibold ${on ? "bg-emerald-100 text-emerald-900" : "bg-slate-100 text-slate-500"}`, `${on ? "✓ " : ""}${label}`)); }); return ol; };
+
+    function render() {
+      app.replaceChildren();
+      clearTimeout(timer);
+      if (data.role === "provider") renderProvider(); else renderCustomer();
+    }
+
+    // ---------- supplier ----------
+    function renderProvider() {
+      const d = data, head = card();
+      head.append(el("h1", "text-xl font-extrabold text-blue-900", "📦 Material request"), el("p", "mt-1 text-sm text-slate-700", `${where(d)}${d.neededBy ? ` · needed by ${d.neededBy}` : ""}`));
+      if (d.role_) head.append(el("p", "text-sm text-slate-600", `Customer: ${d.role_}`));
+      if (d.notes) head.append(el("p", "text-sm text-slate-600", `Notes: ${d.notes}`));
+      app.append(head);
+
+      if (d.status === "chosen") {
+        const c = card("border-emerald-300 bg-emerald-50");
+        c.append(el("p", "text-lg font-bold text-emerald-900", "🎉 The customer chose your quote"), el("p", "mt-1 text-sm text-emerald-900", `Order value ${rs(d.total.total)}. Call or WhatsApp the customer to confirm the delivery time.`));
+        if (d.customer) {
+          const row = el("div", "mt-2 flex flex-wrap gap-2");
+          const call = el("a", "rounded-full bg-white px-4 py-2 text-sm font-bold text-blue-800 ring-1 ring-blue-200", `📞 ${d.customer.name || "Customer"} ${d.customer.phone}`); call.href = `tel:${d.customer.phone}`;
+          const w = el("a", "rounded-full bg-green-600 px-4 py-2 text-sm font-bold text-white", "WhatsApp"); w.href = `https://wa.me/${d.customer.phone.replace(/\D/g, "")}`; w.target = "_blank"; w.rel = "noopener";
+          row.append(call, w); c.append(row);
+        }
+        const order = ["confirmed", "dispatched", "delivered"], cur = d.fulfil ? order.indexOf(d.fulfil.status) : -1;
+        c.append(steps([["c", "Order confirmed"], ["d", "Dispatched"], ["v", "Delivered"]], cur));
+        const nextStep = order[cur + 1];
+        if (nextStep) c.append(el("div", "mt-3"), btn({ confirmed: "✓ Confirm order", dispatched: "🚚 Mark dispatched", delivered: "📦 Mark delivered" }[nextStep], "bg-emerald-700 text-white", () => act({ action: "fulfil", status: nextStep }, "✓ Updated")));
+        if (d.rating) c.append(el("p", "mt-3 text-sm font-semibold text-emerald-900", `Customer rating: ${"★".repeat(d.rating)}${"☆".repeat(5 - d.rating)}`));
+        app.append(c);
+      } else if (d.status === "not-chosen") app.append(Object.assign(card(), { textContent: "The customer chose another supplier for this request. Thank you for quoting." }));
+      else if (d.status === "declined") app.append(Object.assign(card(), { textContent: "You declined this request." }));
+
+      if (["sent", "quoted"].includes(d.status) || (d.status === "chosen" && d.quote)) app.append(quoteForm(d));
+    }
+    function quoteForm(d) {
+      const c = card(), locked = d.status !== "sent" && d.status !== "quoted";
+      c.append(el("h2", "font-bold text-slate-800", locked ? "Your quote" : d.status === "quoted" ? "Your quote (you can update it until the customer chooses)" : "Your rates (including loading; leave empty if you don't supply it)"));
+      const q = d.quote || {}, inputs = [];
+      const list = el("ul", "mt-2 space-y-2");
+      const totalLine = el("p", "mt-3 text-right text-lg font-extrabold tabular-nums");
+      const recalc = () => { let sum = 0; inputs.forEach(({ inp, it, out }) => { const r = Number(inp.value); const line = r > 0 ? it.qty * r : 0; out.textContent = r > 0 ? rs(line) : "—"; sum += line; }); const del = Number(delivery.value) || 0; totalLine.textContent = `Total ${rs(sum + del)}${del ? ` (incl. delivery ${rs(del)})` : ""}`; };
+      d.items.forEach((it, i) => {
+        const li = el("li", "rounded-xl border border-slate-200 p-2");
+        li.append(el("p", "text-sm font-semibold", `${it.name} — ${it.qty} ${it.unit}`));
+        const row = el("div", "mt-1 flex items-center gap-2 text-sm");
+        const inp = el("input", "w-32 rounded border border-slate-300 px-2 py-1 text-right"); inp.type = "number"; inp.step = "any"; inp.min = "0"; inp.placeholder = "rate"; inp.value = q.rates && q.rates[i] !== null && q.rates[i] !== undefined ? q.rates[i] : ""; inp.disabled = locked; inp.setAttribute("aria-label", `Rate for ${it.name} per ${it.unit}`); inp.oninput = recalc;
+        const out = el("span", "ml-auto font-semibold tabular-nums");
+        row.append(el("span", "text-slate-500", "₹"), inp, el("span", "text-slate-500", `per ${it.unit}`), out); li.append(row); list.append(li);
+        inputs.push({ inp, it, out });
+      });
+      c.append(list);
+      const grid = el("div", "mt-3 grid grid-cols-2 gap-2 text-sm");
+      const lab = (text, input) => { const l = el("label", "font-semibold text-slate-700", text); input.className = "mt-1 block w-full rounded border border-slate-300 px-2 py-1 font-normal"; input.disabled = locked; l.append(input); return l; };
+      const delivery = el("input"); delivery.type = "number"; delivery.min = "0"; delivery.value = q.delivery ?? ""; delivery.placeholder = "0"; delivery.oninput = recalc;
+      const date = el("input"); date.type = "date"; date.value = q.deliveryDate || d.neededBy || today(2);
+      const valid = el("input"); valid.type = "number"; valid.min = "1"; valid.max = "30"; valid.value = q.validDays || 3;
+      const gst = el("select"); gst.append(new Option("Included", "yes"), new Option("Extra", "no")); gst.value = q.gstIncluded === false ? "no" : "yes";
+      grid.append(lab("Delivery charge (₹)", delivery), lab("Delivery date", date), lab("Price valid (days)", valid), lab("GST", gst));
+      const note = el("textarea"); note.rows = 2; note.maxLength = 300; note.value = q.note || ""; note.placeholder = "Brand, grade, unloading…";
+      const noteLab = lab("Note to customer (optional)", note); noteLab.classList.add("col-span-2"); grid.append(noteLab);
+      c.append(grid, totalLine); recalc();
+      if (!locked) {
+        const row = el("div", "mt-3 flex flex-wrap gap-2");
+        row.append(btn(d.status === "quoted" ? "Update quote" : "Send quote", "bg-emerald-700 text-white", () => act({ action: "quote", rates: inputs.map(({ inp }) => inp.value === "" ? null : Number(inp.value)), delivery: Number(delivery.value) || 0, deliveryDate: date.value, validDays: Number(valid.value), gstIncluded: gst.value === "yes", note: note.value }, "✓ Quote sent. The customer compares the quotes and chooses; you get their contact if they choose you.")));
+        if (d.status === "sent") row.append(btn("Can't supply this", "bg-white text-slate-700 ring-1 ring-slate-300", () => { if (confirm("Decline this request?")) act({ action: "decline" }, "Declined."); }));
+        c.append(row);
+      }
+      return c;
+    }
+
+    // ---------- customer ----------
+    function renderCustomer() {
+      const d = data, head = card();
+      head.append(el("h1", "text-xl font-extrabold text-blue-900", "📦 Your material request"), el("p", "mt-1 text-sm text-slate-700", `${where(d)}${d.neededBy ? ` · needed by ${d.neededBy}` : ""}`));
+      head.append(el("p", "mt-1 text-sm text-slate-600", d.items.map((x) => `${x.name} ${x.qty} ${x.unit}`).join(" · ")));
+      const stage = { new: 0, sent: 0, quoted: 1, ordered: 2, delivered: 3, lost: -1 }[d.status] ?? 0;
+      head.append(steps([["s", `Sent to ${d.offers.length || "nearby"} supplier${d.offers.length === 1 ? "" : "s"}`], ["q", "Quotes"], ["c", "Supplier chosen"], ["d", "Delivered"]], stage));
+      app.append(head);
+      const chosen = d.offers.find((o) => o.status === "chosen");
+      if (d.status === "lost") { app.append(Object.assign(card(), { textContent: d.offers.length ? "This request is closed." : "No supplier near this PIN supplies these materials yet. We'll contact you when one joins." })); return; }
+      if (!d.offers.length) app.append(Object.assign(card(), { textContent: "We're finding suppliers near your site. This page updates by itself." }));
+      if (chosen) {
+        const c = card("border-emerald-300 bg-emerald-50");
+        c.append(el("p", "text-lg font-bold text-emerald-900", `✓ ${chosen.business} — ${rs(chosen.total.total)}`));
+        if (chosen.contact) {
+          const row = el("div", "mt-2 flex flex-wrap gap-2");
+          const call = el("a", "rounded-full bg-white px-4 py-2 text-sm font-bold text-blue-800 ring-1 ring-blue-200", `📞 ${chosen.contact.name || chosen.business} ${chosen.contact.phone}`); call.href = `tel:${chosen.contact.phone}`;
+          const w = el("a", "rounded-full bg-green-600 px-4 py-2 text-sm font-bold text-white", "WhatsApp"); w.href = `https://wa.me/${chosen.contact.phone.replace(/\D/g, "")}`; w.target = "_blank"; w.rel = "noopener";
+          row.append(call, w); c.append(row);
+        }
+        const order = ["confirmed", "dispatched", "delivered"], cur = chosen.fulfil ? order.indexOf(chosen.fulfil.status) : -1;
+        c.append(steps([["c", "Supplier confirmed"], ["d", "Dispatched"], ["v", "Delivered"]], cur));
+        if (!d.rating) {
+          const r = el("div", "mt-3"); r.append(el("p", "text-sm font-semibold text-emerald-900", "Received the material? Rate the supplier:"));
+          const stars = el("div", "mt-1 flex flex-wrap gap-1"); stars.setAttribute("role", "group"); stars.setAttribute("aria-label", "Rating");
+          for (let i = 1; i <= 5; i++) { const b = btn(`${i} ★`, "bg-white text-amber-700 ring-1 ring-amber-200", () => act({ action: "received", rating: i }, "Thank you! Your rating helps other customers.")); b.setAttribute("aria-label", `${i} out of 5`); stars.append(b); }
+          r.append(stars); c.append(r);
+        } else c.append(el("p", "mt-3 text-sm font-semibold text-emerald-900", `Delivered · you rated ${"★".repeat(d.rating)}${"☆".repeat(5 - d.rating)}`));
+        app.append(c);
+      }
+      const quoted = d.offers.filter((o) => o.total).sort((a, b) => a.total.missing - b.total.missing || a.total.total - b.total.total);
+      if (quoted.length && !chosen) app.append(el("h2", "font-bold text-slate-800", `${quoted.length} quote${quoted.length === 1 ? "" : "s"} — complete quotes first, then cheapest`));
+      quoted.forEach((o, i) => {
+        if (chosen && o !== chosen) return;
+        if (chosen) return;
+        const c = card(i === 0 ? "border-emerald-300" : "");
+        const top = el("div", "flex flex-wrap items-baseline justify-between gap-2");
+        top.append(el("p", "font-bold", `${o.business}${o.rating ? `  ★ ${o.rating} (${o.ratings})` : ""}`), el("p", "text-xl font-extrabold tabular-nums", rs(o.total.total)));
+        c.append(top);
+        c.append(el("p", "text-xs text-slate-600", `Materials ${rs(o.total.materials)} + delivery ${rs(o.total.delivery)} · GST ${o.quote.gstIncluded ? "included" : "extra"} · delivery ${o.quote.deliveryDate} · valid ${o.quote.validDays} days${o.total.missing ? ` · ⚠️ ${o.total.missing} item(s) not supplied` : ""}`));
+        const ul = el("ul", "mt-2 text-sm text-slate-700");
+        d.items.forEach((it, k) => ul.append(el("li", "", `${it.name}: ${o.quote.rates[k] === null ? "not supplied" : `${rs(o.quote.rates[k])}/${it.unit} = ${rs(o.total.lines[k])}`}`)));
+        c.append(ul);
+        if (o.quote.note) c.append(el("p", "mt-1 text-xs text-slate-600", `“${o.quote.note}”`));
+        c.append(el("div", "mt-3"), btn("Choose this supplier", "bg-emerald-700 text-white", () => { if (confirm(`Choose ${o.business} for ${rs(o.total.total)}? They get your name and number to arrange the delivery.`)) act({ action: "choose", n: o.n }, "✓ Supplier chosen. They'll contact you to confirm the delivery."); }));
+        app.append(c);
+      });
+      const waiting = d.offers.filter((o) => o.status === "sent").length;
+      if (!chosen && waiting) app.append(el("p", "text-sm text-slate-600", `Waiting for ${waiting} more supplier${waiting === 1 ? "" : "s"}. This page updates by itself.`));
+      if (!chosen) app.append(btn("Cancel request", "bg-white text-red-700 ring-1 ring-red-200", () => { if (confirm("Cancel this request?")) act({ action: "cancel" }, "Request cancelled."); }));
+      if (!chosen && d.status !== "lost") timer = setTimeout(load, 30000);
+    }
+    load();
+  })();
+  </script>
+</body>
+</html>

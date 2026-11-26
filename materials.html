@@ -21,6 +21,7 @@
     <h1 class="text-2xl font-extrabold text-blue-900">📦 Get delivery quotes</h1>
     <p class="mt-1 text-sm text-slate-600">Steel, sand, aggregate, bricks, blocks, tiles, paint, waterproofing, plumbing and electrical materials — priced with delivery by suppliers near your site. <strong>India only for now.</strong> Cement is not offered yet.</p>
 
+    <section id="mine" class="mt-3 hidden rounded-2xl border border-blue-200 bg-blue-50 p-3 text-sm"><p class="font-semibold text-blue-900">Your requests</p><ul id="mine-list" class="mt-1 space-y-1"></ul></section>
     <form id="form" class="mt-4 space-y-4" novalidate>
       <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <h2 class="font-bold text-slate-800">1. Materials</h2>
@@ -49,7 +50,7 @@
           <label class="font-semibold text-slate-700">Mobile (WhatsApp)<div class="mt-1 flex"><span class="rounded-l-lg border border-r-0 border-slate-300 bg-slate-50 px-2 py-2 font-normal text-slate-600">+91</span><input id="phone" inputmode="tel" autocomplete="tel-national" maxlength="14" class="block w-full rounded-r-lg border border-slate-300 px-2 py-2 font-normal" placeholder="98xxxxxxxx"></div></label>
           <label class="font-semibold text-slate-700 sm:col-span-2">Notes (optional)<textarea id="notes" rows="2" maxlength="300" class="mt-1 block w-full rounded-lg border border-slate-300 px-2 py-2 font-normal" placeholder="e.g. truck access only till 8 am, unloading on ground floor"></textarea></label>
         </div>
-        <label class="mt-3 flex items-start gap-2 text-sm text-slate-700"><input id="consent" type="checkbox" class="mt-1"> <span>Share my request — the materials, my site area and PIN, my name and mobile number — with up to 3 partner suppliers so they can call or WhatsApp me with a price. I can ask for it to be deleted at any time. <a href="privacy.html#leads" class="text-blue-700 underline">Privacy notice</a></span></label>
+        <label class="mt-3 flex items-start gap-2 text-sm text-slate-700"><input id="consent" type="checkbox" class="mt-1"> <span>Send my request — the materials and my site area and PIN — to up to 3 suppliers near my site for prices. My name and mobile number go only to the supplier I choose. I can ask for it to be deleted at any time. <a href="privacy.html#leads" class="text-blue-700 underline">Privacy notice</a></span></label>
       </section>
 
       <div class="flex flex-wrap items-center gap-3"><button type="submit" id="send" class="rounded-full bg-emerald-700 px-6 py-3 font-bold text-white hover:bg-emerald-800">Get quotes</button><span id="status" class="text-sm text-slate-600" role="status"></span></div>
@@ -57,11 +58,14 @@
 
     <section id="done" class="mt-4 hidden rounded-2xl border border-emerald-300 bg-emerald-50 p-5">
       <p class="text-lg font-bold text-emerald-900">✓ Request sent</p>
-      <p class="mt-1 text-sm text-emerald-900">We share it with suppliers near <span id="done-where"></span>. Expect a call or WhatsApp with prices, usually within one working day. Compare the prices, and check the material on delivery before you pay.</p>
+      <p class="mt-1 text-sm text-emerald-900"><span id="done-sent"></span> near <span id="done-where"></span>. Their prices appear on your tracking page, usually within one working day — compare them and choose one. Only the supplier you choose gets your number. Check the material on delivery before you pay.</p>
+      <a id="done-track" class="mt-3 inline-block rounded-full bg-emerald-700 px-5 py-2.5 text-sm font-bold text-white">📋 Track your quotes</a>
+      <p class="mt-1 text-xs text-emerald-900">Keep this link — it's also saved on this phone under “Your requests”.</p>
       <div class="mt-3 flex flex-wrap gap-2"><a href="expert.html" class="rounded-full bg-white px-4 py-2 text-sm font-semibold text-blue-800 ring-1 ring-blue-200">💬 Back to Ask AI</a><button type="button" id="again" class="rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-700 ring-1 ring-slate-200">New request</button></div>
     </section>
   </main>
 
+  <p class="max-w-3xl mx-auto px-4 pb-6 text-sm text-slate-600">🏪 Building material dealer? <a href="suppliers.html" class="font-semibold text-blue-700 underline">Join as a supplier</a> and get requests near you.</p>
   <footer class="border-t border-slate-200 bg-white"><p class="max-w-5xl mx-auto px-4 py-6 text-sm leading-relaxed text-slate-500">Prices and delivery are agreed directly between you and the supplier. Check quantity and quality on delivery. <a href="disclaimer.html" class="text-blue-700 hover:underline">Disclaimer &amp; terms</a> · <a href="privacy.html" class="text-blue-700 hover:underline">Privacy notice</a></p></footer>
   <script>
   (() => {
@@ -123,6 +127,12 @@
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.error || "Could not send. Please try again.");
         ls.set("cae-lead-me", { city, area: body.area, pin: body.pin, name: body.name, phone: body.phone, role: body.role });
+        if (data.track) {
+          ls.set("cae-my-requests", [{ t: data.track, at: new Date().toISOString().slice(0, 10), what: body.items.map((x) => x.name).slice(0, 3).join(", "), where: `${city} ${body.pin}` }, ...(ls.get("cae-my-requests") || [])].slice(0, 10));
+          $("done-track").href = `quote.html?t=${data.track}`;
+        }
+        $("done-sent").textContent = data.suppliers ? `Sent to ${data.suppliers} supplier${data.suppliers === 1 ? "" : "s"}` : "We're finding suppliers";
+        showMine();
         ls.del("cae-lead-draft");
         $("form").classList.add("hidden"); $("done").classList.remove("hidden");
         $("done-where").textContent = `${body.area ? body.area + ", " : ""}${city} ${body.pin}`;
@@ -130,6 +140,12 @@
       } catch (err) { $("status").textContent = `⚠️ ${err.message}`; }
       finally { $("send").disabled = false; }
     });
+    function showMine() {
+      const list = ls.get("cae-my-requests") || [];
+      $("mine").classList.toggle("hidden", !list.length); $("mine-list").replaceChildren();
+      list.forEach((r) => { const li = el("li"); const a = el("a", "text-blue-800 underline"); a.href = `quote.html?t=${r.t}`; a.textContent = `${r.at} · ${r.what} · ${r.where}`; li.append(a); $("mine-list").append(li); });
+    }
+    showMine();
     $("again").onclick = () => { items = [{ name: "", qty: "", unit: "kg" }]; render(); $("consent").checked = false; $("status").textContent = ""; $("done").classList.add("hidden"); $("form").classList.remove("hidden"); };
   })();
   </script>
