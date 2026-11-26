@@ -8,6 +8,8 @@
   <url><loc>https://civilengineervijay.netlify.app/calculators</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://civilengineervijay.netlify.app/quotation</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://civilengineervijay.netlify.app/consultant</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://civilengineervijay.netlify.app/materials</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://civilengineervijay.netlify.app/suppliers</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
   <url><loc>https://civilengineervijay.netlify.app/for/</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://civilengineervijay.netlify.app/for/plumber</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://civilengineervijay.netlify.app/for/electrician</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>

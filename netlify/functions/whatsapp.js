@@ -18,6 +18,7 @@ const { BRAND_NAME } = require("./brand");
 const usage = require("./usage-stats");
 const { tradeFor, tradeFromIntro } = require("./trades");
 const Clarify = require("../../assets/clarify.js");
+const Leads = require("../../assets/leads.js");
 
 const API_VERSION = process.env.WHATSAPP_API_VERSION || "v23.0";
 const SITE_URL = process.env.URL || "https://civilengineervijay.netlify.app";
@@ -172,7 +173,7 @@ const WELCOME = [
   "",
   "📄 *Tenders & price lists*: forward a tender BOQ or a supplier price list (PDF, Excel or photos) with the word *tender* or *prices* — you get a link to price it in the Quotation tools.",
   "",
-  "*Commands*: *new* – start fresh · *detailed* – engineer answers · *simple* – short steps · *consult* – request a personal review",
+  "*Commands*: *new* – start fresh · *detailed* – engineer answers · *simple* – short steps · *delivery* – material prices with delivery (India) · *consult* – request a personal review",
   "",
   "⚠️ General guidance only. Check design, testing and approvals with your engineer.",
   `📄 Disclaimer: ${SITE_URL}/disclaimer · 🔒 Privacy: ${SITE_URL}/privacy`
@@ -201,6 +202,7 @@ function command(text) {
   if (/^(consult|contact|expert|review|expert review)$/.test(t)) return "consult";
   if (/^(tender|boq|quotation|quote)$/.test(t)) return "import-tender";
   if (/^(prices?|price ?list|rate ?list|catalog(ue)?)$/.test(t)) return "import-prices";
+  if (/^(delivery|deliver|materials?|supply|order|order materials?|get quotes?|delivery quotes?)$/.test(t)) return "delivery";
   return null;
 }
 
@@ -249,6 +251,15 @@ async function handleMessage(event, stores, msg, { background = false } = {}) {
     case "new": await saveConversation(stores.conversations, key, { turns: [], audience: conversation.audience, trade: conversation.trade }); return sendText(from, "✅ Started a fresh conversation. Ask your question.");
     case "detailed": await saveConversation(stores.conversations, key, { ...conversation, audience: "engineer" }); return sendText(from, "📐 Detailed answers are on (calculations and full working). Send *simple* to switch back.");
     case "simple": await saveConversation(stores.conversations, key, { ...conversation, audience: "worker" }); return sendText(from, "🛠️ Simple step-by-step answers are on. Send *detailed* for engineer answers.");
+    case "delivery": {
+      // The materials in the last answer (not cement) → a link to the request page with the list filled in.
+      const last = [...(conversation.turns || [])].reverse().find((x) => x.role === "model");
+      const items = last ? Leads.fromText(last.text) : [];
+      const link = `${SITE_URL}/materials?r=wa-bot${items.length ? `&items=${Buffer.from(JSON.stringify(items.slice(0, 20)), "utf8").toString("base64url")}` : ""}`;
+      return sendText(from, items.length
+        ? `📦 *Delivery quotes (India)*\n${items.map((x) => `• ${x.name} — ${x.qty} ${x.unit}`).join("\n")}\n\nOpen this link, check the list, add your site PIN and send — suppliers near you will call or WhatsApp you with prices:\n${link}\n\n_Cement is not offered yet._`
+        : `📦 *Delivery quotes (India)*: steel, sand, aggregate, bricks, blocks, tiles, paint, plumbing and electrical materials. Open this link, list what you need and your site PIN:\n${link}`);
+    }
     case "consult": return sendText(from, `To request a personal review of your project, fill this short form (we try to reply within a few days):\n${SITE_URL}/expert#consult`);
     case "import-tender": case "import-prices": {
       const kind = command(text) === "import-prices" ? "prices" : "tender";
@@ -288,6 +299,7 @@ async function handleMessage(event, stores, msg, { background = false } = {}) {
   // Questions before answering ([[ASK]]): numbered questions, answered in one message or with "quick".
   const ask = Clarify.parse(data.reply);
   await sendText(from, ask ? Clarify.whatsappText(ask) : toWhatsApp(data.reply), msg.id);
+  if (!ask && Leads.fromText(data.reply).length) await sendText(from, "📦 Need these materials delivered (India)? Reply *delivery* for prices from suppliers near your site.");
   if (msg.type === "document") await sendText(from, "📄 Is this a tender BOQ or a supplier price list? Reply *tender* or *prices* to open it in the Quotation tools.");
   conversation.turns.push({ role: "user", text: attachment ? `${text}\n[${msg.type} attached]` : text }, { role: "model", text: data.reply });
   await saveConversation(stores.conversations, key, conversation);

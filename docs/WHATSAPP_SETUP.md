@@ -107,3 +107,15 @@ Website and WhatsApp share the same limits, set on the owner dashboard (`/owner`
 - Daily AI budget in US$ (0 = off): the app adds each answer's estimated AI cost to today's total; once it is reached, new questions get "try again tomorrow" until midnight UTC.
 
 The dashboard shows today's questions and estimated spend against these limits. Keep a monthly spending limit in the Anthropic console as well — it is the hard stop.
+
+## Material marketplace messages (templates)
+
+Requests from **📦 Get delivery quotes** go to up to 3 approved suppliers near the site, who quote on a private link; the customer compares on their own link and chooses; the supplier marks confirmed → dispatched → delivered; the customer rates. Messages the business starts (not replies) need **Meta-approved templates** (charged per message). Create these three in WhatsApp Manager → Message templates (category **Utility**, language English), then add their names in Netlify and redeploy:
+
+| Netlify variable | Suggested template text |
+|---|---|
+| `WHATSAPP_TEMPLATE_SUPPLIER` | New material request near {{1}}. Send your rates here (no login needed): {{2}} |
+| `WHATSAPP_TEMPLATE_CUSTOMER` | You have {{1}} price quote(s) for your material request. Compare and choose: {{2}} |
+| `WHATSAPP_TEMPLATE_CHOSEN` | The customer chose your quote for the request near {{1}}. Customer details and delivery: {{2}} |
+
+Optional `WHATSAPP_TEMPLATE_LANG` (default `en`). Until they are set, the owner dashboard shows **Send link on WhatsApp** for each supplier, and customers follow their quotes on the tracking link shown after they send the request.

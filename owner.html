@@ -85,6 +85,27 @@
       </form>
     </section>
 
+    <section class="card" aria-label="Material requests" style="margin-bottom:12px">
+      <div class="row" style="justify-content:space-between"><h2>📥 Material requests (leads)</h2><div class="row"><select id="ld-filter" aria-label="Show"><option value="open">Open</option><option value="all">All</option><option value="new">New (no supplier)</option><option value="sent">Sent</option><option value="quoted">Quoted</option><option value="ordered">Ordered</option><option value="delivered">Delivered</option><option value="lost">Lost</option></select><button type="button" id="ld-csv">⬇ CSV</button></div></div>
+      <p class="muted" id="ld-sum" style="margin:4px 0 4px"></p>
+      <form id="ld-com" class="row" style="margin:0 0 8px"><label class="sec" style="font-size:12px">Commission % <input name="pct" type="number" min="0" max="50" step="0.5" style="width:80px"></label><button type="submit">Save</button><span id="ld-money" class="muted"></span></form>
+      <ul class="list" id="ld-list"></ul>
+      <p class="muted" style="margin-top:8px">Requests from “📦 Get delivery quotes” (India, non-cement), sent with the customer's consent to up to 3 matching suppliers; kept 180 days. Status follows the suppliers and the customer: sent → quoted → ordered → delivered.</p>
+    </section>
+
+    <section class="card" aria-label="Suppliers" style="margin-bottom:12px">
+      <h2>🏪 Suppliers</h2>
+      <p class="muted" id="sp-sum" style="margin:4px 0 8px"></p>
+      <ul class="list" id="sp-list"></ul>
+      <details style="margin-top:8px"><summary>+ Add a supplier</summary>
+        <form id="sp-form" class="grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin-top:8px">
+          <input name="business" placeholder="Business name"><input name="name" placeholder="Contact person"><input name="phone" placeholder="WhatsApp (10 digits)"><input name="city" placeholder="City (e.g. Mysuru)"><input name="pins" placeholder="PINs: 570017, 5700 …" style="grid-column:1/-1">
+          <div id="sp-cats" class="row" style="grid-column:1/-1"></div>
+          <div class="row" style="grid-column:1/-1"><button type="submit">Save supplier</button><span id="sp-status" class="muted"></span></div>
+        </form></details>
+      <p class="muted" style="margin-top:8px">Dealers register at /suppliers and wait for your approval. Requests go only to approved, active suppliers in the same city who serve the PIN and stock the material.</p>
+    </section>
+
     <section class="card" aria-label="Users">
       <h2>👥 Users</h2>
       <div class="grid tiles" style="margin-top:6px">
@@ -141,6 +162,7 @@
     </section>
   </div>
 </main>
+<script src="assets/leads.js"></script>
 <script>
 (() => {
   const $ = (id) => document.getElementById(id);
@@ -313,8 +335,93 @@
       render(data);
       $("status").textContent = `Updated ${new Date().toLocaleTimeString()} · last ${days} days`;
       loadLimits().catch((err) => { $("lim-status").textContent = err.message; });
+      loadLeads().catch((err) => { $("ld-sum").textContent = err.message; });
+      loadProviders().catch((err) => { $("sp-sum").textContent = err.message; });
     } catch (err) { $("status").innerHTML = ""; $("status").appendChild(el("span", "err", err.message)); }
   }
+  // ---- Material requests (owner-leads) and suppliers (owner-providers) ----
+  let leads = [], site = location.origin, settings = { commissionPct: 0 };
+  async function ownerCall(fn, method = "GET", body) {
+    const key = store.get(KEY); if (!key) return null;
+    const res = await fetch(`/.netlify/functions/${fn}`, { method, headers: { "x-owner-key": key, "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined, cache: "no-store" });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || "Could not load.");
+    return data;
+  }
+  async function loadLeads() { const d = await ownerCall("owner-leads"); if (!d) return; leads = d.leads || []; site = d.site || site; settings = d.settings || settings; renderLeads(); }
+  const rupees = (n) => `₹${Math.round(n || 0).toLocaleString("en-IN")}`;
+  const CHIP = { sent: "asked", quoted: "quoted", declined: "declined", chosen: "chosen ✓", "not-chosen": "not chosen" };
+  function renderLeads() {
+    const f = $("ld-filter").value, ul = $("ld-list"); ul.innerHTML = "";
+    const week = new Date(Date.now() - 7 * 864e5).toISOString(), by = (st) => leads.filter((l) => l.status === st).length;
+    $("ld-sum").textContent = leads.length ? `${leads.filter((l) => l.at >= week).length} this week · ${by("new")} without a supplier · ${by("sent")} sent · ${by("quoted")} quoted · ${by("ordered")} ordered · ${by("delivered")} delivered · ${by("lost")} lost` : "No requests yet. They appear here when someone taps “📦 Get delivery quotes”.";
+    $("ld-com").elements.pct.value = settings.commissionPct || 0;
+    const ordered = leads.filter((l) => ["ordered", "delivered"].includes(l.status)), delivered = leads.filter((l) => l.status === "delivered");
+    const val = (list) => list.reduce((a, l) => a + (l.orderValue || 0), 0);
+    $("ld-money").textContent = `Orders ${ordered.length} · ${rupees(val(ordered))} · delivered ${rupees(val(delivered))} · commission earned ${rupees(val(delivered) * (settings.commissionPct || 0) / 100)}`;
+    const shown = leads.filter((l) => f === "all" || (f === "open" ? !["delivered", "lost"].includes(l.status) : l.status === f));
+    shown.forEach((l) => {
+      const li = el("li"); li.style.cssText = "display:grid;gap:4px";
+      li.append(el("div", "", `${l.at.slice(0, 16).replace("T", " ")} · ${l.city}${l.area ? `, ${l.area}` : ""} ${l.pin}${l.neededBy ? ` · by ${l.neededBy}` : ""}  — ${l.status}${l.orderValue ? ` · ${rupees(l.orderValue)}` : ""}${l.rating ? ` · ${"★".repeat(l.rating)}` : ""}`));
+      li.append(el("div", "sec", l.items.map((x) => `${x.name} ${x.qty} ${x.unit}`).join(" · ")));
+      const who = el("div", "muted", `${l.role || ""}${l.name ? ` · ${l.name}` : ""} · `);
+      const tel = el("a", "", l.phone); tel.href = `tel:${l.phone}`; who.append(tel);
+      if (l.ctoken) { const tr = el("a", "", " · customer's tracking page"); tr.href = `${site}/quote?t=${l.ctoken}`; tr.target = "_blank"; tr.rel = "noopener"; who.append(tr); }
+      li.append(who);
+      (l.offers || []).forEach((o) => {
+        const row = el("div", "row"); row.style.fontSize = "13px";
+        row.append(el("span", "pill", CHIP[o.status] || o.status), el("span", "", `${o.business}${o.total ? ` · ${rupees(o.total.total)}${o.total.missing ? ` (${o.total.missing} not supplied)` : ""}` : ""}${o.fulfil ? ` · ${o.fulfil.status}` : ""}`));
+        if (o.status === "sent" && !o.notified && o.phone) { const a = el("a", "btn", "Send link on WhatsApp"); a.href = `https://wa.me/${o.phone.replace(/\D/g, "")}?text=${encodeURIComponent(`${Leads.message(l).replace("Please reply with your price including delivery.", "")}\nSend your rates here (no login needed):\n${site}/quote?t=${o.token}`)}`; a.target = "_blank"; a.rel = "noopener"; row.append(a); }
+        li.append(row);
+      });
+      const row = el("div", "row");
+      const note = el("input"); note.placeholder = "your note"; note.value = l.note || ""; note.style.flex = "1";
+      note.onchange = async () => { try { const d = await ownerCall("owner-leads", "POST", { key: l.key, note: note.value }); Object.assign(l, d.lead); } catch (e) { alert(e.message); } };
+      row.append(note);
+      if (["new", "sent", "quoted"].includes(l.status)) row.append(Object.assign(el("button", "", "Send to more suppliers"), { onclick: async () => { try { const d = await ownerCall("owner-leads", "POST", { key: l.key, action: "match" }); Object.assign(l, d.lead); renderLeads(); if (!d.lead.offers.length) alert("No approved supplier serves this city, PIN and material yet."); } catch (e) { alert(e.message); } } }));
+      if (!l.offers || !l.offers.length) { const fwd = el("a", "btn", "Forward manually"); fwd.href = `https://wa.me/?text=${encodeURIComponent(Leads.message(l))}`; fwd.target = "_blank"; fwd.rel = "noopener"; row.append(fwd); }
+      li.append(row);
+      ul.appendChild(li);
+    });
+    if (leads.length && !shown.length) ul.appendChild(el("li", "muted", "Nothing with this status."));
+  }
+  $("ld-filter").addEventListener("change", renderLeads);
+  $("ld-com").addEventListener("submit", async (e) => { e.preventDefault(); try { const d = await ownerCall("owner-leads", "POST", { action: "settings", commissionPct: e.currentTarget.elements.pct.value }); settings = d.settings; renderLeads(); } catch (err) { alert(err.message); } });
+  $("ld-csv").addEventListener("click", () => {
+    const q = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const rows = [["Date", "Status", "City", "Area", "PIN", "Needed by", "Materials", "Role", "Name", "Phone", "Suppliers asked", "Quotes", "Chosen", "Order value", "Rating", "Your note"]].concat(leads.map((l) => [l.at.slice(0, 16), l.status, l.city, l.area, l.pin, l.neededBy, l.items.map((x) => `${x.name} ${x.qty} ${x.unit}`).join("; "), l.role, l.name, l.phone, (l.offers || []).length, (l.offers || []).filter((o) => o.quote).length, ((l.offers || []).find((o) => o.status === "chosen") || {}).business || "", l.orderValue || "", l.rating || "", l.note]));
+    const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(new Blob(["\ufeff" + rows.map((r) => r.map(q).join(",")).join("\n")], { type: "text/csv" })), download: `material-requests-${new Date().toISOString().slice(0, 10)}.csv` });
+    document.body.append(a); a.click(); a.remove();
+  });
+  // suppliers
+  let providers = [];
+  const catName = (k) => (window.Leads ? Object.fromEntries(Leads.CATEGORIES)[k] : k) || k;
+  if (window.Leads) Leads.CATEGORIES.forEach(([k, label]) => { const l = el("label", "sec"); l.style.fontSize = "12px"; const c = el("input"); c.type = "checkbox"; c.value = k; l.append(c, document.createTextNode(` ${label}`)); $("sp-cats").append(l); });
+  async function loadProviders() { const d = await ownerCall("owner-providers"); if (!d) return; providers = d.providers || []; renderProviders(); }
+  function renderProviders() {
+    const ul = $("sp-list"); ul.innerHTML = "";
+    const pending = providers.filter((p) => !p.approved).length;
+    $("sp-sum").textContent = providers.length ? `${providers.length} suppliers · ${pending} waiting for approval · ${providers.filter((p) => p.approved && p.active !== false).length} active` : "No suppliers yet. Share the /suppliers page with dealers, or add one below.";
+    providers.forEach((p) => {
+      const li = el("li"); li.style.cssText = "display:grid;gap:3px";
+      li.append(el("div", "", `${p.approved ? (p.active === false ? "⏸ " : "✓ ") : "🕓 "}${p.business}${p.name ? ` · ${p.name}` : ""} · ${p.city}${p.pins && p.pins.length ? ` · PINs ${p.pins.join(", ")}` : " · whole city"}`));
+      li.append(el("div", "sec", p.categories.map(catName).join(" · ")));
+      const stats = el("div", "muted", `open requests ${p.openOffers || 0} · delivered ${p.delivered || 0}${p.ratingCount ? ` · ★ ${(p.ratingSum / p.ratingCount).toFixed(1)} (${p.ratingCount})` : ""} · `);
+      const tel = el("a", "", p.phone); tel.href = `https://wa.me/${p.phone.replace(/\D/g, "")}`; tel.target = "_blank"; tel.rel = "noopener"; stats.append(tel); li.append(stats);
+      const row = el("div", "row");
+      const save = async (patch) => { try { await ownerCall("owner-providers", "POST", { action: "save", ...p, ...patch }); await loadProviders(); } catch (e) { alert(e.message); } };
+      if (!p.approved) row.append(Object.assign(el("button", "", "Approve"), { onclick: () => save({ approved: true, active: true }) }));
+      else row.append(Object.assign(el("button", "", p.active === false ? "Resume" : "Pause"), { onclick: () => save({ active: p.active === false }) }));
+      row.append(Object.assign(el("button", "", "Delete"), { onclick: async () => { if (!confirm(`Delete ${p.business}?`)) return; try { await ownerCall("owner-providers", "POST", { action: "delete", id: p.id }); await loadProviders(); } catch (e) { alert(e.message); } } }));
+      li.append(row); ul.appendChild(li);
+    });
+  }
+  $("sp-form").addEventListener("submit", async (e) => {
+    e.preventDefault(); const f = e.currentTarget;
+    const body = { action: "save", business: f.elements.business.value, name: f.elements.name.value, phone: f.elements.phone.value, city: f.elements.city.value, pins: f.elements.pins.value, categories: [...$("sp-cats").querySelectorAll("input:checked")].map((x) => x.value), approved: true, active: true };
+    try { await ownerCall("owner-providers", "POST", body); f.reset(); $("sp-status").textContent = "Saved."; await loadProviders(); } catch (err) { $("sp-status").textContent = err.message; }
+  });
+
   // ---- Limits & budget (owner-settings function) ----
   function meter(label, used, cap, fmt) {
     const box = el("div"), share = cap > 0 ? Math.min(1, used / cap) : 0;

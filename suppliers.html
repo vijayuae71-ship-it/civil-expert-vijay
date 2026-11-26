@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Join as a Supplier | Construction AI Expert</title>
+  <meta name="description" content="Building material dealers in India: get delivery requests from homeowners and contractors near you. Quote on WhatsApp, no app needed.">
+  <meta name="theme-color" content="#1e3a8a">
+  <link rel="icon" href="assets/logo.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <link rel="stylesheet" href="assets/site.css">
+  <script src="assets/quote.js"></script>
+  <script src="assets/leads.js"></script>
+  <script src="assets/growth.js" defer></script><script src="assets/app.js" defer></script>
+</head>
+<body class="bg-slate-100 text-slate-900 font-sans">
+  <nav class="bg-white border-b border-slate-200"><div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3"><a href="index.html" class="flex min-w-0 items-center gap-2 font-bold leading-tight text-slate-800"><img src="assets/logo.svg" alt="" width="32" height="32" class="w-8 h-8"><span class="truncate">Construction AI Expert</span></a><div class="flex items-center gap-4 text-sm font-medium text-blue-700"><a href="materials.html" class="whitespace-nowrap hover:text-blue-900">Materials</a><a href="suppliers.html" class="whitespace-nowrap font-bold text-blue-900" aria-current="page">Suppliers</a></div></div></nav>
+  <main class="max-w-3xl mx-auto px-3 sm:px-4 py-5">
+    <h1 class="text-2xl font-extrabold text-blue-900">🏪 Join as a supplier</h1>
+    <p class="mt-1 text-sm text-slate-600">For building material dealers in India. Homeowners, contractors and site engineers ask our AI for quantities; when they want the materials delivered, nearby suppliers get the request and send a price. No app, no login.</p>
+    <ol class="mt-3 grid gap-2 sm:grid-cols-4 text-sm">
+      <li class="rounded-xl bg-white p-3 shadow-sm"><b>1.</b> A request near your PINs arrives on WhatsApp</li>
+      <li class="rounded-xl bg-white p-3 shadow-sm"><b>2.</b> Open the link, enter your rates and delivery date</li>
+      <li class="rounded-xl bg-white p-3 shadow-sm"><b>3.</b> The customer compares and chooses — you get their contact</li>
+      <li class="rounded-xl bg-white p-3 shadow-sm"><b>4.</b> Deliver, mark it delivered, collect your rating</li>
+    </ol>
+    <form id="form" class="mt-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm" novalidate>
+      <div class="grid gap-3 sm:grid-cols-2 text-sm">
+        <label class="font-semibold text-slate-700">Business name<input id="business" class="mt-1 block w-full rounded-lg border border-slate-300 px-2 py-2 font-normal"></label>
+        <label class="font-semibold text-slate-700">Contact person<input id="name" class="mt-1 block w-full rounded-lg border border-slate-300 px-2 py-2 font-normal"></label>
+        <label class="font-semibold text-slate-700">WhatsApp number<div class="mt-1 flex"><span class="rounded-l-lg border border-r-0 border-slate-300 bg-slate-50 px-2 py-2 font-normal text-slate-600">+91</span><input id="phone" inputmode="tel" maxlength="14" class="block w-full rounded-r-lg border border-slate-300 px-2 py-2 font-normal"></div></label>
+        <label class="font-semibold text-slate-700">GSTIN (optional)<input id="gstin" maxlength="15" class="mt-1 block w-full rounded-lg border border-slate-300 px-2 py-2 font-normal uppercase"></label>
+        <label class="font-semibold text-slate-700">City<select id="city" class="mt-1 block w-full rounded-lg border border-slate-300 px-2 py-2 font-normal"></select></label>
+        <label id="city-other-wrap" class="hidden font-semibold text-slate-700">City name<input id="city-other" class="mt-1 block w-full rounded-lg border border-slate-300 px-2 py-2 font-normal"></label>
+        <label class="font-semibold text-slate-700 sm:col-span-2">PIN codes you deliver to<input id="pins" class="mt-1 block w-full rounded-lg border border-slate-300 px-2 py-2 font-normal" placeholder="e.g. 570017, 570023, 5700 (all PINs starting 5700) — empty = whole city"></label>
+      </div>
+      <p class="mt-3 text-sm font-semibold text-slate-700">Materials you supply</p>
+      <div id="cats" class="mt-1 grid gap-1 sm:grid-cols-2 text-sm"></div>
+      <label class="mt-3 flex items-start gap-2 text-sm text-slate-700"><input id="agree" type="checkbox" class="mt-1"> <span>I'll quote honest prices including delivery, deliver what I quote, and keep customers' details private (used only for that order). Requests can stop if customers report problems.</span></label>
+      <div class="mt-3 flex flex-wrap items-center gap-3"><button type="submit" class="rounded-full bg-emerald-700 px-6 py-3 font-bold text-white hover:bg-emerald-800">Register</button><span id="status" class="text-sm text-slate-600" role="status"></span></div>
+    </form>
+    <section id="done" class="mt-4 hidden rounded-2xl border border-emerald-300 bg-emerald-50 p-5"><p class="text-lg font-bold text-emerald-900">✓ Registered</p><p class="mt-1 text-sm text-emerald-900">We'll check your details and call you. Once approved, requests near your PINs come to your WhatsApp.</p></section>
+  </main>
+  <script>
+  (() => {
+    const $ = (id) => document.getElementById(id), L = window.Leads;
+    L.CITIES.forEach((c) => $("city").append(new Option(c, c))); $("city").append(new Option("Other city…", "other"));
+    $("city").onchange = () => $("city-other-wrap").classList.toggle("hidden", $("city").value !== "other");
+    L.CATEGORIES.forEach(([k, label]) => { const l = document.createElement("label"); l.className = "flex items-center gap-2"; const c = document.createElement("input"); c.type = "checkbox"; c.value = k; l.append(c, document.createTextNode(label)); $("cats").append(l); });
+    $("form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const body = { business: $("business").value, name: $("name").value, phone: $("phone").value, gstin: $("gstin").value, city: $("city").value === "other" ? $("city-other").value : $("city").value, pins: $("pins").value, categories: [...$("cats").querySelectorAll("input:checked")].map((x) => x.value), agree: $("agree").checked };
+      if (!body.agree) { $("status").textContent = "⚠️ Please accept the supplier terms."; return; }
+      $("status").textContent = "Sending…";
+      try {
+        const res = await fetch("/.netlify/functions/supplier-join", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+        const d = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(d.error || "Could not register. Please try again.");
+        $("form").classList.add("hidden"); $("done").classList.remove("hidden");
+      } catch (err) { $("status").textContent = `⚠️ ${err.message}`; }
+    });
+  })();
+  </script>
+</body>
+</html>
