@@ -314,6 +314,19 @@ for (const [code, re, name] of [["hi", /[\u0900-\u097F]/, "Hindi"], ["kn", /[\u0
   });
 }
 
+// ---------- ask before answering (group "ask") ----------
+const CLARIFY = require("../assets/clarify.js");
+const ASKED = "[[ASK]]\nTo give you an accurate estimate:\n1. Where is the site? | Bengaluru | Mysuru | Dubai | Other\n2. Built-up area? | 600 sq ft | 1000 sq ft | 1500 sq ft\n3. How many floors? | G | G+1 | G+2";
+const asks = check("asks 2–4 questions first, each with options", (t) => { const a = CLARIFY.parse(t); return !!a && a.questions.length >= 2 && a.questions.length <= 4 && a.questions.every((q) => q.options.length >= 2); });
+CASES.push(
+  { group: "ask", name: "Vague BOQ request: asks for location, size and floors before answering", body: { message: "Give me the BOQ and cost for constructing a house", audience: "engineer" }, must: [asks] },
+  { group: "ask", name: "Vague cost question from a worker: asks first", body: { message: "How much will it cost to build my house?", audience: "worker" }, must: [asks] },
+  { group: "ask", name: "Simple how-to question: answered directly, no questions first", body: { message: "What is the curing period for an M25 slab?", audience: "worker" }, must: [/7|10|14/], mustNot: [/\[\[ASK\]\]/] },
+  { group: "ask", name: "Quantity question with its details given: answered directly", body: { message: "Cement and sand for 100 sq ft of 12 mm wall plaster in 1:6", audience: "worker" }, must: [/bag/i], mustNot: [/\[\[ASK\]\]/] },
+  { group: "ask", name: "After the answers: answers now, using them, no second round of questions", body: { message: "My answers:\n1. Where is the site: Mysuru\n2. Built-up area: 1000 sq ft\n3. How many floors: G+1", audience: "engineer", history: [{ role: "user", text: "Give me the BOQ and cost for constructing a house" }, { role: "model", text: ASKED }] }, must: [/1,?000/, /Mysuru/i], mustNot: [/\[\[ASK\]\]/] },
+  { group: "ask", name: "'Just give a quick estimate': answers with assumptions, no questions", body: { message: "Just give a quick estimate with your own assumptions.", audience: "engineer", history: [{ role: "user", text: "Give me the BOQ and cost for constructing a house" }, { role: "model", text: ASKED }] }, must: [/assum/i], mustNot: [/\[\[ASK\]\]/] }
+);
+
 const longTender = { name: "sample-tender-boq-long.pdf", mimeType: "application/pdf", data: require("fs").readFileSync(require("path").join(__dirname, "fixtures", "sample-tender-boq-long.pdf")).toString("base64") };
 const LONG_EXPECTED = JSON.parse(require("fs").readFileSync(require("path").join(__dirname, "fixtures", "sample-tender-boq-long.json"), "utf8"));
 CASES.push({
