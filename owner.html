@@ -72,7 +72,24 @@
   <p id="status" class="sec" role="status" style="margin:12px 0"></p>
 
   <div id="dash" hidden>
-    <section class="grid tiles" aria-label="Totals">
+    <section class="card" aria-label="Users">
+      <h2>👥 Users</h2>
+      <div class="grid tiles" style="margin-top:6px">
+        <div class="tile"><div class="label">New users</div><div class="value" id="u-new"></div><div class="sub" id="u-new-sub"></div></div>
+        <div class="tile"><div class="label">Active devices today</div><div class="value" id="u-today"></div><div class="sub" id="u-today-sub"></div></div>
+        <div class="tile"><div class="label">Coming back</div><div class="value" id="u-back"></div><div class="sub" id="u-back-sub"></div></div>
+        <div class="tile"><div class="label">Best source</div><div class="value" id="u-top" style="font-size:18px"></div><div class="sub" id="u-top-sub"></div></div>
+      </div>
+      <div style="margin-top:8px"><div class="sub" id="u-goal-label" style="font-size:12px;color:var(--text-secondary)"></div><div class="track" style="height:10px;border-radius:5px;margin-top:4px;overflow:hidden"><div id="u-goal" class="fill" style="height:10px;background:var(--series-1);width:0"></div></div></div>
+      <div class="grid two" style="margin-top:12px">
+        <div><h2>Active devices per day</h2><div class="chart" id="c-users"></div></div>
+        <div><h2>Where new users came from</h2><div id="b-sources"></div>
+          <h2 style="margin-top:14px">What brought people back</h2><div id="b-via"></div></div>
+      </div>
+      <p class="muted" style="margin-top:8px">A device is one phone or browser (a random code, no names). Users who clear their browser count again. Sources: links tagged ?r=… on shared PDFs, Excel files, WhatsApp messages and the share button, or the site that sent them.</p>
+    </section>
+
+    <section class="grid tiles" aria-label="Totals" style="margin-top:12px">
       <div class="card tile"><div class="label">Questions</div><div class="value" id="t-q"></div><div class="sub" id="t-q-sub"></div></div>
       <div class="card tile"><div class="label">AI cost (estimate)</div><div class="value" id="t-cost"></div><div class="sub" id="t-cost-sub"></div></div>
       <div class="card tile"><div class="label">Saved answers (no AI cost)</div><div class="value" id="t-cache"></div><div class="sub" id="t-cache-sub"></div></div>
@@ -189,7 +206,15 @@
     });
   }
   const LANGS = { auto: "Auto (same as question)", en: "English", hi: "Hindi", ur: "Urdu", ar: "Arabic", ml: "Malayalam", ta: "Tamil", te: "Telugu", kn: "Kannada", mr: "Marathi", bn: "Bengali", pa: "Punjabi" };
-  const TASKS = { "tender-items": "Tender read (PDF/photos)", "price-list": "Price list read", "tender-simplify": "Simplify specs", "tender-rates": "Suggest rates", "tender-terms": "Key tender terms", "tender-check": "Check before submitting" };
+  const TASKS = { "tender-items": "Tender read (PDF/photos)", "price-list": "Price list read", "tender-simplify": "Simplify specs", "tender-rates": "Suggest rates", "tender-terms": "Key tender terms", "tender-check": "Check before submitting",
+    "priced-boq": "Bid read (PDF/photos)", "bill-items": "RA bill read", "bbs-members": "Drawing read for BBS", "spec-items": "Specifications written", "spec-conditions": "Tender conditions written", "site-snags": "Snag list from photos", "snag-translate": "Snags translated" };
+
+  // Source codes from growth.js links: pdf-/xl-/wa-/doc- + the tool that made the file.
+  const TOOL = { ai: "Ask AI", q: "Quotation", snag: "Snag list", bid: "Bid comparison", bbs: "Bar bending", chk: "IS 456 checks", bill: "Bill certificate", spec: "Spec draft" };
+  const KIND = { pdf: "PDF", xl: "Excel", wa: "WhatsApp message", doc: "Word file" };
+  const SOURCES = { share: "Share button", direct: "Typed / bookmark / app", google: "Google search", "search-other": "Other search", whatsapp: "WhatsApp (link)", "facebook-instagram": "Facebook / Instagram", youtube: "YouTube", linkedin: "LinkedIn", x: "X (Twitter)", telegram: "Telegram" };
+  const sourceName = (k) => { if (SOURCES[k]) return SOURCES[k]; const m = /^(pdf|xl|wa|doc)-([a-z0-9]+)$/.exec(k); return m ? `${KIND[m[1]]} · ${TOOL[m[2]] || m[2]}` : k; };
+  const sourceNames = new Proxy({}, { get: (_, k) => sourceName(String(k)) });
 
   let last = null, resizeTimer;
   window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => last && render(last), 150); });
@@ -204,6 +229,22 @@
       for (const [m, v] of Object.entries(d.models || {})) modelCost[m] = (modelCost[m] || 0) + v.cost;
       tot.up += d.feedback?.up || 0; tot.down += d.feedback?.down || 0; downs = downs.concat(d.feedback?.downs || []);
     }
+    const u = { new: 0, devices: 0, returning: 0, sources: {}, via: {} };
+    for (const d of ds) { const v = d.visitors || {}; u.new += v.new || 0; u.devices += v.devices || 0; u.returning += v.returning || 0; add(u.sources, v.sources); add(u.via, v.returningVia); }
+    const tv = ds[ds.length - 1].visitors || {}, best = Object.entries(u.sources).sort((a, b) => b[1] - a[1])[0];
+    $("u-new").textContent = int(u.new);
+    $("u-new-sub").textContent = `in the last ${ds.length} days · today ${int(tv.new || 0)}`;
+    $("u-today").textContent = int(tv.devices || 0);
+    $("u-today-sub").textContent = `${int(tv.returning || 0)} returning · ${int(tv.new || 0)} new`;
+    $("u-back").textContent = pct(u.returning, u.devices);
+    $("u-back-sub").textContent = `of daily visits were returning devices`;
+    $("u-top").textContent = best ? sourceName(best[0]) : "–";
+    $("u-top-sub").textContent = best ? `${int(best[1])} new users` : "no visits yet";
+    $("u-goal").style.width = `${Math.min(100, (u.new / 1000) * 100)}%`;
+    $("u-goal-label").textContent = `Goal: 1,000 users — ${int(u.new)} new in the last ${ds.length} days (${Math.min(100, Math.round((u.new / 1000) * 100))}%). Choose 90 days for the fullest count.`;
+    columns($("c-users"), ds.map((d) => ({ d: d.day, v: (d.visitors || {}).devices || 0 })), int, int, { integer: true, empty: "No visits recorded yet. Visits are counted from this update on." });
+    hbars($("b-sources"), u.sources, { names: sourceNames });
+    hbars($("b-via"), u.via, { names: sourceNames });
     const taskCount = Object.values(tot.tasks).reduce((a, b) => a + b, 0), today = ds[ds.length - 1];
     $("t-q").textContent = int(tot.questions);
     $("t-q-sub").textContent = `today ${int(today.questions)} · ${int(taskCount)} tool tasks · ${int(tot.withFiles)} with files`;

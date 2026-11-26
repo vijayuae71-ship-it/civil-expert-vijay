@@ -59,9 +59,20 @@ async function record(event, data) {
 
 const bump = (obj, key, n = 1) => { if (key) obj[key] = (obj[key] || 0) + n; };
 function summarize(events) {
-  const s = { questions: 0, tasks: {}, channels: {}, audiences: {}, languages: {}, cached: 0, errors: 0, limited: 0, withFiles: 0, followUps: 0, background: 0, waImports: {}, models: {}, cost: 0, unknownModels: 0 };
+  const s = { questions: 0, tasks: {}, channels: {}, audiences: {}, languages: {}, cached: 0, errors: 0, limited: 0, withFiles: 0, followUps: 0, background: 0, waImports: {}, models: {}, cost: 0, unknownModels: 0,
+    visitors: { devices: 0, new: 0, returning: 0, sources: {}, returningVia: {}, pages: {} } };
+  const seen = new Set();   // device codes are only used to count once per day; the summary keeps no codes
   for (const e of events) {
     if (!e) continue;
+    if (e.kind === "visit") {
+      if (!e.vid || seen.has(e.vid)) continue;
+      seen.add(e.vid);
+      const v = s.visitors;
+      v.devices++; bump(v.pages, e.page || "home");
+      if (e.isNew) { v.new++; bump(v.sources, e.ref || "direct"); }
+      else { v.returning++; if (e.via) bump(v.returningVia, e.via); }
+      continue;
+    }
     if (e.kind === "wa-import") { bump(s.waImports, e.importKind || "tender"); continue; }
     if (e.task) bump(s.tasks, e.task); else s.questions++;
     bump(s.channels, e.channel || "web");
