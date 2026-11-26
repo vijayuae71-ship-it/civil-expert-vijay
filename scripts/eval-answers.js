@@ -105,7 +105,12 @@ const CASES = [
   {
     group: "mep", name: "Domestic water tank sizing for an apartment block",
     body: { message: "Size the domestic water storage tank for a G+4 residential building with 20 flats", audience: "engineer" },
-    must: [/(per (person|capita|occupant)|l(itres?)?\s*\/\s*(person|capita|head)|lpcd|L\/p\/d)/i, /(m³|litres|liters|gallons|\d\s*L\b)/i, /(occupants|persons|people)/i]
+    // Either asks first (where the site is changes the litres per person) or sizes it with stated norms.
+    must: [check("asks where the site is, or sizes it per person with the total volume", (t) => {
+      const a = require("../assets/clarify.js").parse(t);
+      if (a) return a.questions.some((q) => /locat|where|city|country|region/i.test(q.q));
+      return /(per (person|capita|occupant)|l(itres?)?\s*\/\s*(person|capita|head)|lpcd|L\/p\/d)/i.test(t) && /(m³|litres|liters|gallons|\d\s*L\b)/i.test(t) && /(occupants|persons|people)/i.test(t);
+    })]
   },
   {
     group: "mep", name: "Office lighting design for 500 lux uses the lumen method",
@@ -125,7 +130,7 @@ const CASES = [
   {
     group: "mep", name: "CCTV design for a small warehouse",
     body: { message: "How many CCTV cameras and what cable for a 2,000 sq ft warehouse?", audience: "engineer" },
-    must: [/(Cat ?6|Cat ?5e)/i, /PoE/i, /NVR/i, /\b\d+\s*(cameras?)/i]
+    must: [/(Cat ?6|Cat ?5e)/i, /PoE/i, /NVR/i, /\b\d+\s+(?:[\w-]+\s+){0,3}cameras?/i]
   },
   {
     group: "mep", name: "Electrician: MCB trips with water heater — safe checks first",
