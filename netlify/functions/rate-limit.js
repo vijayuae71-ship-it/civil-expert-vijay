@@ -63,20 +63,75 @@ async function bump(store, key, ttlMs) {
   return count;
 }
 
+// The owner can change the limits and set a daily AI budget from the owner dashboard (owner-settings.js);
+// they are saved in this store under settings/limits. Netlify environment variables are the defaults.
+// A budget of 0 means no budget. Read at most once a minute per function instance.
+const RANGES = { sitePerDay: [10, 100000], perIpPerHour: [1, 1000], perIpPerDay: [1, 5000], dailyBudgetUsd: [0, 10000] };
+const DEFAULTS = { ...LIMITS, dailyBudgetUsd: Number(process.env.CHAT_DAILY_BUDGET_USD) || 0 };
+let cached = { at: 0, value: null };
+function cleanLimits(input = {}) {
+  const out = {};
+  for (const [k, [lo, hi]] of Object.entries(RANGES)) {
+    if (input[k] === undefined || input[k] === null || input[k] === "") continue;
+    const n = Number(input[k]);
+    if (!Number.isFinite(n) || n < lo || n > hi) throw new Error(`${k} must be between ${lo} and ${hi}.`);
+    out[k] = k === "dailyBudgetUsd" ? Math.round(n * 100) / 100 : Math.round(n);
+  }
+  return out;
+}
+async function savedLimits(s) {
+  if (!s) return {};
+  try { const v = await s.get("settings/limits", { type: "json" }); return v && typeof v === "object" ? v : {}; } catch { return {}; }
+}
+async function currentLimits(s, { fresh = false } = {}) {
+  if (!fresh && cached.value && Date.now() - cached.at < 60e3) return cached.value;
+  let saved = {};
+  try { saved = cleanLimits(await savedLimits(s)); } catch { saved = {}; }
+  cached = { at: Date.now(), value: { ...DEFAULTS, ...saved } };
+  return cached.value;
+}
+async function saveLimits(s, input) {
+  const clean = cleanLimits(input);
+  if (!s) throw new Error("Storage is not available. Try again in a minute.");
+  await s.setJSON("settings/limits", { ...clean, updatedAt: new Date().toISOString() });
+  cached = { at: 0, value: null };
+  return currentLimits(s, { fresh: true });
+}
+
+// Today's estimated AI spend (US$), added after each answer (chat.js) and checked against the budget.
+const costKey = (day) => `cost/${day}`;
+async function addCost(event, usd, { store, now = new Date() } = {}) {
+  if (!(usd > 0)) return;
+  const s = store === undefined ? await openStore(event) : store;
+  if (!s) return;
+  try { const key = costKey(now.toISOString().slice(0, 10)); await s.set(key, String((Number(await s.get(key)) || 0) + usd)); } catch {}
+}
+async function today(s, now = new Date()) {
+  const day = now.toISOString().slice(0, 10);
+  if (!s) return { day, questions: 0, costUsd: 0 };
+  const [q, c] = await Promise.all([s.get(`site/${day}`).catch(() => 0), s.get(costKey(day)).catch(() => 0)]);
+  return { day, questions: Number(q) || 0, costUsd: Math.round((Number(c) || 0) * 10000) / 10000 };
+}
+
 // Returns null when allowed, or { statusCode, error } when the request must be refused.
 async function checkRateLimit(event, { store, now = new Date() } = {}) {
   const ip = ipKey(clientIp(event));
   const hour = now.toISOString().slice(0, 13);
   const day = now.toISOString().slice(0, 10);
   const s = store === undefined ? await openStore(event) : store;
+  const limits = await currentLimits(s);
+  if (limits.dailyBudgetUsd > 0 && s) {
+    const spent = Number(await s.get(costKey(day)).catch(() => 0)) || 0;
+    if (spent >= limits.dailyBudgetUsd) return { statusCode: 503, error: "The expert has reached today's question limit. Please try again tomorrow." };
+  }
   const [ipHour, ipDay, site] = await Promise.all([
     bump(s, `ip/${ip}/${hour}`, 3600e3),
     bump(s, `ip/${ip}/${day}`, 86400e3),
     bump(s, `site/${day}`, 86400e3)
   ]);
-  if (site > LIMITS.sitePerDay) return { statusCode: 503, error: "The expert has reached today's question limit. Please try again tomorrow." };
-  if (ipHour > LIMITS.perIpPerHour || ipDay > LIMITS.perIpPerDay) return { statusCode: 429, error: "You've asked a lot of questions in a short time. Please wait a while and try again." };
+  if (site > limits.sitePerDay) return { statusCode: 503, error: "The expert has reached today's question limit. Please try again tomorrow." };
+  if (ipHour > limits.perIpPerHour || ipDay > limits.perIpPerDay) return { statusCode: 429, error: "You've asked a lot of questions in a short time. Please wait a while and try again." };
   return null;
 }
 
-module.exports = { LIMITS, checkRateLimit, isAllowedOrigin, clientIp, ipKey, _memory: memory };
+module.exports = { LIMITS, DEFAULTS, RANGES, checkRateLimit, isAllowedOrigin, clientIp, ipKey, openStore, currentLimits, saveLimits, cleanLimits, addCost, today, _memory: memory, _resetCache: () => { cached = { at: 0, value: null }; } };

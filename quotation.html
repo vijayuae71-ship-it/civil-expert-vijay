@@ -16,7 +16,7 @@
   <script src="assets/site-config.js"></script>
   <script src="assets/quote.js"></script>
   <script src="assets/progress.js"></script>
-  <script src="assets/app.js" defer></script>
+  <script src="assets/growth.js" defer></script><script src="assets/app.js" defer></script>
   <style>
     .q-in { width: 100%; min-width: 0; border: 1px solid transparent; border-radius: .375rem; padding: .2rem .35rem; background: transparent; font: inherit; color: inherit; }
     .q-in:hover { border-color: #cbd5e1; }
@@ -226,6 +226,7 @@
         <button type="button" id="lh-remove" class="hidden text-slate-500 underline">remove letterhead</button>
         <label class="cursor-pointer font-semibold text-blue-700 underline"><span id="ft-label">+ Footer image</span><input id="ft-file" type="file" accept="image/*" class="hidden"></label>
         <button type="button" id="ft-remove" class="hidden text-slate-500 underline">remove footer</button>
+        <label class="inline-flex items-center gap-1 text-slate-500"><input type="checkbox" id="made-with"> “Made with Construction AI Expert” line</label>
       </div>
       <img id="lh-img" alt="Letterhead" class="hidden mb-3 w-full">
       <header class="flex flex-col gap-4 sm:flex-row sm:justify-between border-b-2 border-blue-900 pb-4">
@@ -522,6 +523,11 @@
     }
     $("lh-remove").onclick = () => { delete company.letterhead; store.set(CO_KEY, company); showLogo(); };
     $("ft-remove").onclick = () => { delete company.footerImg; store.set(CO_KEY, company); showLogo(); };
+    // A small "Made with" line on the PDF and WhatsApp text (on unless the contractor turns it off).
+    const madeWithOn = () => company.madeWith !== false && window.Growth;
+    $("made-with").checked = company.madeWith !== false;
+    $("made-with").onchange = () => { company.madeWith = $("made-with").checked; store.set(CO_KEY, company); };
+    const withMade = (text, code) => (madeWithOn() ? `${text}\n\n_${Growth.madeWith(code)}_` : text);
 
     // ---------- PDF ----------
     // jsPDF's built-in fonts cover Latin text only; quotations in other scripts use the browser's print → Save as PDF.
@@ -576,6 +582,7 @@
         const n = pdf.internal.getNumberOfPages();
         if (footH) pdf.addImage(company.footerImg, "JPEG", 0, H - footH, W, footH);
         font(7, "normal", GREY); pdf.text(`${q.number || ""}  ·  Page ${n}`, W - M, H - footH - (footH ? 6 : 20), { align: "right" });
+        if (madeWithOn()) { font(6, "normal", [148, 163, 184]); pdf.text(Growth.madeWith("pdf-q"), M, H - footH - (footH ? 6 : 20)); }
       };
       const head = () => { pdf.setFillColor(...BLUE); pdf.rect(M, y, CW, 20, "F"); font(8, "bold", [255, 255, 255]); let x = M; cols.forEach(([l, w, a]) => { pdf.text(l, a === "right" ? x + w - 5 : x + 5, y + 13, { align: a }); x += w; }); y += 20; };
       const need = (h) => { if (y + h > H - 50 - footH) { footer(); pdf.addPage(); y = M; head(); } };
@@ -617,12 +624,12 @@
     function checkReady() { if (!Q.totals(q).items.some((it) => !it.heading && String(it.description).trim())) { toast("Add at least one item first."); return false; } return true; }
     $("btn-pdf").onclick = (e) => { if (!checkReady()) return; if (!latinOnly()) { toast("Choose “Save as PDF” on the print screen."); setTimeout(() => window.print(), 600); return; } withBusy(e.currentTarget, async () => (await buildPdf()).save(fileName())); };
     $("btn-print").onclick = () => window.print();
-    const waLink = () => { const to = String(q.client.phone || "").replace(/\D/g, ""); return `https://wa.me/${to.length >= 9 ? to : ""}?text=${encodeURIComponent(Q.shareText({ ...q, company }))}`; };
+    const waLink = () => { const to = String(q.client.phone || "").replace(/\D/g, ""); return `https://wa.me/${to.length >= 9 ? to : ""}?text=${encodeURIComponent(withMade(Q.shareText({ ...q, company }), "wa-q"))}`; };
     $("btn-wa").onclick = () => { if (checkReady()) window.open(waLink(), "_blank", "noopener"); };
     $("btn-share").onclick = (e) => {
       if (!checkReady()) return;
       withBusy(e.currentTarget, async () => {
-        const text = Q.shareText({ ...q, company }), title = `Quotation ${q.number}`;
+        const text = withMade(Q.shareText({ ...q, company }), "wa-q"), title = `Quotation ${q.number}`;
         if (navigator.share) {
           if (latinOnly() && navigator.canShare) {
             const file = new File([(await buildPdf()).output("blob")], fileName(), { type: "application/pdf" });

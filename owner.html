@@ -72,7 +72,37 @@
   <p id="status" class="sec" role="status" style="margin:12px 0"></p>
 
   <div id="dash" hidden>
-    <section class="grid tiles" aria-label="Totals">
+    <section class="card" aria-label="Limits and budget" style="margin-bottom:12px">
+      <h2>⚙️ Limits &amp; budget</h2>
+      <p class="muted" style="margin:4px 0 8px">Protects your AI bill. When a limit is reached, new questions get “try again tomorrow”. Changes apply within a minute. Also set a monthly limit in the Anthropic console.</p>
+      <div id="lim-today" style="display:grid;gap:8px;margin-bottom:10px"></div>
+      <form id="lim-form" class="grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px">
+        <label class="sec" style="font-size:12px">Questions per day (whole site)<input name="sitePerDay" type="number" min="10" max="100000" step="1" style="width:100%;margin-top:4px"></label>
+        <label class="sec" style="font-size:12px">Per person per hour<input name="perIpPerHour" type="number" min="1" max="1000" step="1" style="width:100%;margin-top:4px"></label>
+        <label class="sec" style="font-size:12px">Per person per day<input name="perIpPerDay" type="number" min="1" max="5000" step="1" style="width:100%;margin-top:4px"></label>
+        <label class="sec" style="font-size:12px">Daily AI budget, US$ (0 = off)<input name="dailyBudgetUsd" type="number" min="0" max="10000" step="0.5" style="width:100%;margin-top:4px"></label>
+        <div class="row" style="grid-column:1/-1"><button type="submit">Save limits</button><span id="lim-status" class="muted" role="status"></span></div>
+      </form>
+    </section>
+
+    <section class="card" aria-label="Users">
+      <h2>👥 Users</h2>
+      <div class="grid tiles" style="margin-top:6px">
+        <div class="tile"><div class="label">New users</div><div class="value" id="u-new"></div><div class="sub" id="u-new-sub"></div></div>
+        <div class="tile"><div class="label">Active devices today</div><div class="value" id="u-today"></div><div class="sub" id="u-today-sub"></div></div>
+        <div class="tile"><div class="label">Coming back</div><div class="value" id="u-back"></div><div class="sub" id="u-back-sub"></div></div>
+        <div class="tile"><div class="label">Best source</div><div class="value" id="u-top" style="font-size:18px"></div><div class="sub" id="u-top-sub"></div></div>
+      </div>
+      <div style="margin-top:8px"><div class="sub" id="u-goal-label" style="font-size:12px;color:var(--text-secondary)"></div><div class="track" style="height:10px;border-radius:5px;margin-top:4px;overflow:hidden"><div id="u-goal" class="fill" style="height:10px;background:var(--series-1);width:0"></div></div></div>
+      <div class="grid two" style="margin-top:12px">
+        <div><h2>Active devices per day</h2><div class="chart" id="c-users"></div></div>
+        <div><h2>Where new users came from</h2><div id="b-sources"></div>
+          <h2 style="margin-top:14px">What brought people back</h2><div id="b-via"></div></div>
+      </div>
+      <p class="muted" style="margin-top:8px">A device is one phone or browser (a random code, no names). Users who clear their browser count again. Sources: links tagged ?r=… on shared PDFs, Excel files, WhatsApp messages and the share button, or the site that sent them.</p>
+    </section>
+
+    <section class="grid tiles" aria-label="Totals" style="margin-top:12px">
       <div class="card tile"><div class="label">Questions</div><div class="value" id="t-q"></div><div class="sub" id="t-q-sub"></div></div>
       <div class="card tile"><div class="label">AI cost (estimate)</div><div class="value" id="t-cost"></div><div class="sub" id="t-cost-sub"></div></div>
       <div class="card tile"><div class="label">Saved answers (no AI cost)</div><div class="value" id="t-cache"></div><div class="sub" id="t-cache-sub"></div></div>
@@ -89,7 +119,8 @@
     <section class="grid two" style="margin-top:12px">
       <div class="card"><h2>Where people ask</h2><div id="b-channel"></div>
         <h2 style="margin-top:14px">Answer style</h2><div id="b-audience"></div>
-        <h2 style="margin-top:14px">Languages</h2><div id="b-lang"></div></div>
+        <h2 style="margin-top:14px">Languages</h2><div id="b-lang"></div>
+        <h2 style="margin-top:14px">Questions by trade (from /for/ pages and WhatsApp trade links)</h2><div id="b-trades"></div></div>
       <div class="card"><h2>Tender &amp; quotation tools</h2><div id="b-tasks"></div>
         <h2 style="margin-top:14px">WhatsApp files forwarded</h2><div id="b-wa"></div>
         <h2 style="margin-top:14px">AI cost by model</h2><div id="b-models"></div>
@@ -189,21 +220,45 @@
     });
   }
   const LANGS = { auto: "Auto (same as question)", en: "English", hi: "Hindi", ur: "Urdu", ar: "Arabic", ml: "Malayalam", ta: "Tamil", te: "Telugu", kn: "Kannada", mr: "Marathi", bn: "Bengali", pa: "Punjabi" };
-  const TASKS = { "tender-items": "Tender read (PDF/photos)", "price-list": "Price list read", "tender-simplify": "Simplify specs", "tender-rates": "Suggest rates", "tender-terms": "Key tender terms", "tender-check": "Check before submitting" };
+  const TASKS = { "tender-items": "Tender read (PDF/photos)", "price-list": "Price list read", "tender-simplify": "Simplify specs", "tender-rates": "Suggest rates", "tender-terms": "Key tender terms", "tender-check": "Check before submitting",
+    "priced-boq": "Bid read (PDF/photos)", "bill-items": "RA bill read", "bbs-members": "Drawing read for BBS", "spec-items": "Specifications written", "spec-conditions": "Tender conditions written", "site-snags": "Snag list from photos", "snag-translate": "Snags translated" };
+
+  // Source codes from growth.js links: pdf-/xl-/wa-/doc- + the tool that made the file.
+  const TOOL = { ai: "Ask AI", q: "Quotation", snag: "Snag list", bid: "Bid comparison", bbs: "Bar bending", chk: "IS 456 checks", bill: "Bill certificate", spec: "Spec draft" };
+  const KIND = { pdf: "PDF", xl: "Excel", wa: "WhatsApp message", doc: "Word file" };
+  const SOURCES = { share: "Share button", direct: "Typed / bookmark / app", google: "Google search", "search-other": "Other search", whatsapp: "WhatsApp (link)", "facebook-instagram": "Facebook / Instagram", youtube: "YouTube", linkedin: "LinkedIn", x: "X (Twitter)", telegram: "Telegram" };
+  const sourceName = (k) => { if (SOURCES[k]) return SOURCES[k]; const m = /^(pdf|xl|wa|doc)-([a-z0-9]+)$/.exec(k); return m ? `${KIND[m[1]]} · ${TOOL[m[2]] || m[2]}` : k; };
+  const sourceNames = new Proxy({}, { get: (_, k) => sourceName(String(k)) });
 
   let last = null, resizeTimer;
   window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => last && render(last), 150); });
   function render(data) {
     last = data;
-    const ds = data.days, tot = { questions: 0, cost: 0, cached: 0, errors: 0, limited: 0, background: 0, withFiles: 0, followUps: 0, channels: {}, audiences: {}, languages: {}, tasks: {}, waImports: {}, up: 0, down: 0 };
+    const ds = data.days, tot = { questions: 0, cost: 0, cached: 0, errors: 0, limited: 0, background: 0, withFiles: 0, followUps: 0, channels: {}, audiences: {}, languages: {}, tasks: {}, waImports: {}, trades: {}, up: 0, down: 0 };
     const modelCost = {};
     let downs = [];
     for (const d of ds) {
       tot.questions += d.questions; tot.cost += d.cost; tot.cached += d.cached; tot.errors += d.errors; tot.limited += d.limited; tot.withFiles += d.withFiles; tot.followUps += d.followUps;
-      add(tot.channels, d.channels); add(tot.audiences, d.audiences); add(tot.languages, d.languages); add(tot.tasks, d.tasks); add(tot.waImports, d.waImports);
+      add(tot.channels, d.channels); add(tot.audiences, d.audiences); add(tot.languages, d.languages); add(tot.tasks, d.tasks); add(tot.waImports, d.waImports); add(tot.trades, d.trades);
       for (const [m, v] of Object.entries(d.models || {})) modelCost[m] = (modelCost[m] || 0) + v.cost;
       tot.up += d.feedback?.up || 0; tot.down += d.feedback?.down || 0; downs = downs.concat(d.feedback?.downs || []);
     }
+    const u = { new: 0, devices: 0, returning: 0, sources: {}, via: {} };
+    for (const d of ds) { const v = d.visitors || {}; u.new += v.new || 0; u.devices += v.devices || 0; u.returning += v.returning || 0; add(u.sources, v.sources); add(u.via, v.returningVia); }
+    const tv = ds[ds.length - 1].visitors || {}, best = Object.entries(u.sources).sort((a, b) => b[1] - a[1])[0];
+    $("u-new").textContent = int(u.new);
+    $("u-new-sub").textContent = `in the last ${ds.length} days · today ${int(tv.new || 0)}`;
+    $("u-today").textContent = int(tv.devices || 0);
+    $("u-today-sub").textContent = `${int(tv.returning || 0)} returning · ${int(tv.new || 0)} new`;
+    $("u-back").textContent = pct(u.returning, u.devices);
+    $("u-back-sub").textContent = `of daily visits were returning devices`;
+    $("u-top").textContent = best ? sourceName(best[0]) : "–";
+    $("u-top-sub").textContent = best ? `${int(best[1])} new users` : "no visits yet";
+    $("u-goal").style.width = `${Math.min(100, (u.new / 1000) * 100)}%`;
+    $("u-goal-label").textContent = `Goal: 1,000 users — ${int(u.new)} new in the last ${ds.length} days (${Math.min(100, Math.round((u.new / 1000) * 100))}%). Choose 90 days for the fullest count.`;
+    columns($("c-users"), ds.map((d) => ({ d: d.day, v: (d.visitors || {}).devices || 0 })), int, int, { integer: true, empty: "No visits recorded yet. Visits are counted from this update on." });
+    hbars($("b-sources"), u.sources, { names: sourceNames });
+    hbars($("b-via"), u.via, { names: sourceNames });
     const taskCount = Object.values(tot.tasks).reduce((a, b) => a + b, 0), today = ds[ds.length - 1];
     $("t-q").textContent = int(tot.questions);
     $("t-q-sub").textContent = `today ${int(today.questions)} · ${int(taskCount)} tool tasks · ${int(tot.withFiles)} with files`;
@@ -222,6 +277,7 @@
     hbars($("b-audience"), tot.audiences, { names: { worker: "🛠️ Simple steps", engineer: "📐 Detailed" } });
     hbars($("b-lang"), tot.languages, { names: LANGS });
     hbars($("b-tasks"), tot.tasks, { names: TASKS });
+    hbars($("b-trades"), tot.trades);
     hbars($("b-wa"), tot.waImports, { names: { tender: "Tenders / BOQs", prices: "Price lists" } });
     hbars($("b-models"), modelCost, { fmt: usd });
     $("health").textContent = `Errors: ${int(tot.errors)} · Hit the hourly limit: ${int(tot.limited)} · Follow-up questions: ${int(tot.followUps)}`;
@@ -256,8 +312,46 @@
       $("key-form").hidden = true; $("dash").hidden = false;
       render(data);
       $("status").textContent = `Updated ${new Date().toLocaleTimeString()} · last ${days} days`;
+      loadLimits().catch((err) => { $("lim-status").textContent = err.message; });
     } catch (err) { $("status").innerHTML = ""; $("status").appendChild(el("span", "err", err.message)); }
   }
+  // ---- Limits & budget (owner-settings function) ----
+  function meter(label, used, cap, fmt) {
+    const box = el("div"), share = cap > 0 ? Math.min(1, used / cap) : 0;
+    const line = el("div", "sec", cap > 0 ? `${label}: ${fmt(used)} of ${fmt(cap)} (${Math.round(share * 100)}%)` : `${label}: ${fmt(used)} — no limit set`);
+    line.style.fontSize = "13px"; box.appendChild(line);
+    if (cap > 0) {
+      const track = el("div", "track"), fill = el("div", "fill");
+      track.style.cssText = "height:8px;border-radius:4px;overflow:hidden;margin-top:4px;background:var(--border)";
+      fill.style.cssText = `height:8px;width:${Math.max(1, share * 100)}%;background:${share >= 0.9 ? "var(--bad)" : share >= 0.7 ? "var(--warn, #d97706)" : "var(--series-1)"}`;
+      track.appendChild(fill); box.appendChild(track);
+    }
+    return box;
+  }
+  function showLimits(d) {
+    const f = $("lim-form");
+    for (const k of ["sitePerDay", "perIpPerHour", "perIpPerDay", "dailyBudgetUsd"]) if (document.activeElement !== f.elements[k]) f.elements[k].value = d.limits[k];
+    const t = $("lim-today"); t.innerHTML = "";
+    t.appendChild(meter("Questions today", d.today.questions, d.limits.sitePerDay, int));
+    t.appendChild(meter("AI spend today (estimate)", d.today.costUsd, d.limits.dailyBudgetUsd, usd));
+  }
+  async function loadLimits(method = "GET", body) {
+    const key = store.get(KEY); if (!key) return;
+    const res = await fetch("/.netlify/functions/owner-settings", { method, headers: { "x-owner-key": key, "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined, cache: "no-store" });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || "Could not load the limits.");
+    showLimits(data);
+    return data;
+  }
+  $("lim-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const f = e.currentTarget, body = {};
+    for (const k of ["sitePerDay", "perIpPerHour", "perIpPerDay", "dailyBudgetUsd"]) body[k] = f.elements[k].value;
+    $("lim-status").textContent = "Saving…";
+    try { await loadLimits("POST", body); $("lim-status").textContent = `Saved ${new Date().toLocaleTimeString()}`; }
+    catch (err) { $("lim-status").innerHTML = ""; $("lim-status").appendChild(el("span", "err", err.message)); }
+  });
+
   $("key-form").addEventListener("submit", (e) => { e.preventDefault(); const v = $("owner-key").value.trim(); if (v) { store.set(KEY, v); $("owner-key").value = ""; load(); } });
   document.querySelectorAll("[data-days]").forEach((b) => b.addEventListener("click", () => { days = Number(b.dataset.days); document.querySelectorAll("[data-days]").forEach((x) => x.setAttribute("aria-pressed", x === b)); load(); }));
   $("refresh").addEventListener("click", load);

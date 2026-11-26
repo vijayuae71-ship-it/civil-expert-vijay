@@ -14,7 +14,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="stylesheet" href="assets/site.css">
   <script src="assets/calc.js"></script>
-  <script src="assets/app.js" defer></script>
+  <script src="assets/growth.js" defer></script><script src="assets/app.js" defer></script>
 </head>
 <body class="bg-slate-50 text-slate-900 font-sans">
   <nav class="bg-white border-b border-slate-200"><div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3"><a href="index.html" class="flex min-w-0 items-center gap-2 font-bold leading-tight text-slate-800"><img src="assets/logo.svg" alt="" width="32" height="32" class="w-8 h-8">Construction AI Expert</a><div class="flex items-center gap-4 text-sm font-medium text-blue-700"><a href="expert.html" class="whitespace-nowrap hover:text-blue-900">Ask AI</a><a href="calculators.html" class="hidden sm:inline hover:text-blue-900">Calculators</a><a href="quotation.html" class="hidden sm:inline hover:text-blue-900">Quotation</a><a href="construction-faq.html" class="hidden sm:inline hover:text-blue-900">FAQ</a><a href="expert.html#consult" class="whitespace-nowrap rounded-lg bg-amber-500 px-3 py-1.5 font-semibold text-slate-900 hover:bg-amber-400"><span class="sm:hidden">Review</span><span class="hidden sm:inline">Expert review</span></a></div></div></nav>
@@ -22,7 +22,7 @@
   <main class="max-w-5xl mx-auto px-4 py-8">
     <h1 class="text-3xl font-extrabold text-blue-900">Construction calculators</h1>
     <p class="mt-2 text-slate-600">Free quick estimates for planning and ordering, with the working shown. They also work without internet once the app is installed. Check project quantities, mix designs and approvals with the responsible engineer.</p>
-    <button type="button" data-install-app class="hidden mt-4 rounded-full bg-blue-700 px-5 py-2.5 font-semibold text-white hover:bg-blue-800">📲 Install the app on this phone</button>
+    <button type="button" data-install-app class="hidden mt-4 rounded-full bg-blue-700 px-5 py-2.5 font-semibold text-white hover:bg-blue-800">📲 Install the app on this phone</button> <button type="button" data-share-app class="mt-4 rounded-full border border-blue-300 bg-white px-5 py-2.5 font-semibold text-blue-800 hover:bg-blue-50">📤 Share with a friend</button>
 
     <div id="jump" class="mt-5 flex flex-wrap gap-2" aria-label="Jump to calculator"></div>
     <div id="calcs" class="mt-6 grid gap-5 md:grid-cols-2"></div>
@@ -138,6 +138,9 @@
       form.addEventListener("input", update); form.addEventListener("change", update); form.addEventListener("submit", (e) => e.preventDefault());
       box.appendChild(card); update();
     }
+    // Links such as calculators.html#paint (from the trade pages): the cards are built here, so scroll now.
+    const target = location.hash && document.getElementById(location.hash.slice(1));
+    if (target) requestAnimationFrame(() => target.scrollIntoView({ block: "start" }));
   })();
 
   function downloadTemplate(kind) { const templates={rate:[['Rate Analysis Template'],['Item description','Unit','Quantity','Material rate','Labour rate','Plant/other','Total'],['','','','','','','']],boq:[['BOQ Template'],['Item no.','Description','Unit','Quantity','Rate','Amount','Remarks'],['','','','','','','']],inspection:[['Concrete Inspection Checklist'],['Check item','Status','Observation / action','Responsible person'],['Formwork line, level, and cleanliness','','',''],['Reinforcement size, spacing, and cover','','',''],['Concrete grade and delivery ticket','','',''],['Slump / workability test','','',''],['Compaction and finishing','','',''],['Curing arrangement','','','']]}; const csv=templates[kind].map(row=>row.map(v=>`"${String(v).replaceAll('"','""')}"`).join(',')).join('\n'); const blob=new Blob([csv],{type:'text/csv;charset=utf-8'}), a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`${kind}-template.csv`; a.click(); URL.revokeObjectURL(a.href); }

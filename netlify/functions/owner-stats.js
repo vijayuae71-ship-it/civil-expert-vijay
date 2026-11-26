@@ -3,6 +3,7 @@
 // GET ?days=7|30|90 → per-day summaries, totals, recent questions (today) and recent 👎 with reasons.
 const crypto = require("crypto");
 const usage = require("./usage-stats");
+const { keyOk } = require("./owner-auth");
 
 let feedbackOverride;
 function setFeedbackStoreForTests(store) { feedbackOverride = store; }
@@ -13,14 +14,6 @@ function openFeedback(event) {
     if (event?.blobs) connectLambda(event);
     return getStore("answer-feedback");
   } catch { return null; }
-}
-
-function keyOk(event) {
-  const want = process.env.OWNER_KEY || "";
-  const got = String(event.headers?.["x-owner-key"] || event.headers?.["X-Owner-Key"] || "");
-  if (want.length < 12) return null;   // not set up
-  const a = crypto.createHash("sha256").update(got).digest(), b = crypto.createHash("sha256").update(want).digest();
-  return crypto.timingSafeEqual(a, b);
 }
 
 async function listKeys(store, prefix) {
