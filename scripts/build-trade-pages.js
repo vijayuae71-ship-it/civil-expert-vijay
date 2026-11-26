@@ -75,7 +75,7 @@ const CONTENT = {
     questions: ["IS 456 span/depth check for a 4.5 m simply supported slab", "Minimum steel and spacing rules for a beam", "Typical specification for M25 RCC in slabs", "What to check before certifying a running bill?", "How to evaluate an abnormally low bid?", "Defects liability period and retention — usual practice"] }
 };
 
-const NAV = `<nav class="bg-white border-b border-slate-200"><div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3"><a href="/" class="flex min-w-0 items-center gap-2 font-bold leading-tight text-slate-800"><img src="/assets/logo.svg" alt="" width="32" height="32" class="w-8 h-8"><span class="truncate">Construction AI Expert</span></a><div class="flex items-center gap-4 text-sm font-medium text-blue-700"><a href="/expert" class="whitespace-nowrap hover:text-blue-900">Ask AI</a><a href="/calculators" class="whitespace-nowrap hover:text-blue-900">Calculators</a><a href="/for/" class="whitespace-nowrap hover:text-blue-900">Your work</a></div></div></nav>`;
+const NAV = `<nav class="bg-white border-b border-slate-200"><div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3"><a href="/" class="flex min-w-0 items-center gap-2 font-bold leading-tight text-slate-800"><img src="/assets/logo.svg" alt="" width="32" height="32" class="w-8 h-8"><span class="truncate">Sahi Nirman</span></a><div class="flex items-center gap-4 text-sm font-medium text-blue-700"><a href="/expert" class="whitespace-nowrap hover:text-blue-900">Ask AI</a><a href="/calculators" class="whitespace-nowrap hover:text-blue-900">Calculators</a><a href="/for/" class="whitespace-nowrap hover:text-blue-900">Your work</a></div></div></nav>`;
 const FOOTER = `<footer class="border-t border-slate-200 bg-white"><p class="max-w-5xl mx-auto px-4 py-6 text-sm leading-relaxed text-slate-500">AI answers are general guidance — check them with the responsible engineer before use. <a href="/disclaimer" class="text-blue-700 hover:underline">Disclaimer &amp; terms</a> · <a href="/privacy" class="text-blue-700 hover:underline">Privacy notice</a></p></footer>`;
 const head = ({ title, description, canonical }) => `<!DOCTYPE html>
 <html lang="en">
@@ -99,7 +99,7 @@ ${NAV}`;
 function tradePage(t) {
   const c = CONTENT[t.slug];
   const ask = (q) => `/expert?trade=${t.slug}&audience=${t.audience}${q ? `&q=${encodeURIComponent(q)}` : ""}`;
-  const title = `${t.plural}: ${c.seo} — free AI help | Construction AI Expert`;
+  const title = `${t.plural}: ${c.seo} — free AI help | Sahi Nirman`;
   const description = `Free construction AI for ${t.plural.toLowerCase()}: ${c.lead} Calculators, tools and WhatsApp help in English, हिन्दी, ಕನ್ನಡ, தமிழ் and more.`;
   const calcs = c.calcs.map((id) => { const [icon, name, desc] = CALCS[id]; return `<a href="/calculators#${id}" class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm hover:border-blue-400"><p class="font-bold text-blue-800">${icon} ${esc(name)}</p><p class="mt-1 text-sm text-slate-600">${esc(desc)}</p></a>`; }).join("\n        ");
   const tools = c.tools.map((id) => { const [href, icon, name, desc] = TOOLS[id]; return `<a href="${href}" class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm hover:border-blue-400"><p class="font-bold text-blue-800">${icon} ${esc(name)}</p><p class="mt-1 text-sm text-slate-600">${esc(desc)}</p></a>`; }).join("\n        ");
@@ -148,7 +148,7 @@ ${FOOTER}
 }
 
 function indexPage() {
-  const title = "Choose your work — free construction AI for every trade | Construction AI Expert";
+  const title = "Choose your work — free construction AI for every trade | Sahi Nirman";
   const description = "Plumbers, electricians, masons, painters, tile fixers, carpenters, bar benders, waterproofing, AC technicians, site engineers, contractors and consultants: your own questions, calculators and tools.";
   return `${head({ title, description, canonical: "/for/" })}
   <main class="max-w-4xl mx-auto px-3 sm:px-4 py-6">

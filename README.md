@@ -1,5 +1,5 @@
-# Construction AI Expert
-**Construction AI Expert**: AI construction answers for site workers and engineers, built on 25+ years of concrete, materials and site experience. The name is set in `netlify/functions/brand.js` (AI and WhatsApp), `assets/site-config.js` (page scripts) and the pages' text.
+# Sahi Nirman
+**Sahi Nirman**: AI construction answers for site workers and engineers, built on 25+ years of concrete, materials and site experience. The name is set in `netlify/functions/brand.js` (AI and WhatsApp), `assets/site-config.js` (page scripts) and the pages' text.
 
 Static pages (`index`, `expert`, `calculators`, `construction-faq`) + Netlify Functions:
 

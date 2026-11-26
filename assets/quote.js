@@ -529,7 +529,7 @@
     const quotes = b.quotes || [];
     const n = { quotes: quotes.length, rates: (b.ratebook || []).length, prices: (b.materials || []).length, snags: c.snags.snags.length, members: c.bbs.length };
     sheets.push({ name: "Read me", widths: [34, 60], rows: [
-      ["Construction AI Expert — backup"], [],
+      ["Sahi Nirman — backup"], [],
       ["Saved", b.at ? String(b.at).slice(0, 16).replace("T", " ") : ""],
       ["Quotations", n.quotes], ["My rates", n.rates], ["Material prices", n.prices], ["Site snags", n.snags], ["BBS members", n.members], ["Spec draft", c.spec.trim() ? "yes" : "no"], [],
       ["To restore", "Open the app → Quotation → 💾 → Restore (or Consultants → Backup → Restore) and choose this file."],
@@ -567,13 +567,13 @@
   // A backup file's contents: the Excel workbook (its _data sheet) or an older .json backup.
   function backupFromWorkbook(XLSX, wb) {
     const ws = wb && wb.Sheets && wb.Sheets[DATA_SHEET];
-    if (!ws) throw new Error("This Excel file is not a Construction AI Expert backup.");
+    if (!ws) throw new Error("This Excel file is not a Sahi Nirman backup.");
     const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: "" });
     return readBackup(rows.map((r) => String(r[0] == null ? "" : r[0])).join(""));
   }
   function readBackup(json) {
     let b; try { b = typeof json === "string" ? JSON.parse(json) : json; } catch { throw new Error("This is not a backup file."); }
-    if (!b || b.app !== "construction-ai-expert" || b.kind !== "backup") throw new Error("This is not a Construction AI Expert backup file.");
+    if (!b || b.app !== "construction-ai-expert" || b.kind !== "backup") throw new Error("This is not a Sahi Nirman backup file.");
     if (!(b.version >= 1 && b.version <= 1)) throw new Error("This backup was made by a newer version. Update the app and try again.");
     return { quotes: Array.isArray(b.quotes) ? b.quotes : [], company: b.company && typeof b.company === "object" ? b.company : {}, ratebook: Array.isArray(b.ratebook) ? b.ratebook : [], materials: Array.isArray(b.materials) ? b.materials : [], consultant: normConsultant(b.consultant), at: b.at };
   }

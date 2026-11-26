@@ -358,7 +358,7 @@ test("backup: round trip, wrong files refused", () => {
   const b = Q.readBackup(JSON.stringify(Q.makeBackup(data, "2026-11-25T10:00:00Z")));
   assert.deepEqual({ ...b, at: undefined, consultant: undefined }, { ...data, at: undefined, consultant: undefined });
   assert.throws(() => Q.readBackup("{bad"), /not a backup file/);
-  assert.throws(() => Q.readBackup({ app: "other" }), /not a Construction AI Expert backup/);
+  assert.throws(() => Q.readBackup({ app: "other" }), /not a Sahi Nirman backup/);
   assert.throws(() => Q.readBackup({ app: "construction-ai-expert", kind: "backup", version: 9 }), /newer version/);
 });
 test("restore merges: newer quote wins, nothing here is lost, clashing rate ids are renumbered", () => {
@@ -488,5 +488,5 @@ test("the backup is an Excel file: readable sheets, a hidden complete copy, and 
   assert.deepEqual(Q.backupFromWorkbook(XLSX, wb), Q.readBackup(JSON.stringify(data)));
   // an ordinary spreadsheet is refused
   const plain = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(plain, XLSX.utils.aoa_to_sheet([["a"]]), "Sheet1");
-  assert.throws(() => Q.backupFromWorkbook(XLSX, plain), /not a Construction AI Expert backup/);
+  assert.throws(() => Q.backupFromWorkbook(XLSX, plain), /not a Sahi Nirman backup/);
 });

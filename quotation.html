@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Quotation Maker | Construction AI Expert</title>
+  <title>Quotation Maker | Sahi Nirman</title>
   <meta name="description" content="Make a construction quotation from a BOQ: items, quantities, rates, GST or VAT, amount in words and terms. Share it as a PDF or on WhatsApp.">
   <meta name="theme-color" content="#1e3a8a">
   <link rel="canonical" href="https://civilengineervijay.netlify.app/quotation">
-  <meta property="og:type" content="website"><meta property="og:site_name" content="Construction AI Expert"><meta property="og:title" content="Quotation Maker | Construction AI Expert">
+  <meta property="og:type" content="website"><meta property="og:site_name" content="Sahi Nirman"><meta property="og:title" content="Quotation Maker | Sahi Nirman">
   <meta property="og:description" content="Turn a BOQ into a quotation with GST/VAT and amount in words, then share it as a PDF or on WhatsApp.">
   <meta property="og:url" content="https://civilengineervijay.netlify.app/quotation"><meta property="og:image" content="https://civilengineervijay.netlify.app/assets/og-image.png"><meta name="twitter:card" content="summary_large_image">
   <link rel="icon" href="assets/logo.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
@@ -64,7 +64,7 @@
   </style>
 </head>
 <body class="bg-slate-100 text-slate-900 font-sans pb-24">
-  <nav class="no-print bg-white border-b border-slate-200"><div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3"><a href="index.html" class="flex min-w-0 items-center gap-2 font-bold leading-tight text-slate-800"><img src="assets/logo.svg" alt="" width="32" height="32" class="w-8 h-8"><span class="truncate">Construction AI Expert</span></a><div class="flex items-center gap-4 text-sm font-medium text-blue-700"><a href="expert.html" class="whitespace-nowrap hover:text-blue-900">Ask AI</a><a href="calculators.html" class="hidden sm:inline hover:text-blue-900">Calculators</a><a href="quotation.html" class="whitespace-nowrap font-bold text-blue-900" aria-current="page">Quotation</a><a href="my-work.html" class="whitespace-nowrap hover:text-blue-900">My work</a></div></div></nav>
+  <nav class="no-print bg-white border-b border-slate-200"><div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3"><a href="index.html" class="flex min-w-0 items-center gap-2 font-bold leading-tight text-slate-800"><img src="assets/logo.svg" alt="" width="32" height="32" class="w-8 h-8"><span class="truncate">Sahi Nirman</span></a><div class="flex items-center gap-4 text-sm font-medium text-blue-700"><a href="expert.html" class="whitespace-nowrap hover:text-blue-900">Ask AI</a><a href="calculators.html" class="hidden sm:inline hover:text-blue-900">Calculators</a><a href="quotation.html" class="whitespace-nowrap font-bold text-blue-900" aria-current="page">Quotation</a><a href="my-work.html" class="whitespace-nowrap hover:text-blue-900">My work</a></div></div></nav>
 
   <main class="max-w-4xl mx-auto px-3 sm:px-4 py-5">
     <div class="no-print flex flex-wrap items-center justify-between gap-2">
@@ -226,7 +226,7 @@
         <button type="button" id="lh-remove" class="hidden text-slate-500 underline">remove letterhead</button>
         <label class="cursor-pointer font-semibold text-blue-700 underline"><span id="ft-label">+ Footer image</span><input id="ft-file" type="file" accept="image/*" class="hidden"></label>
         <button type="button" id="ft-remove" class="hidden text-slate-500 underline">remove footer</button>
-        <label class="inline-flex items-center gap-1 text-slate-500"><input type="checkbox" id="made-with"> “Made with Construction AI Expert” line</label>
+        <label class="inline-flex items-center gap-1 text-slate-500"><input type="checkbox" id="made-with"> “Made with Sahi Nirman” line</label>
       </div>
       <img id="lh-img" alt="Letterhead" class="hidden mb-3 w-full">
       <header class="flex flex-col gap-4 sm:flex-row sm:justify-between border-b-2 border-blue-900 pb-4">
@@ -1065,7 +1065,7 @@
       const data = Q.makeBackup({ quotes, company, ratebook: loadBook(), materials: loadMats(), consultant: loadConsult() });
       const file = await backupFile(data), name = file.name;
       let shared = false;
-      try { if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: "Construction AI Expert backup" }); shared = true; } } catch (err) { if (err && err.name === "AbortError") return; }
+      try { if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: "Sahi Nirman backup" }); shared = true; } } catch (err) { if (err && err.name === "AbortError") return; }
       if (!shared) { const url = URL.createObjectURL(file); const link = Object.assign(document.createElement("a"), { href: url, download: name }); document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 5000); }
       store.set(LAST_BACKUP, Date.now()); backupNudge();
       const extra = consultText(loadConsult());

@@ -1,7 +1,7 @@
 // Site-wide settings. Fill these in to switch on the matching buttons.
 window.SITE_CONFIG = {
   // Product name used by page scripts (exports, share text). Page text uses the same name.
-  brandName: "Construction AI Expert",
+  brandName: "Sahi Nirman",
   // WhatsApp number for expert-review requests, international format, digits only,
   // e.g. "9715XXXXXXXX". Leave empty to hide the "WhatsApp us" buttons.
   whatsappNumber: "",
