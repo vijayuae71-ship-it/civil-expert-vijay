@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Get Delivery Quotes | Construction AI Expert</title>
+  <meta name="description" content="Get prices with delivery for steel, sand, aggregate, bricks, blocks, tiles, paint, plumbing and electrical materials from suppliers near your site in India.">
+  <meta name="theme-color" content="#1e3a8a">
+  <link rel="icon" href="assets/logo.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="assets/site.css">
+  <script src="assets/site-config.js"></script>
+  <script src="assets/quote.js"></script>
+  <script src="assets/leads.js"></script>
+  <script src="assets/growth.js" defer></script><script src="assets/app.js" defer></script>
+</head>
+<body class="bg-slate-100 text-slate-900 font-sans">
+  <nav class="bg-white border-b border-slate-200"><div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3"><a href="index.html" class="flex min-w-0 items-center gap-2 font-bold leading-tight text-slate-800"><img src="assets/logo.svg" alt="" width="32" height="32" class="w-8 h-8"><span class="truncate">Construction AI Expert</span></a><div class="flex items-center gap-4 text-sm font-medium text-blue-700"><a href="expert.html" class="whitespace-nowrap hover:text-blue-900">Ask AI</a><a href="calculators.html" class="whitespace-nowrap hover:text-blue-900">Calculators</a><a href="materials.html" class="whitespace-nowrap font-bold text-blue-900" aria-current="page">Materials</a></div></div></nav>
+
+  <main class="max-w-3xl mx-auto px-3 sm:px-4 py-5">
+    <h1 class="text-2xl font-extrabold text-blue-900">📦 Get delivery quotes</h1>
+    <p class="mt-1 text-sm text-slate-600">Steel, sand, aggregate, bricks, blocks, tiles, paint, waterproofing, plumbing and electrical materials — priced with delivery by suppliers near your site. <strong>India only for now.</strong> Cement is not offered yet.</p>
+
+    <form id="form" class="mt-4 space-y-4" novalidate>
+      <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <h2 class="font-bold text-slate-800">1. Materials</h2>
+        <p id="removed" class="mt-1 hidden rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900"></p>
+        <div class="mt-2 overflow-x-auto"><table class="min-w-full text-sm"><thead><tr class="text-left text-xs text-slate-500"><th class="p-1">Material (size, grade, brand if any)</th><th class="p-1 w-24">Quantity</th><th class="p-1 w-28">Unit</th><th class="w-8"></th></tr></thead><tbody id="rows"></tbody></table></div>
+        <button type="button" id="add" class="mt-2 rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-semibold">+ Add material</button>
+      </section>
+
+      <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <h2 class="font-bold text-slate-800">2. Delivery</h2>
+        <div class="mt-2 grid gap-3 sm:grid-cols-2 text-sm">
+          <label class="font-semibold text-slate-700">City<select id="city" class="mt-1 block w-full rounded-lg border border-slate-300 px-2 py-2 font-normal"></select></label>
+          <label id="city-other-wrap" class="hidden font-semibold text-slate-700">City name<input id="city-other" class="mt-1 block w-full rounded-lg border border-slate-300 px-2 py-2 font-normal"></label>
+          <label class="font-semibold text-slate-700">Area / locality<input id="area" class="mt-1 block w-full rounded-lg border border-slate-300 px-2 py-2 font-normal" placeholder="e.g. Vijayanagar 4th stage"></label>
+          <label class="font-semibold text-slate-700">PIN code<input id="pin" inputmode="numeric" maxlength="6" class="mt-1 block w-full rounded-lg border border-slate-300 px-2 py-2 font-normal" placeholder="570017"></label>
+          <label class="font-semibold text-slate-700">Needed by<input id="needed" type="date" class="mt-1 block w-full rounded-lg border border-slate-300 px-2 py-2 font-normal"></label>
+        </div>
+      </section>
+
+      <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <h2 class="font-bold text-slate-800">3. Your details</h2>
+        <div class="mt-2 grid gap-3 sm:grid-cols-2 text-sm">
+          <label class="font-semibold text-slate-700">I am a<select id="role" class="mt-1 block w-full rounded-lg border border-slate-300 px-2 py-2 font-normal"><option>Homeowner</option><option>Contractor / builder</option><option>Mason</option><option>Plumber</option><option>Electrician</option><option>Painter</option><option>Engineer / architect</option><option>Other</option></select></label>
+          <label class="font-semibold text-slate-700">Name<input id="name" autocomplete="name" class="mt-1 block w-full rounded-lg border border-slate-300 px-2 py-2 font-normal"></label>
+          <label class="font-semibold text-slate-700">Mobile (WhatsApp)<div class="mt-1 flex"><span class="rounded-l-lg border border-r-0 border-slate-300 bg-slate-50 px-2 py-2 font-normal text-slate-600">+91</span><input id="phone" inputmode="tel" autocomplete="tel-national" maxlength="14" class="block w-full rounded-r-lg border border-slate-300 px-2 py-2 font-normal" placeholder="98xxxxxxxx"></div></label>
+          <label class="font-semibold text-slate-700 sm:col-span-2">Notes (optional)<textarea id="notes" rows="2" maxlength="300" class="mt-1 block w-full rounded-lg border border-slate-300 px-2 py-2 font-normal" placeholder="e.g. truck access only till 8 am, unloading on ground floor"></textarea></label>
+        </div>
+        <label class="mt-3 flex items-start gap-2 text-sm text-slate-700"><input id="consent" type="checkbox" class="mt-1"> <span>Share my request — the materials, my site area and PIN, my name and mobile number — with up to 3 partner suppliers so they can call or WhatsApp me with a price. I can ask for it to be deleted at any time. <a href="privacy.html#leads" class="text-blue-700 underline">Privacy notice</a></span></label>
+      </section>
+
+      <div class="flex flex-wrap items-center gap-3"><button type="submit" id="send" class="rounded-full bg-emerald-700 px-6 py-3 font-bold text-white hover:bg-emerald-800">Get quotes</button><span id="status" class="text-sm text-slate-600" role="status"></span></div>
+    </form>
+
+    <section id="done" class="mt-4 hidden rounded-2xl border border-emerald-300 bg-emerald-50 p-5">
+      <p class="text-lg font-bold text-emerald-900">✓ Request sent</p>
+      <p class="mt-1 text-sm text-emerald-900">We share it with suppliers near <span id="done-where"></span>. Expect a call or WhatsApp with prices, usually within one working day. Compare the prices, and check the material on delivery before you pay.</p>
+      <div class="mt-3 flex flex-wrap gap-2"><a href="expert.html" class="rounded-full bg-white px-4 py-2 text-sm font-semibold text-blue-800 ring-1 ring-blue-200">💬 Back to Ask AI</a><button type="button" id="again" class="rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-700 ring-1 ring-slate-200">New request</button></div>
+    </section>
+  </main>
+
+  <footer class="border-t border-slate-200 bg-white"><p class="max-w-5xl mx-auto px-4 py-6 text-sm leading-relaxed text-slate-500">Prices and delivery are agreed directly between you and the supplier. Check quantity and quality on delivery. <a href="disclaimer.html" class="text-blue-700 hover:underline">Disclaimer &amp; terms</a> · <a href="privacy.html" class="text-blue-700 hover:underline">Privacy notice</a></p></footer>
+  <script>
+  (() => {
+    const $ = (id) => document.getElementById(id), L = window.Leads;
+    const ls = { get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }, del(k) { try { localStorage.removeItem(k); } catch {} } };
+    const UNITS = ["kg", "tonnes", "nos", "m³", "cft", "units", "boxes", "sq ft", "m²", "litres", "bags", "m", "coils", "sheets"];
+    const el = (tag, cls) => { const e = document.createElement(tag); if (cls) e.className = cls; return e; };
+
+    // Where the list comes from: an answer or calculator (saved draft), a WhatsApp link (?items=), or empty.
+    const params = new URLSearchParams(location.search);
+    let draft = ls.get("cae-lead-draft") || {};
+    if (params.get("items")) {
+      try { draft = { items: JSON.parse(decodeURIComponent(escape(atob(params.get("items").replace(/-/g, "+").replace(/_/g, "/"))))), source: params.get("r") || "link" }; } catch {}
+    }
+    const all = Array.isArray(draft.items) ? draft.items : [];
+    let items = all.filter((x) => !L.EXCLUDED.test(x.name || "")).map((x) => ({ name: x.name, qty: x.qty, unit: x.unit }));
+    const removed = all.length - items.length + (draft.removedCement || 0);
+    if (removed > 0) { $("removed").textContent = "Cement isn't offered yet, so it's left out of this list."; $("removed").classList.remove("hidden"); }
+    if (!items.length) items = [{ name: "", qty: "", unit: "kg" }];
+
+    function render() {
+      const tb = $("rows"); tb.replaceChildren();
+      items.forEach((it, i) => {
+        const tr = el("tr");
+        const name = el("input", "w-full rounded border border-slate-300 px-2 py-1.5"); name.value = it.name || ""; name.placeholder = "e.g. TMT steel 12 mm Fe500D"; name.setAttribute("aria-label", `Material ${i + 1}`); name.oninput = () => { it.name = name.value; };
+        const qty = el("input", "w-full rounded border border-slate-300 px-2 py-1.5 text-right"); qty.type = "number"; qty.step = "any"; qty.min = "0"; qty.value = it.qty ?? ""; qty.setAttribute("aria-label", `Quantity ${i + 1}`); qty.oninput = () => { it.qty = qty.value; };
+        const unit = el("select", "w-full rounded border border-slate-300 px-1 py-1.5"); unit.setAttribute("aria-label", `Unit ${i + 1}`);
+        [...new Set([it.unit, ...UNITS].filter(Boolean))].forEach((u) => unit.append(new Option(u, u))); unit.value = it.unit || "kg"; unit.onchange = () => { it.unit = unit.value; };
+        const del = el("button", "px-2 text-red-700"); del.type = "button"; del.textContent = "✕"; del.setAttribute("aria-label", `Remove material ${i + 1}`); del.onclick = () => { items.splice(i, 1); if (!items.length) items.push({ name: "", qty: "", unit: "kg" }); render(); };
+        [name, qty, unit, del].forEach((x) => { const td = el("td", "p-1"); td.append(x); tr.append(td); });
+        tb.append(tr);
+      });
+    }
+    render();
+    $("add").onclick = () => { items.push({ name: "", qty: "", unit: "kg" }); render(); $("rows").lastElementChild.querySelector("input").focus(); };
+
+    // Details remembered on this phone for the next request.
+    L.CITIES.forEach((c) => $("city").append(new Option(c, c))); $("city").append(new Option("Other city…", "other"));
+    const me = ls.get("cae-lead-me") || {};
+    const d = new Date(Date.now() + 3 * 864e5); $("needed").value = new Date(d.getTime() - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
+    if (me.city && L.CITIES.includes(me.city)) $("city").value = me.city; else if (me.city) { $("city").value = "other"; $("city-other").value = me.city; }
+    for (const k of ["area", "pin", "name", "phone"]) if (me[k]) $(k).value = me[k];
+    const tradeRole = { plumber: "Plumber", electrician: "Electrician", mason: "Mason", painter: "Painter", contractor: "Contractor / builder", "site-engineer": "Engineer / architect", consultant: "Engineer / architect" };
+    $("role").value = me.role || tradeRole[draft.trade] || "Homeowner";
+    const showOther = () => $("city-other-wrap").classList.toggle("hidden", $("city").value !== "other");
+    $("city").onchange = showOther; showOther();
+
+    $("form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const city = $("city").value === "other" ? $("city-other").value.trim() : $("city").value;
+      const body = { items: items.filter((x) => String(x.name || "").trim() && Number(x.qty) > 0), city, area: $("area").value, pin: $("pin").value, neededBy: $("needed").value, role: $("role").value, name: $("name").value, phone: $("phone").value, notes: $("notes").value, consent: $("consent").checked, source: draft.source || "materials", trade: draft.trade || "" };
+      try { L.clean(body); } catch (err) { $("status").textContent = `⚠️ ${err.message}`; return; }
+      $("send").disabled = true; $("status").textContent = "Sending…";
+      try {
+        const res = await fetch("/.netlify/functions/lead", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || "Could not send. Please try again.");
+        ls.set("cae-lead-me", { city, area: body.area, pin: body.pin, name: body.name, phone: body.phone, role: body.role });
+        ls.del("cae-lead-draft");
+        $("form").classList.add("hidden"); $("done").classList.remove("hidden");
+        $("done-where").textContent = `${body.area ? body.area + ", " : ""}${city} ${body.pin}`;
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } catch (err) { $("status").textContent = `⚠️ ${err.message}`; }
+      finally { $("send").disabled = false; }
+    });
+    $("again").onclick = () => { items = [{ name: "", qty: "", unit: "kg" }]; render(); $("consent").checked = false; $("status").textContent = ""; $("done").classList.add("hidden"); $("form").classList.remove("hidden"); };
+  })();
+  </script>
+</body>
+</html>

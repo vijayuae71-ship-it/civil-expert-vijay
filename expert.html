@@ -22,6 +22,7 @@
     <script src="assets/progress.js"></script>
     <script src="assets/pdftext.js"></script>
     <script src="assets/clarify.js"></script>
+    <script src="assets/leads.js"></script>
     <style>
         html, body { height: 100%; }
         body { display: flex; flex-direction: column; height: 100dvh; }
@@ -723,6 +724,12 @@
                 try { localStorage.setItem('cae-quote-import', JSON.stringify({ items: quoteItems, currency: QUOTE.detectCurrency(text), subject: String(question || '').replace(/\n\n\[Attached:[^\]]*\]$/, '').slice(0, 300), at: Date.now() })); } catch {}
                 location.href = 'quotation.html?from=answer';
             }, 'Make a quotation from this BOQ');
+            // Materials with quantities in the answer (not cement): ask suppliers for delivery quotes (India).
+            const mats = window.Leads ? Leads.fromText(text) : [];
+            if (mats.length) mk('📦 Delivery quotes', () => {
+                try { localStorage.setItem('cae-lead-draft', JSON.stringify({ items: mats, source: 'ai', trade: (store.get('vijay-expert-prefs') || {}).trade || '', removedCement: /cement/i.test(text) ? 1 : 0 })); } catch {}
+                location.href = 'materials.html';
+            }, 'Get prices with delivery from suppliers near your site (India)');
             feedbackControls(actions, text, question, lang, cacheKey);
             col.appendChild(actions); w.appendChild(col);
             if (scroll) w.scrollIntoView({ behavior: 'smooth', block: 'start' });

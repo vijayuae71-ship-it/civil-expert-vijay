@@ -85,6 +85,13 @@
       </form>
     </section>
 
+    <section class="card" aria-label="Material requests" style="margin-bottom:12px">
+      <div class="row" style="justify-content:space-between"><h2>📥 Material requests (leads)</h2><div class="row"><select id="ld-filter" aria-label="Show"><option value="open">Open</option><option value="all">All</option><option value="new">New</option><option value="sent">Sent</option><option value="quoted">Quoted</option><option value="ordered">Ordered</option><option value="lost">Lost</option></select><button type="button" id="ld-csv">⬇ CSV</button></div></div>
+      <p class="muted" id="ld-sum" style="margin:4px 0 8px"></p>
+      <ul class="list" id="ld-list"></ul>
+      <p class="muted" style="margin-top:8px">Requests from “📦 Get delivery quotes” (India, non-cement), sent with the person's consent; kept 180 days. Forward each one to 2–3 partner suppliers, then update its status.</p>
+    </section>
+
     <section class="card" aria-label="Users">
       <h2>👥 Users</h2>
       <div class="grid tiles" style="margin-top:6px">
@@ -141,6 +148,7 @@
     </section>
   </div>
 </main>
+<script src="assets/leads.js"></script>
 <script>
 (() => {
   const $ = (id) => document.getElementById(id);
@@ -313,8 +321,53 @@
       render(data);
       $("status").textContent = `Updated ${new Date().toLocaleTimeString()} · last ${days} days`;
       loadLimits().catch((err) => { $("lim-status").textContent = err.message; });
+      loadLeads().catch((err) => { $("ld-sum").textContent = err.message; });
     } catch (err) { $("status").innerHTML = ""; $("status").appendChild(el("span", "err", err.message)); }
   }
+  // ---- Material requests (owner-leads function) ----
+  let leads = [], ldStatuses = ["new", "sent", "quoted", "ordered", "lost"];
+  async function leadsCall(method = "GET", body) {
+    const key = store.get(KEY); if (!key) return null;
+    const res = await fetch("/.netlify/functions/owner-leads", { method, headers: { "x-owner-key": key, "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined, cache: "no-store" });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || "Could not load the requests.");
+    return data;
+  }
+  async function loadLeads() { const d = await leadsCall(); if (!d) return; leads = d.leads || []; ldStatuses = d.statuses || ldStatuses; renderLeads(); }
+  function renderLeads() {
+    const f = $("ld-filter").value, ul = $("ld-list"); ul.innerHTML = "";
+    const week = new Date(Date.now() - 7 * 864e5).toISOString();
+    const by = (st) => leads.filter((l) => l.status === st).length;
+    $("ld-sum").textContent = leads.length ? `${leads.filter((l) => l.at >= week).length} this week · ${by("new")} new · ${by("sent")} sent · ${by("quoted")} quoted · ${by("ordered")} ordered · ${by("lost")} lost` : "No requests yet. They appear here when someone taps “📦 Get delivery quotes”.";
+    const shown = leads.filter((l) => f === "all" || (f === "open" ? !["ordered", "lost"].includes(l.status) : l.status === f));
+    shown.forEach((l) => {
+      const li = el("li"); li.style.cssText = "display:grid;gap:4px";
+      li.append(el("div", "", `${l.at.slice(0, 16).replace("T", " ")} · ${l.city}${l.area ? `, ${l.area}` : ""} ${l.pin}${l.neededBy ? ` · by ${l.neededBy}` : ""}`));
+      li.append(el("div", "sec", l.items.map((x) => `${x.name} ${x.qty} ${x.unit}`).join(" · ")));
+      const who = el("div", "muted", `${l.role || ""}${l.name ? ` · ${l.name}` : ""} · `);
+      const tel = el("a", "", l.phone); tel.href = `tel:${l.phone}`; who.append(tel);
+      const wa = el("a", "", " · WhatsApp customer"); wa.href = `https://wa.me/${l.phone.replace(/\D/g, "")}`; wa.target = "_blank"; wa.rel = "noopener"; who.append(wa);
+      if (l.notes) who.append(document.createTextNode(` · “${l.notes}”`));
+      li.append(who);
+      const row = el("div", "row");
+      const st = el("select"); ldStatuses.forEach((x) => st.append(new Option(x, x))); st.value = l.status; st.setAttribute("aria-label", "Status");
+      const note = el("input"); note.placeholder = "note (supplier, price…)"; note.value = l.note || ""; note.style.flex = "1";
+      const save = async () => { try { const d = await leadsCall("POST", { key: l.key, status: st.value, note: note.value }); Object.assign(l, d.lead); renderLeads(); } catch (e) { alert(e.message); } };
+      st.onchange = save; note.onchange = save;
+      const fwd = el("a", "btn", "Forward to supplier"); fwd.href = `https://wa.me/?text=${encodeURIComponent(window.Leads ? Leads.message(l) : "")}`; fwd.target = "_blank"; fwd.rel = "noopener";
+      row.append(st, note, fwd); li.append(row);
+      ul.appendChild(li);
+    });
+    if (leads.length && !shown.length) ul.appendChild(el("li", "muted", "Nothing with this status."));
+  }
+  $("ld-filter").addEventListener("change", renderLeads);
+  $("ld-csv").addEventListener("click", () => {
+    const q = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const rows = [["Date", "Status", "City", "Area", "PIN", "Needed by", "Materials", "Role", "Name", "Phone", "Notes", "Your note", "Source"]].concat(leads.map((l) => [l.at.slice(0, 16), l.status, l.city, l.area, l.pin, l.neededBy, l.items.map((x) => `${x.name} ${x.qty} ${x.unit}`).join("; "), l.role, l.name, l.phone, l.notes, l.note, l.source]));
+    const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(new Blob(["\ufeff" + rows.map((r) => r.map(q).join(",")).join("\n")], { type: "text/csv" })), download: `material-requests-${new Date().toISOString().slice(0, 10)}.csv` });
+    document.body.append(a); a.click(); a.remove();
+  });
+
   // ---- Limits & budget (owner-settings function) ----
   function meter(label, used, cap, fmt) {
     const box = el("div"), share = cap > 0 ? Math.min(1, used / cap) : 0;

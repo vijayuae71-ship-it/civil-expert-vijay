@@ -2,10 +2,10 @@
  * Pages: network first (always fresh when online), cached copy when offline.
  * Styles/scripts/images: cached copy at once, refreshed in the background.
  * The AI chat itself needs the internet and is never cached. */
-const VERSION = "cae-v10";
+const VERSION = "cae-v11";
 const CORE = [
-  "/", "/index.html", "/expert.html", "/calculators.html", "/quotation.html", "/my-work.html", "/consultant.html", "/construction-faq.html", "/privacy.html", "/disclaimer.html",
-  "/assets/site.css", "/assets/calc.js", "/assets/quote.js", "/assets/consult.js", "/assets/progress.js", "/assets/pdftext.js", "/assets/growth.js", "/assets/clarify.js", "/assets/i18n.js", "/assets/app.js", "/assets/site-config.js", "/assets/logo.svg",
+  "/", "/index.html", "/expert.html", "/calculators.html", "/quotation.html", "/my-work.html", "/consultant.html", "/materials.html", "/construction-faq.html", "/privacy.html", "/disclaimer.html",
+  "/assets/site.css", "/assets/calc.js", "/assets/quote.js", "/assets/consult.js", "/assets/progress.js", "/assets/pdftext.js", "/assets/growth.js", "/assets/clarify.js", "/assets/leads.js", "/assets/i18n.js", "/assets/app.js", "/assets/site-config.js", "/assets/logo.svg",
   "/assets/icon-192.png", "/assets/apple-touch-icon.png", "/manifest.webmanifest"
 ];
 
