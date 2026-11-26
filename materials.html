@@ -25,7 +25,8 @@
       <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <h2 class="font-bold text-slate-800">1. Materials</h2>
         <p id="removed" class="mt-1 hidden rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900"></p>
-        <div class="mt-2 overflow-x-auto"><table class="min-w-full text-sm"><thead><tr class="text-left text-xs text-slate-500"><th class="p-1">Material (size, grade, brand if any)</th><th class="p-1 w-24">Quantity</th><th class="p-1 w-28">Unit</th><th class="w-8"></th></tr></thead><tbody id="rows"></tbody></table></div>
+        <p class="mt-2 text-xs text-slate-500">Material (size, grade, brand if any), quantity and unit</p>
+        <ul id="rows" class="mt-1 space-y-2"></ul>
         <button type="button" id="add" class="mt-2 rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-semibold">+ Add material</button>
       </section>
 
@@ -84,13 +85,16 @@
     function render() {
       const tb = $("rows"); tb.replaceChildren();
       items.forEach((it, i) => {
-        const tr = el("tr");
+        const tr = el("li", "rounded-xl border border-slate-200 p-2");
         const name = el("input", "w-full rounded border border-slate-300 px-2 py-1.5"); name.value = it.name || ""; name.placeholder = "e.g. TMT steel 12 mm Fe500D"; name.setAttribute("aria-label", `Material ${i + 1}`); name.oninput = () => { it.name = name.value; };
         const qty = el("input", "w-full rounded border border-slate-300 px-2 py-1.5 text-right"); qty.type = "number"; qty.step = "any"; qty.min = "0"; qty.value = it.qty ?? ""; qty.setAttribute("aria-label", `Quantity ${i + 1}`); qty.oninput = () => { it.qty = qty.value; };
         const unit = el("select", "w-full rounded border border-slate-300 px-1 py-1.5"); unit.setAttribute("aria-label", `Unit ${i + 1}`);
         [...new Set([it.unit, ...UNITS].filter(Boolean))].forEach((u) => unit.append(new Option(u, u))); unit.value = it.unit || "kg"; unit.onchange = () => { it.unit = unit.value; };
         const del = el("button", "px-2 text-red-700"); del.type = "button"; del.textContent = "✕"; del.setAttribute("aria-label", `Remove material ${i + 1}`); del.onclick = () => { items.splice(i, 1); if (!items.length) items.push({ name: "", qty: "", unit: "kg" }); render(); };
-        [name, qty, unit, del].forEach((x) => { const td = el("td", "p-1"); td.append(x); tr.append(td); });
+        // Name on its own full-width line (long names stay readable on a phone); quantity, unit, remove below.
+        const line = el("div", "mt-1.5 flex items-center gap-2");
+        qty.classList.remove("w-full"); qty.classList.add("w-28"); unit.classList.remove("w-full"); unit.classList.add("w-32");
+        line.append(qty, unit, del); tr.append(name, line);
         tb.append(tr);
       });
     }
