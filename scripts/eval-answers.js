@@ -15,6 +15,8 @@ if (!process.env.ANTHROPIC_API_KEY) {
 process.env.CHAT_LIMIT_PER_IP_HOUR = "1000";
 const { handler, run } = require("../netlify/functions/chat");
 
+// A named check for cases a regex can't express (defined first: cases below use it).
+const check = (label, fn) => ({ toString: () => label, test: (text) => { try { return fn(text); } catch { return false; } } });
 const CASES = [
   {
     name: "M100 mix design lists every high-strength constituent",
@@ -105,7 +107,12 @@ const CASES = [
   {
     group: "mep", name: "Domestic water tank sizing for an apartment block",
     body: { message: "Size the domestic water storage tank for a G+4 residential building with 20 flats", audience: "engineer" },
-    must: [/(per (person|capita|occupant)|l(itres?)?\s*\/\s*(person|capita|head)|lpcd|L\/p\/d)/i, /(m³|litres|liters|gallons|\d\s*L\b)/i, /(occupants|persons|people)/i]
+    // Either asks first (where the site is changes the litres per person) or sizes it with stated norms.
+    must: [check("asks where the site is, or sizes it per person with the total volume", (t) => {
+      const a = require("../assets/clarify.js").parse(t);
+      if (a) return a.questions.some((q) => /locat|where|city|country|region/i.test(q.q));
+      return /(per (person|capita|occupant)|l(itres?)?\s*\/\s*(person|capita|head)|lpcd|L\/p\/d)/i.test(t) && /(m³|litres|liters|gallons|\d\s*L\b)/i.test(t) && /(occupants|persons|people)/i.test(t);
+    })]
   },
   {
     group: "mep", name: "Office lighting design for 500 lux uses the lumen method",
@@ -125,7 +132,7 @@ const CASES = [
   {
     group: "mep", name: "CCTV design for a small warehouse",
     body: { message: "How many CCTV cameras and what cable for a 2,000 sq ft warehouse?", audience: "engineer" },
-    must: [/(Cat ?6|Cat ?5e)/i, /PoE/i, /NVR/i, /\b\d+\s*(cameras?)/i]
+    must: [/(Cat ?6|Cat ?5e)/i, /PoE/i, /NVR/i, /\b\d+\s+(?:[\w-]+\s+){0,3}cameras?/i]
   },
   {
     group: "mep", name: "Electrician: MCB trips with water heater — safe checks first",
@@ -155,7 +162,7 @@ const ROWS = (n) => ({ toString: () => `at least ${n} item rows (A1, B2 …)`, t
 CASES.push(
   {
     group: "boq", background: true, name: "Complete BOQ for a 1,000 sq ft G+1 house is itemised section by section",
-    body: { message: "give a complete boq for a 1000 square feet plot for complete construction", audience: "engineer", quoteReady: true },
+    body: { message: "give a complete boq for a 1000 square feet G+1 house in Bengaluru for complete construction", audience: "engineer", quoteReady: true },
     must: [ROWS(25), /excavation/i, /reinforcement|steel/i, /shuttering|formwork/i, /plaster/i, /tile|flooring/i, /waterproof/i, /paint/i, /electric|wiring/i, /plumbing|sanitary/i, /Sub-total/i, /Grand Total/i],
     mustNot: [/no more than 5/i]
   },
@@ -194,7 +201,6 @@ const photo = (file) => ({ name: file, mimeType: "image/jpeg", data: require("fs
 // ---------- tenders (group "tender"): copy a BOQ word for word, then price it ----------
 const Q = require("../assets/quote.js");
 const tenderPdf = { name: "sample-tender-boq.pdf", mimeType: "application/pdf", data: require("fs").readFileSync(require("path").join(__dirname, "fixtures", "sample-tender-boq.pdf")).toString("base64") };
-const check = (label, fn) => ({ toString: () => label, test: (text) => { try { return fn(text); } catch { return false; } } });
 const EXPECTED = [["2.8", null], ["2.8.1", 86.4], ["4.1.8", 9.75], ["5.33", null], ["5.33.1", 24.6], ["5.22A", null], ["5.22A.6", 2850], ["6.1.2", 31.2], ["13.1.1", 412]];
 CASES.push(
   {
@@ -314,6 +320,20 @@ for (const [code, re, name] of [["hi", /[\u0900-\u097F]/, "Hindi"], ["kn", /[\u0
   });
 }
 
+// ---------- ask before answering (group "ask") ----------
+const CLARIFY = require("../assets/clarify.js");
+const ASKED = "[[ASK]]\nTo give you an accurate estimate:\n1. Where is the site? | Bengaluru | Mysuru | Dubai | Other\n2. Built-up area? | 600 sq ft | 1000 sq ft | 1500 sq ft\n3. How many floors? | G | G+1 | G+2";
+const asks = check("asks 2–4 questions first, each with options", (t) => { const a = CLARIFY.parse(t); return !!a && a.questions.length >= 2 && a.questions.length <= 4 && a.questions.every((q) => q.options.length >= 2); });
+CASES.push(
+  { group: "ask", name: "Vague BOQ request: asks for location, size and floors before answering", body: { message: "Give me the BOQ and cost for constructing a house", audience: "engineer" }, must: [asks] },
+  { group: "ask", name: "Vague cost question from a worker: asks first", body: { message: "How much will it cost to build my house?", audience: "worker" }, must: [asks] },
+  { group: "ask", background: true, name: "Compound wall with length, height and city given: BOQ answered with assumptions, not questions", body: { message: "BOQ with rates for 60 m long, 1.8 m high compound wall in Bengaluru", audience: "engineer" }, mustNot: [/\[\[ASK\]\]/], must: [/excavation|masonry|block|brick/i] },
+  { group: "ask", name: "Simple how-to question: answered directly, no questions first", body: { message: "What is the curing period for an M25 slab?", audience: "worker" }, must: [/7|10|14/], mustNot: [/\[\[ASK\]\]/] },
+  { group: "ask", name: "Quantity question with its details given: answered directly", body: { message: "Cement and sand for 100 sq ft of 12 mm wall plaster in 1:6", audience: "worker" }, must: [/bag/i], mustNot: [/\[\[ASK\]\]/] },
+  { group: "ask", background: true, name: "After the answers: answers now, using them, no second round of questions", body: { message: "My answers:\n1. Where is the site: Mysuru\n2. Built-up area: 1000 sq ft\n3. How many floors: G+1", audience: "engineer", history: [{ role: "user", text: "Give me the BOQ and cost for constructing a house" }, { role: "model", text: ASKED }] }, must: [/1,?000/, /Mysuru/i], mustNot: [/\[\[ASK\]\]/] },
+  { group: "ask", background: true, name: "'Just give a quick estimate': answers with assumptions, no questions", body: { message: "Just give a quick estimate with your own assumptions.", audience: "engineer", history: [{ role: "user", text: "Give me the BOQ and cost for constructing a house" }, { role: "model", text: ASKED }] }, must: [/assum/i], mustNot: [/\[\[ASK\]\]/] }
+);
+
 const longTender = { name: "sample-tender-boq-long.pdf", mimeType: "application/pdf", data: require("fs").readFileSync(require("path").join(__dirname, "fixtures", "sample-tender-boq-long.pdf")).toString("base64") };
 const LONG_EXPECTED = JSON.parse(require("fs").readFileSync(require("path").join(__dirname, "fixtures", "sample-tender-boq-long.json"), "utf8"));
 CASES.push({
@@ -393,7 +413,8 @@ CASES.push(
 );
 
 // ---------- answer language (group "language"): reply must be in the script of the question or the chosen language ----------
-const words = (range, n) => new RegExp(`([${range}]+[\\s,.?!:;()-]+){${n},}`);
+// At least n words in that script anywhere in the answer (numbers, bold marks and brackets between them are fine).
+const words = (range, n) => check(`at least ${n} words in [${range}]`, (t) => (t.match(new RegExp(`[${range}]+`, "g")) || []).length >= n);
 CASES.push(
   { group: "language", name: "Hindi (Devanagari) question, Auto → Hindi answer", body: { message: "100 वर्ग फुट प्लास्टर के लिए कितना सीमेंट और रेत लगेगा?", language: "auto", audience: "worker" }, must: [words("\\u0900-\\u097F", 15)] },
   { group: "language", name: "Hinglish question, Auto → Hinglish (Latin) answer", body: { message: "slab ki curing kitne din karni chahiye?", language: "auto", audience: "worker" }, must: [/\b(din|karein|karna|chahiye|hai|paani|ke)\b/i], mustNot: [words("\\u0900-\\u097F", 8)] },

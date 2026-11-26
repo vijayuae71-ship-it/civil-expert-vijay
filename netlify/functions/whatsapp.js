@@ -17,6 +17,7 @@ const { toWhatsApp, splitMessages } = require("./whatsapp-format");
 const { BRAND_NAME } = require("./brand");
 const usage = require("./usage-stats");
 const { tradeFor, tradeFromIntro } = require("./trades");
+const Clarify = require("../../assets/clarify.js");
 
 const API_VERSION = process.env.WHATSAPP_API_VERSION || "v23.0";
 const SITE_URL = process.env.URL || "https://civilengineervijay.netlify.app";
@@ -284,7 +285,9 @@ async function handleMessage(event, stores, msg, { background = false } = {}) {
   try { data = JSON.parse(response.body); } catch {}
   if (response.statusCode !== 200 || !data.reply) return sendText(from, data.error || "Sorry, I could not answer right now. Please try again in a minute.", msg.id);
 
-  await sendText(from, toWhatsApp(data.reply), msg.id);
+  // Questions before answering ([[ASK]]): numbered questions, answered in one message or with "quick".
+  const ask = Clarify.parse(data.reply);
+  await sendText(from, ask ? Clarify.whatsappText(ask) : toWhatsApp(data.reply), msg.id);
   if (msg.type === "document") await sendText(from, "📄 Is this a tender BOQ or a supplier price list? Reply *tender* or *prices* to open it in the Quotation tools.");
   conversation.turns.push({ role: "user", text: attachment ? `${text}\n[${msg.type} attached]` : text }, { role: "model", text: data.reply });
   await saveConversation(stores.conversations, key, conversation);

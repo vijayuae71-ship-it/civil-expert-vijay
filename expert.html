@@ -21,6 +21,7 @@
     <script src="assets/quote.js"></script>
     <script src="assets/progress.js"></script>
     <script src="assets/pdftext.js"></script>
+    <script src="assets/clarify.js"></script>
     <style>
         html, body { height: 100%; }
         body { display: flex; flex-direction: column; height: 100dvh; }
@@ -596,7 +597,9 @@
 
         // BOQ, estimate and quotation questions in Detailed mode get a complete itemised BOQ.
         const BOQ_RE = /\b(boq|b\.o\.q|bill of quantit|estimat|quotation|quote|rate analysis|break\s?-?up|itemi[sz]ed|line items?|cost of construction|construction cost|costing|budget)/i;
-        const wantsFullBoq = (text, payload) => payload.audience === 'engineer' && (payload.quoteReady || BOQ_RE.test(text));
+        // Answers to the AI's questions ([[ASK]]) lead to the full estimate, which takes longer: always the background job.
+        const followsAsk = (payload) => { const last = (payload.history || []).at(-1); return !!last && last.role === 'model' && /^\s*\[\[ASK\]\]/.test(last.text || ''); };
+        const wantsFullBoq = (text, payload) => followsAsk(payload) || (payload.audience === 'engineer' && (payload.quoteReady || BOQ_RE.test(text)));
         async function backgroundAnswer(payload) {
             const jobId = (crypto.randomUUID ? crypto.randomUUID() : Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2, '0')).join(''));
             const start = await fetch('/.netlify/functions/chat-start', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...payload, jobId }) });
@@ -666,7 +669,40 @@
             if (waNumber) { const a = document.createElement('a'); a.className = 'rounded-lg border border-green-600 bg-white px-3 py-1.5 font-semibold text-green-700'; a.target = '_blank'; a.rel = 'noopener'; a.href = waLink(`Hello, I need help with: ${question}`); a.textContent = 'WhatsApp us'; card.lastElementChild.appendChild(a); }
             w.appendChild(card);
         }
-        function addAI(text, lang, { scroll = true, question = '', cacheKey = null, cached = false } = {}) {
+        // "Ask before answering": the AI's questions as tap-to-answer chips, sent back as one message.
+        function addAsk(ask, lang, { scroll = true, answered = false } = {}) {
+            const w = row('ai'); const col = document.createElement('div'); col.className = 'max-w-full w-full sm:w-auto sm:max-w-[95%]';
+            const b = document.createElement('div'); b.className = 'bubble px-4 py-3 text-[15px] leading-relaxed shadow-sm break-words';
+            if (RTL_LANGS.has(lang)) b.dir = 'rtl';
+            const intro = document.createElement('p'); intro.className = 'font-semibold'; intro.textContent = ask.intro || '🙋'; b.appendChild(intro);
+            const answers = ask.questions.map(() => '');
+            ask.questions.forEach((x, i) => {
+                const box = document.createElement('div'); box.className = 'mt-3';
+                const q = document.createElement('p'); q.className = 'text-sm font-semibold text-slate-800'; q.textContent = `${i + 1}. ${x.q}`; box.appendChild(q);
+                const chips = document.createElement('div'); chips.className = 'mt-1.5 flex flex-wrap gap-1.5'; chips.setAttribute('role', 'group'); chips.setAttribute('aria-label', x.q);
+                const other = document.createElement('input'); other.type = 'text'; other.placeholder = t('askType'); other.className = 'mt-1.5 w-full rounded-lg border border-slate-300 px-2 py-1 text-sm'; other.setAttribute('aria-label', `${x.q} — ${t('askType')}`);
+                const paint = () => chips.querySelectorAll('button').forEach(c => { const on = c.dataset.v === answers[i]; c.setAttribute('aria-pressed', on); c.className = `rounded-full border px-3 py-1 text-sm ${on ? 'border-blue-700 bg-blue-700 text-white' : 'border-slate-300 bg-white text-slate-800 hover:border-blue-400'}`; });
+                x.options.forEach(o => { const c = document.createElement('button'); c.type = 'button'; c.dataset.v = o; c.textContent = o; c.onclick = () => { answers[i] = answers[i] === o ? '' : o; other.value = ''; paint(); }; chips.appendChild(c); });
+                other.addEventListener('input', () => { answers[i] = other.value.trim(); paint(); });
+                paint(); box.append(chips, other); b.appendChild(box);
+            });
+            const btns = document.createElement('div'); btns.className = 'mt-4 flex flex-wrap gap-2';
+            const go = document.createElement('button'); go.type = 'button'; go.className = 'rounded-full bg-blue-700 px-4 py-2 text-sm font-bold text-white hover:bg-blue-800'; go.textContent = t('askGo');
+            const quick = document.createElement('button'); quick.type = 'button'; quick.className = 'rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:border-blue-400'; quick.textContent = t('askQuick');
+            const done = (msg) => { if (busy) return; b.querySelectorAll('button, input').forEach(e => { e.disabled = true; }); b.classList.add('opacity-80'); input.value = msg; send(); };
+            go.onclick = () => done(Clarify.answerText(ask, answers));
+            quick.onclick = () => done('Just give a quick estimate with your own assumptions.');
+            btns.append(go, quick); b.appendChild(btns);
+            if (answered) { b.querySelectorAll('button, input').forEach(e => { e.disabled = true; }); b.classList.add('opacity-80'); }
+            col.appendChild(b); w.appendChild(col);
+            if (scroll) w.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        function addAI(text, lang, opts = {}) {
+            const ask = window.Clarify && Clarify.parse(text);
+            if (ask) return addAsk(ask, lang, opts);
+            return addAnswer(text, lang, opts);
+        }
+        function addAnswer(text, lang, { scroll = true, question = '', cacheKey = null, cached = false } = {}) {
             const w = row('ai'); const col = document.createElement('div'); col.className = 'max-w-full w-full sm:w-auto sm:max-w-[95%]';
             const b = document.createElement('div'); b.className = 'bubble px-4 py-3 text-[15px] leading-relaxed shadow-sm break-words';
             if (RTL_LANGS.has(lang) || (lang === 'auto' && isMostlyArabicScript(text))) b.dir = 'rtl';
@@ -877,7 +913,7 @@
         // ---------- restore previous conversation ----------
         if (conversation.length) {
             $('welcome').classList.add('hidden');
-            conversation.forEach((m, i) => m.role === 'user' ? addUser(m.text) : addAI(m.text, m.lang, { scroll: false, question: conversation[i - 1]?.text || '', cacheKey: m.cacheKey }));
+            conversation.forEach((m, i) => m.role === 'user' ? addUser(m.text) : addAI(m.text, m.lang, { scroll: false, question: conversation[i - 1]?.text || '', cacheKey: m.cacheKey, answered: i < conversation.length - 1 }));
             scroller.scrollTop = scroller.scrollHeight;
         }
         // Question passed in the link (e.g. "Ask the AI about this" on the calculators page), and the
