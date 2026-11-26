@@ -413,7 +413,8 @@ CASES.push(
 );
 
 // ---------- answer language (group "language"): reply must be in the script of the question or the chosen language ----------
-const words = (range, n) => new RegExp(`([${range}]+[\\s,.?!:;()-]+){${n},}`);
+// At least n words in that script anywhere in the answer (numbers, bold marks and brackets between them are fine).
+const words = (range, n) => check(`at least ${n} words in [${range}]`, (t) => (t.match(new RegExp(`[${range}]+`, "g")) || []).length >= n);
 CASES.push(
   { group: "language", name: "Hindi (Devanagari) question, Auto → Hindi answer", body: { message: "100 वर्ग फुट प्लास्टर के लिए कितना सीमेंट और रेत लगेगा?", language: "auto", audience: "worker" }, must: [words("\\u0900-\\u097F", 15)] },
   { group: "language", name: "Hinglish question, Auto → Hinglish (Latin) answer", body: { message: "slab ki curing kitne din karni chahiye?", language: "auto", audience: "worker" }, must: [/\b(din|karein|karna|chahiye|hai|paani|ke)\b/i], mustNot: [words("\\u0900-\\u097F", 8)] },
