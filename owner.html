@@ -397,7 +397,8 @@
   let providers = [];
   const catName = (k) => (window.Leads ? Object.fromEntries(Leads.CATEGORIES)[k] : k) || k;
   if (window.Leads) Leads.CATEGORIES.forEach(([k, label]) => { const l = el("label", "sec"); l.style.fontSize = "12px"; const c = el("input"); c.type = "checkbox"; c.value = k; l.append(c, document.createTextNode(` ${label}`)); $("sp-cats").append(l); });
-  async function loadProviders() { const d = await ownerCall("owner-providers"); if (!d) return; providers = d.providers || []; renderProviders(); }
+  let providersSite = location.origin;
+  async function loadProviders() { const d = await ownerCall("owner-providers"); if (!d) return; providers = d.providers || []; providersSite = d.site || providersSite; renderProviders(); }
   function renderProviders() {
     const ul = $("sp-list"); ul.innerHTML = "";
     const pending = providers.filter((p) => !p.approved).length;
@@ -406,10 +407,17 @@
       const li = el("li"); li.style.cssText = "display:grid;gap:3px";
       li.append(el("div", "", `${p.approved ? (p.active === false ? "⏸ " : "✓ ") : "🕓 "}${p.business}${p.name ? ` · ${p.name}` : ""} · ${p.city}${p.pins && p.pins.length ? ` · PINs ${p.pins.join(", ")}` : " · whole city"}`));
       li.append(el("div", "sec", p.categories.map(catName).join(" · ")));
-      const stats = el("div", "muted", `open requests ${p.openOffers || 0} · delivered ${p.delivered || 0}${p.ratingCount ? ` · ★ ${(p.ratingSum / p.ratingCount).toFixed(1)} (${p.ratingCount})` : ""} · `);
+      const stats = el("div", "muted", `requests ${p.requestCount || 0} · open ${p.openOffers || 0} · delivered ${p.delivered || 0}${p.ratingCount ? ` · ★ ${(p.ratingSum / p.ratingCount).toFixed(1)} (${p.ratingCount})` : ""} · `);
       const tel = el("a", "", p.phone); tel.href = `https://wa.me/${p.phone.replace(/\D/g, "")}`; tel.target = "_blank"; tel.rel = "noopener"; stats.append(tel); li.append(stats);
       const row = el("div", "row");
       const save = async (patch) => { try { await ownerCall("owner-providers", "POST", { action: "save", ...p, ...patch }); await loadProviders(); } catch (e) { alert(e.message); } };
+      // The dealer's personal panel link (their "login"): send it on WhatsApp after approval.
+      if (p.approved && p.panelToken) {
+        const link = `${providersSite}/dealer?k=${p.panelToken}`;
+        const send = el("a", "btn", "Send panel link"); send.href = `https://wa.me/${p.phone.replace(/\D/g, "")}?text=${encodeURIComponent(`Welcome to Construction AI Expert, ${p.business}! Your dealer panel — all your material requests, quotes and deliveries (keep this link private, it's your login):\n${link}`)}`; send.target = "_blank"; send.rel = "noopener";
+        const copy = el("button", "", "Copy link"); copy.onclick = async () => { try { await navigator.clipboard.writeText(link); copy.textContent = "Copied"; } catch { prompt("Dealer panel link", link); } };
+        row.append(send, copy);
+      }
       if (!p.approved) row.append(Object.assign(el("button", "", "Approve"), { onclick: () => save({ approved: true, active: true }) }));
       else row.append(Object.assign(el("button", "", p.active === false ? "Resume" : "Pause"), { onclick: () => save({ active: p.active === false }) }));
       row.append(Object.assign(el("button", "", "Delete"), { onclick: async () => { if (!confirm(`Delete ${p.business}?`)) return; try { await ownerCall("owner-providers", "POST", { action: "delete", id: p.id }); await loadProviders(); } catch (e) { alert(e.message); } } }));

@@ -21,16 +21,21 @@ exports.handler = async (event) => {
       let b; try { b = JSON.parse(event.body || "{}"); } catch { return reply(400, { error: "Send JSON." }); }
       if (b.action === "delete") {
         if (!/^[a-f0-9]{12}$/.test(String(b.id || ""))) return reply(400, { error: "Unknown supplier." });
+        const cur = await store.get(`prov/${b.id}`, { type: "json" }).catch(() => null);
+        if (cur && cur.panelToken) await store.delete(`tok/${cur.panelToken}`);
         await store.delete(`prov/${b.id}`);
       } else if (b.action === "save") {
         let p; try { p = M.cleanProvider(b, { owner: true }); } catch (e) { return reply(400, { error: e.message }); }
         const id = /^[a-f0-9]{12}$/.test(String(b.id || "")) ? b.id : M.newId();
         const cur = await store.get(`prov/${id}`, { type: "json" }).catch(() => null) || { id, joinedAt: new Date().toISOString(), openOffers: 0 };
-        await store.setJSON(`prov/${id}`, { ...cur, ...p, id });
+        const next = { ...cur, ...p, id };
+        // An approved supplier gets a personal dealer-panel link (no password): dealer.html?k=<token>.
+        if (next.approved && !next.panelToken) { next.panelToken = M.token(); await store.setJSON(`tok/${next.panelToken}`, { role: "panel", providerId: id }); }
+        await store.setJSON(`prov/${id}`, next);
       } else return reply(400, { error: "Unknown action." });
     }
     const list = (await lead.loadProviders(store)).sort((a, b) => (a.approved === b.approved ? String(b.joinedAt).localeCompare(String(a.joinedAt)) : a.approved ? 1 : -1));
-    return reply(200, { providers: list, categories: require("../../assets/leads.js").CATEGORIES });
+    return reply(200, { providers: list.map(({ requests, ...p }) => ({ ...p, requestCount: (requests || []).length })), categories: require("../../assets/leads.js").CATEGORIES, site: lead.SITE });
   } catch (e) {
     console.error("Owner suppliers failed:", e?.name || e);
     return reply(500, { error: "Could not read the suppliers. Try again." });

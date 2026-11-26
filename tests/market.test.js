@@ -141,3 +141,35 @@ test("WhatsApp templates go out when set up: the supplier gets the link, the cus
   assert.equal(sent.at(-1).template.name, "you_were_chosen");
   for (const k of ["WHATSAPP_TOKEN", "WHATSAPP_PHONE_NUMBER_ID", "WHATSAPP_TEMPLATE_SUPPLIER", "WHATSAPP_TEMPLATE_CUSTOMER", "WHATSAPP_TEMPLATE_CHOSEN"]) delete process.env[k];
 });
+
+test("dealer panel: approval gives a personal link; it lists the dealer's requests; pausing stops new ones", async () => {
+  const store = memory(); lead.setStoreForTests(store); usage.setStoreForTests(null);
+  const panel = require("../netlify/functions/supplier-panel");
+  process.env.OWNER_KEY = "owner-key-123456";
+  const own = { host: "site", "x-owner-key": "owner-key-123456" };
+  await post(ownerProviders, { action: "save", business: "Ganesh Traders", name: "Ganesh", phone: "9845011111", city: "Mysuru", pins: "", categories: ["steel", "sand"] }, own);
+  const listed = json(await ownerProviders.handler({ httpMethod: "GET", headers: own })).providers[0];
+  assert.match(listed.panelToken, /^[a-f0-9]{32}$/);
+  assert.equal(listed.requests, undefined, "the request list stays on the dealer's panel, not the owner list");
+  const k = listed.panelToken;
+  const view = (key) => panel.handler({ httpMethod: "GET", headers: H, queryStringParameters: { k: key } });
+  let d = json(await view(k));
+  assert.equal(d.profile.business, "Ganesh Traders"); assert.equal(d.requests.length, 0); assert.equal(d.profile.active, true);
+  // a request arrives → it shows on the panel, then the quote is reflected
+  json(await post(lead, REQ));
+  d = json(await view(k));
+  assert.equal(d.requests.length, 1); assert.equal(d.requests[0].status, "sent"); assert.equal(d.stats.toQuote, 1);
+  assert.ok(!JSON.stringify(d).includes("9845012345"), "no customer contact on the panel before being chosen");
+  await post(quote, { t: d.requests[0].token, action: "quote", rates: [68, 1500], delivery: 0, deliveryDate: "2026-12-01" });
+  d = json(await view(k));
+  assert.equal(d.requests[0].status, "quoted"); assert.equal(d.requests[0].total, 23400); assert.equal(d.stats.quoted, 1);
+  // pause → no new requests
+  d = json(await panel.handler({ httpMethod: "POST", headers: H, body: JSON.stringify({ k, action: "pause" }) }));
+  assert.equal(d.profile.active, false);
+  assert.equal(json(await post(lead, REQ)).suppliers, 0);
+  // bad link, and the link stops working when the dealer is deleted
+  assert.equal((await view("0".repeat(32))).statusCode, 404);
+  await post(ownerProviders, { action: "delete", id: listed.id }, own);
+  assert.equal((await view(k)).statusCode, 404);
+  delete process.env.OWNER_KEY;
+});

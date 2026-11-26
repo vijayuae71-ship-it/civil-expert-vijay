@@ -64,3 +64,10 @@ test("PDF text: lines jsPDF cannot write (Tamil, Hindi, Arabic, ≤) are drawn a
   assert.match(html, /src="assets\/pdftext\.js"/);
   assert.match(fs.readFileSync(path.join(root, "sw.js"), "utf8"), /\/assets\/pdftext\.js/);
 });
+
+test("addresses people guess for the supplier pages are forwarded, not 'Page not found'", () => {
+  const toml = fs.readFileSync(path.join(root, "netlify.toml"), "utf8");
+  for (const [from, to] of [["/supplier", "/suppliers"], ["/suppliers/login", "/dealer"], ["/supplier-login", "/dealer"], ["/dealers", "/suppliers"], ["/join", "/suppliers"]])
+    assert.match(toml, new RegExp(`from = "${from}"\\s+to = "${to}"\\s+status = 301`), from);
+  for (const page of ["suppliers.html", "dealer.html", "materials.html", "quote.html"]) assert.ok(fs.existsSync(path.join(root, page)), page);
+});
