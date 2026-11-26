@@ -107,7 +107,7 @@ test("tender tasks use their own short instruction, keep the document cached, an
   await runJob(store, { task: "tender-items", message: "Copy the complete BOQ from the attached tender document.", attachments: [pdf] });
   const sys = systemText(calls[0]);
   assert.match(sys, /copy the bill of quantities/i);
-  assert.doesNotMatch(sys, /FULL ITEMISED BOQ|Construction AI Expert/);
+  assert.doesNotMatch(sys, /FULL ITEMISED BOQ|Sahi Nirman/);
   assert.deepEqual(calls[0].messages[0].content[0].cache_control, { type: "ephemeral" });
   const job = await ask(JOB);
   assert.equal(job.status, "done");

@@ -3,7 +3,7 @@
  *    came from), and once a day tells the owner dashboard about the visit: a random device code, that
  *    source, the page and whether the device is new. No names, numbers or questions.
  *  - Growth.link(code) / Growth.madeWith(code): the site link (tagged with where it was shared from)
- *    for the "Made with Construction AI Expert" line on PDFs, Excel files and WhatsApp messages.
+ *    for the "Made with Sahi Nirman" line on PDFs, Excel files and WhatsApp messages.
  *  - Buttons with data-share-app share the app with a ready message in the person's language.
  */
 (function (root) {
@@ -33,21 +33,21 @@
   const pageOf = (path) => clean(String(path || "/").replace(/\.html$/, "").replace(/^\/+|\/+$/g, "")) || "home";
 
   const link = (code) => `${BASE}/?r=${clean(code) || "share"}`;
-  const madeWith = (code) => `Made with Construction AI Expert (free construction AI) · ${link(code).replace(/^https?:\/\//, "")}`;
+  const madeWith = (code) => `Made with Sahi Nirman (sahi jawab · sahi rate · sahi delivery) · ${link(code).replace(/^https?:\/\//, "")}`;
 
   // The share message, in the language the person chose on the Ask AI page (else the phone's).
   const MSG = {
-    en: "Try Construction AI Expert — free AI for construction: ask any site question, get a BOQ and quotation from a tender, a bar bending schedule, or a snag list from site photos.",
-    hi: "Construction AI Expert आज़माइए — निर्माण के लिए मुफ़्त AI: साइट का कोई भी सवाल पूछें, टेंडर से BOQ और कोटेशन, बार बेंडिंग शेड्यूल, साइट फ़ोटो से स्नैग लिस्ट।",
-    kn: "Construction AI Expert ಬಳಸಿ ನೋಡಿ — ನಿರ್ಮಾಣಕ್ಕೆ ಉಚಿತ AI: ಸೈಟ್‌ನ ಯಾವುದೇ ಪ್ರಶ್ನೆ ಕೇಳಿ, ಟೆಂಡರ್‌ನಿಂದ BOQ ಮತ್ತು ಕೊಟೇಶನ್, ಬಾರ್ ಬೆಂಡಿಂಗ್ ಶೆಡ್ಯೂಲ್, ಸೈಟ್ ಫೋಟೋದಿಂದ ಸ್ನ್ಯಾಗ್ ಲಿಸ್ಟ್.",
-    ta: "Construction AI Expert-ஐ பயன்படுத்திப் பாருங்கள் — கட்டுமானத்திற்கான இலவச AI: சைட் கேள்விகள், டெண்டரிலிருந்து BOQ மற்றும் கொட்டேஷன், பார் பெண்டிங் ஷெட்யூல், சைட் போட்டோவிலிருந்து ஸ்னாக் லிஸ்ட்.",
-    te: "Construction AI Expert ఉపయోగించి చూడండి — నిర్మాణానికి ఉచిత AI: సైట్ ప్రశ్నలు, టెండర్ నుండి BOQ మరియు కొటేషన్, బార్ బెండింగ్ షెడ్యూల్, సైట్ ఫోటో నుండి స్నాగ్ లిస్ట్.",
-    ml: "Construction AI Expert ഉപയോഗിച്ചു നോക്കൂ — നിർമ്മാണത്തിനുള്ള സൗജന്യ AI: സൈറ്റ് ചോദ്യങ്ങൾ, ടെൻഡറിൽ നിന്ന് BOQ, ക്വട്ടേഷൻ, ബാർ ബെൻഡിംഗ് ഷെഡ്യൂൾ, സൈറ്റ് ഫോട്ടോയിൽ നിന്ന് സ്നാഗ് ലിസ്റ്റ്.",
-    mr: "Construction AI Expert वापरून पहा — बांधकामासाठी मोफत AI: साइटवरील कोणताही प्रश्न, टेंडरमधून BOQ आणि कोटेशन, बार बेंडिंग शेड्यूल, साइट फोटोवरून स्नॅग लिस्ट.",
-    bn: "Construction AI Expert ব্যবহার করে দেখুন — নির্মাণের জন্য বিনামূল্যে AI: সাইটের যেকোনো প্রশ্ন, টেন্ডার থেকে BOQ ও কোটেশন, বার বেন্ডিং শিডিউল, সাইটের ছবি থেকে স্ন্যাগ লিস্ট।",
-    pa: "Construction AI Expert ਵਰਤ ਕੇ ਦੇਖੋ — ਉਸਾਰੀ ਲਈ ਮੁਫ਼ਤ AI: ਸਾਈਟ ਦਾ ਕੋਈ ਵੀ ਸਵਾਲ, ਟੈਂਡਰ ਤੋਂ BOQ ਅਤੇ ਕੋਟੇਸ਼ਨ, ਬਾਰ ਬੈਂਡਿੰਗ ਸ਼ਡਿਊਲ, ਸਾਈਟ ਫੋਟੋ ਤੋਂ ਸਨੈਗ ਲਿਸਟ।",
-    ur: "Construction AI Expert استعمال کر کے دیکھیں — تعمیرات کے لیے مفت AI: سائٹ کا کوئی بھی سوال، ٹینڈر سے BOQ اور کوٹیشن، بار بینڈنگ شیڈول، سائٹ کی تصویر سے اسنیگ لسٹ۔",
-    ar: "جرّب Construction AI Expert — ذكاء اصطناعي مجاني للبناء: اسأل أي سؤال عن الموقع، واحصل على جدول كميات وعرض سعر من المناقصة، وجدول تفريد حديد التسليح، وقائمة ملاحظات من صور الموقع."
+    en: "Try Sahi Nirman — free AI for construction: ask any site question, get a BOQ and quotation from a tender, a bar bending schedule, or a snag list from site photos.",
+    hi: "Sahi Nirman आज़माइए — निर्माण के लिए मुफ़्त AI: साइट का कोई भी सवाल पूछें, टेंडर से BOQ और कोटेशन, बार बेंडिंग शेड्यूल, साइट फ़ोटो से स्नैग लिस्ट।",
+    kn: "Sahi Nirman ಬಳಸಿ ನೋಡಿ — ನಿರ್ಮಾಣಕ್ಕೆ ಉಚಿತ AI: ಸೈಟ್‌ನ ಯಾವುದೇ ಪ್ರಶ್ನೆ ಕೇಳಿ, ಟೆಂಡರ್‌ನಿಂದ BOQ ಮತ್ತು ಕೊಟೇಶನ್, ಬಾರ್ ಬೆಂಡಿಂಗ್ ಶೆಡ್ಯೂಲ್, ಸೈಟ್ ಫೋಟೋದಿಂದ ಸ್ನ್ಯಾಗ್ ಲಿಸ್ಟ್.",
+    ta: "Sahi Nirman-ஐ பயன்படுத்திப் பாருங்கள் — கட்டுமானத்திற்கான இலவச AI: சைட் கேள்விகள், டெண்டரிலிருந்து BOQ மற்றும் கொட்டேஷன், பார் பெண்டிங் ஷெட்யூல், சைட் போட்டோவிலிருந்து ஸ்னாக் லிஸ்ட்.",
+    te: "Sahi Nirman ఉపయోగించి చూడండి — నిర్మాణానికి ఉచిత AI: సైట్ ప్రశ్నలు, టెండర్ నుండి BOQ మరియు కొటేషన్, బార్ బెండింగ్ షెడ్యూల్, సైట్ ఫోటో నుండి స్నాగ్ లిస్ట్.",
+    ml: "Sahi Nirman ഉപയോഗിച്ചു നോക്കൂ — നിർമ്മാണത്തിനുള്ള സൗജന്യ AI: സൈറ്റ് ചോദ്യങ്ങൾ, ടെൻഡറിൽ നിന്ന് BOQ, ക്വട്ടേഷൻ, ബാർ ബെൻഡിംഗ് ഷെഡ്യൂൾ, സൈറ്റ് ഫോട്ടോയിൽ നിന്ന് സ്നാഗ് ലിസ്റ്റ്.",
+    mr: "Sahi Nirman वापरून पहा — बांधकामासाठी मोफत AI: साइटवरील कोणताही प्रश्न, टेंडरमधून BOQ आणि कोटेशन, बार बेंडिंग शेड्यूल, साइट फोटोवरून स्नॅग लिस्ट.",
+    bn: "Sahi Nirman ব্যবহার করে দেখুন — নির্মাণের জন্য বিনামূল্যে AI: সাইটের যেকোনো প্রশ্ন, টেন্ডার থেকে BOQ ও কোটেশন, বার বেন্ডিং শিডিউল, সাইটের ছবি থেকে স্ন্যাগ লিস্ট।",
+    pa: "Sahi Nirman ਵਰਤ ਕੇ ਦੇਖੋ — ਉਸਾਰੀ ਲਈ ਮੁਫ਼ਤ AI: ਸਾਈਟ ਦਾ ਕੋਈ ਵੀ ਸਵਾਲ, ਟੈਂਡਰ ਤੋਂ BOQ ਅਤੇ ਕੋਟੇਸ਼ਨ, ਬਾਰ ਬੈਂਡਿੰਗ ਸ਼ਡਿਊਲ, ਸਾਈਟ ਫੋਟੋ ਤੋਂ ਸਨੈਗ ਲਿਸਟ।",
+    ur: "Sahi Nirman استعمال کر کے دیکھیں — تعمیرات کے لیے مفت AI: سائٹ کا کوئی بھی سوال، ٹینڈر سے BOQ اور کوٹیشن، بار بینڈنگ شیڈول، سائٹ کی تصویر سے اسنیگ لسٹ۔",
+    ar: "جرّب Sahi Nirman — ذكاء اصطناعي مجاني للبناء: اسأل أي سؤال عن الموقع، واحصل على جدول كميات وعرض سعر من المناقصة، وجدول تفريد حديد التسليح، وقائمة ملاحظات من صور الموقع."
   };
   function userLang() {
     let pref = "";

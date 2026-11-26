@@ -37,9 +37,9 @@ test("source of a visit: tagged links first, then the sending site; own site and
 
 test("made-with line and share message carry a tagged link; share text in the person's language", () => {
   assert.equal(G.link("pdf-ai"), "https://civilengineervijay.netlify.app/?r=pdf-ai");
-  assert.equal(G.madeWith("wa-snag"), "Made with Construction AI Expert (free construction AI) · civilengineervijay.netlify.app/?r=wa-snag");
-  assert.match(G.shareText("kn"), /^Construction AI Expert ಬಳಸಿ ನೋಡಿ[^\n]*\nhttps:\/\/civilengineervijay\.netlify\.app\/\?r=share$/);
-  assert.match(G.shareText("xx"), /^Try Construction AI Expert/);
+  assert.equal(G.madeWith("wa-snag"), "Made with Sahi Nirman (sahi jawab · sahi rate · sahi delivery) · civilengineervijay.netlify.app/?r=wa-snag");
+  assert.match(G.shareText("kn"), /^Sahi Nirman ಬಳಸಿ ನೋಡಿ[^\n]*\nhttps:\/\/civilengineervijay\.netlify\.app\/\?r=share$/);
+  assert.match(G.shareText("xx"), /^Try Sahi Nirman/);
   for (const lang of ["en", "hi", "ur", "ar", "ml", "ta", "bn", "kn", "mr", "te", "pa"]) assert.ok(G.MSG[lang], lang);
 });
 

@@ -1,6 +1,6 @@
 {
-  "name": "Construction AI Expert",
-  "short_name": "Construction AI",
+  "name": "Sahi Nirman",
+  "short_name": "Sahi Nirman",
   "description": "Construction answers for site workers and engineers: concrete, MEP, BOQ, site safety, drawings and calculators.",
   "start_url": "/expert?source=app",
   "scope": "/",

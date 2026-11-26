@@ -11,13 +11,13 @@ Go to **business.facebook.com** and create a business portfolio in your company'
 
 ## 2. Create the app
 1. Go to **developers.facebook.com → My Apps → Create app**.
-2. Choose the **Business** type (or the "Connect with customers through WhatsApp" use case), name it, for example "Construction AI Expert", and link it to your business portfolio.
+2. Choose the **Business** type (or the "Connect with customers through WhatsApp" use case), name it, for example "Sahi Nirman", and link it to your business portfolio.
 3. In the app, add the **WhatsApp** product.
 
 ## 3. Add the phone number
 1. Open **WhatsApp → API Setup**.
 2. Meta gives you a free **test number** first. You can test with it straight away by adding your own phone under "To" as a recipient.
-3. For the real bot, choose **Add phone number**. Enter the display name ("Construction AI Expert"), the category (Professional services) and the number, then verify it by SMS or call.
+3. For the real bot, choose **Add phone number**. Enter the display name ("Sahi Nirman"), the category (Professional services) and the number, then verify it by SMS or call.
 4. Copy the **Phone number ID**. It's a long number shown on the API Setup page.
 
 ## 4. Permanent access token

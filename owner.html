@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex, nofollow">
-  <title>Owner Dashboard | Construction AI Expert</title>
+  <title>Owner Dashboard | Sahi Nirman</title>
   <link rel="icon" href="assets/logo.svg" type="image/svg+xml">
   <style>
     :root {
@@ -56,7 +56,7 @@
 <body>
 <main>
   <div class="row" style="justify-content: space-between">
-    <div><h1>Owner dashboard</h1><p class="muted" style="margin:2px 0 0">Construction AI Expert · private · days are UTC · AI cost is an estimate from list prices</p></div>
+    <div><h1>Owner dashboard</h1><p class="muted" style="margin:2px 0 0">Sahi Nirman · private · days are UTC · AI cost is an estimate from list prices</p></div>
     <div class="row" id="ranges" role="group" aria-label="Date range">
       <button type="button" data-days="7" aria-pressed="true">7 days</button><button type="button" data-days="30" aria-pressed="false">30 days</button><button type="button" data-days="90" aria-pressed="false">90 days</button>
       <button type="button" id="refresh" title="Reload">↻</button>
@@ -414,7 +414,7 @@
       // The dealer's personal panel link (their "login"): send it on WhatsApp after approval.
       if (p.approved && p.panelToken) {
         const link = `${providersSite}/dealer?k=${p.panelToken}`;
-        const send = el("a", "btn", "Send panel link"); send.href = `https://wa.me/${p.phone.replace(/\D/g, "")}?text=${encodeURIComponent(`Welcome to Construction AI Expert, ${p.business}! Your dealer panel — all your material requests, quotes and deliveries (keep this link private, it's your login):\n${link}`)}`; send.target = "_blank"; send.rel = "noopener";
+        const send = el("a", "btn", "Send panel link"); send.href = `https://wa.me/${p.phone.replace(/\D/g, "")}?text=${encodeURIComponent(`Welcome to Sahi Nirman, ${p.business}! Your dealer panel — all your material requests, quotes and deliveries (keep this link private, it's your login):\n${link}`)}`; send.target = "_blank"; send.rel = "noopener";
         const copy = el("button", "", "Copy link"); copy.onclick = async () => { try { await navigator.clipboard.writeText(link); copy.textContent = "Copied"; } catch { prompt("Dealer panel link", link); } };
         row.append(send, copy);
       }
